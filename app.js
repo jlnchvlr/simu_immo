@@ -414,6 +414,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique };
     }
 
+    // Algorithme de calcul du TAEG Global (Taux de Rendement Interne)
+    function calculerTAEGGlobal(montantEmprunteTotal, fluxMensuels, fraisInitiaux) {
+        if (montantEmprunteTotal <= 0 || fluxMensuels.length === 0) return 0;
+        let minRate = 0, maxRate = 1, rate = 0.005; // Recherche par dichotomie
+        const montantNetPercu = montantEmprunteTotal - fraisInitiaux; // On déduit les frais du montant perçu par l'emprunteur
+        
+        for (let i = 0; i < 50; i++) {
+            let npv = -montantNetPercu;
+            for (let t = 0; t < fluxMensuels.length; t++) {
+                npv += fluxMensuels[t] / Math.pow(1 + rate, t + 1);
+            }
+            if (Math.abs(npv) < 0.01) break; // Précision atteinte au centime près
+            if (npv > 0) { minRate = rate; rate = (rate + maxRate) / 2; } 
+            else { maxRate = rate; rate = (rate + minRate) / 2; }
+        }
+        return (Math.pow(1 + rate, 12) - 1) * 100; // Conversion en TAEG annuel
+    }
+
     function calculerScenariosClassiques(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails) {
         const scenarios = { 20: {}, 25: {} };
         const chargesFixes = state.AutresCredits + state.AutresCharges;
@@ -441,6 +459,33 @@ document.addEventListener('DOMContentLoaded', () => {
             const fraisInitiauxPourTAEG = state.FD + garDetails.cout + state.Courtier;
             s.classic_TAEG = s.classic_amount > 0 ? calculerTAEG(s.classic_amount, s.mensTotaleClassique, duree * 12, fraisInitiauxPourTAEG) : 0;
             s.tauxEndettement = state.S > 0 ? ((s.mensTotaleGlobale + chargesFixes) / state.S) * 100 : Infinity;
+
+            // --- DEBUT DU NOUVEAU BLOC POUR LE TAEG GLOBAL ---
+            // 1. On crée un tableau vide pour tous les mois du projet (ex: 240 mois ou 300 mois)
+            let fluxMensuels = new Array(duree * 12).fill(0);
+            
+            // 2. On ajoute les mensualités classiques sur toute la durée
+            for(let i = 0; i < duree * 12; i++) {
+                fluxMensuels[i] += s.mensTotaleClassique;
+            }
+            // 3. On superpose les mensualités du PIB (s'il y en a) sur sa propre durée
+            if(pib.amount > 0) { 
+                for(let i = 0; i < Math.min(pib.duration * 12, duree * 12); i++) {
+                    fluxMensuels[i] += pib.monthlyPayment; 
+                }
+            }
+            // 4. On superpose les mensualités du PTB (s'il y en a) sur sa propre durée
+            if(ptb.amount > 0) { 
+                for(let i = 0; i < Math.min(ptb.duration * 12, duree * 12); i++) {
+                    fluxMensuels[i] += ptb.monthlyPayment; 
+                }
+            }
+            
+            // 5. On calcule le TAEG global avec tous ces flux mélangés
+            const montantEmprunteTotal = s.classic_amount + pib.amount + ptb.amount;
+            s.taegGlobal = montantEmprunteTotal > 0 ? calculerTAEGGlobal(montantEmprunteTotal, fluxMensuels, fraisInitiauxPourTAEG) : 0;
+            // --- FIN DU NOUVEAU BLOC ---
+
 
             // Calcul du coût si on faisait tout en crédit classique (pour voir l'économie)
             let coutOpPourClassicOnly = coutTotalOperation;
@@ -571,16 +616,7 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
         setText('scen_classic_amount_display', formatCurrency(besoinCreditFinalClassique) + " €");
         setDisplay('res_classic_loan_amount_row', besoinCreditFinalClassique > 0 ? 'table-row' : 'none');
 
-        ['ptb', 'pib'].forEach(loanType => {
-            const loanData = loanType === 'ptb' ? ptb : pib;
-            setDisplay(`${loanType}_scenario_header_row`, loanData.amount > 0 ? 'table-row' : 'none');
-            setDisplay(`${loanType}_scenario_amount_row`, loanData.amount > 0 ? 'table-row' : 'none');
-            setDisplay(`${loanType}_scenario_mensualite_row`, loanData.amount > 0 ? 'table-row' : 'none');
-            if (loanData.amount > 0) {
-                setText(`scen_${loanType}_amount_display`, formatCurrency(loanData.amount) + " €");
-                setText(`scen_${loanType}_mensualite_display`, formatCurrency(loanData.monthlyPayment, 2) + " €");
-            }
-        });
+        
 
         setText('scen_classic_mensualite_diff', formatCurrency(scenData.scenarios[25].mensTotaleClassique - scenData.scenarios[20].mensTotaleClassique, 2) + " €");
         setText('comp_mensualite_diff', formatCurrency(scenData.scenarios[25].mensTotaleGlobale - scenData.scenarios[20].mensTotaleGlobale, 2) + " €");
@@ -634,6 +670,50 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
             setDisplay('ira_pib_container', state.isPIBEnabled ? 'flex' : 'none');
             setDisplay('ira_ptb_container', state.isPTBEnabled ? 'flex' : 'none');
         }
+        // --- NOUVEAU BLOC : Affichage du TAEG Global et Nettoyage du tableau ---
+        
+        // 1. Mettre à jour les chiffres du nouveau TAEG Global (sécurisé)
+        if (scenData && scenData.scenarios) {
+            [20, 25].forEach(duree => {
+                const s = scenData.scenarios[duree];
+                if (s && s.taegGlobal !== undefined) {
+                    setText(`comp_TAEG_global_${duree}`, `${formatPercentage(s.taegGlobal, 2)} %`);
+                }
+            });
+            if (scenData.scenarios[20] && scenData.scenarios[25]) {
+                const taegDiff = (scenData.scenarios[25].taegGlobal || 0) - (scenData.scenarios[20].taegGlobal || 0);
+                setText('comp_TAEG_global_diff', `${formatPercentage(taegDiff, 2)} %`);
+            }
+        }
+
+        // 2. Gérer la redondance : afficher/cacher les lignes PIB/PTB et le "Combiné"
+        const hasPTB = ptb && ptb.amount > 0;
+        const hasPIB = pib && pib.amount > 0;
+        const hasBonifiedLoans = hasPTB || hasPIB;
+
+        // Affichage dynamique et INJECTION DES VALEURS pour le PTB
+        setDisplay('ptb_scenario_header_row', hasPTB ? 'table-row' : 'none');
+        setDisplay('ptb_scenario_amount_row', hasPTB ? 'table-row' : 'none');
+        setDisplay('ptb_scenario_mensualite_row', hasPTB ? 'table-row' : 'none');
+        if (hasPTB) {
+            setText('scen_ptb_amount_display', formatCurrency(ptb.amount) + " €");
+            setText('scen_ptb_mensualite_display', formatCurrency(ptb.monthlyPayment, 2) + " €");
+        }
+        
+        // Affichage dynamique et INJECTION DES VALEURS pour le PIB
+        setDisplay('pib_scenario_header_row', hasPIB ? 'table-row' : 'none');
+        setDisplay('pib_scenario_amount_row', hasPIB ? 'table-row' : 'none');
+        setDisplay('pib_scenario_mensualite_row', hasPIB ? 'table-row' : 'none');
+        if (hasPIB) {
+            setText('scen_pib_amount_display', formatCurrency(pib.amount) + " €");
+            setText('scen_pib_mensualite_display', formatCurrency(pib.monthlyPayment, 2) + " €");
+        }
+
+        // On affiche ou cache toutes les lignes "Combiné"
+        document.querySelectorAll('.combine-only').forEach(el => {
+            el.style.display = hasBonifiedLoans ? 'table-row' : 'none';
+        });
+        // --- FIN DU NOUVEAU BLOC ---
     }
 
     function calculateAll() {
