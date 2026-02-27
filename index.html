@@ -391,21 +391,24 @@
                                 <tr class="loan-section-title"><td colspan="4">Prêt Classique</td></tr>
                                 <tr class="sub-loan-details"><td>Montant Prêt Classique</td><td id="scen_classic_amount_display" colspan="2">0 €</td><td>-</td></tr>
                                 <tr class="sub-loan-details"><td>Mensualité Prêt Classique</td><td id="scen_classic_mensualite_20">0 €</td><td id="scen_classic_mensualite_25">0 €</td><td id="scen_classic_mensualite_diff">0 €</td></tr>
+                                <tr class="sub-loan-details"><td>TAEG Prêt Classique (Banque)</td><td id="comp_TAEG_20">0 %</td><td id="comp_TAEG_25">0 %</td><td id="comp_TAEG_diff">0 %</td></tr>
+                                <tr class="sub-loan-details"><td>Amort. Prêt Classique</td>
+                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_20">Voir l'échéancier sur 20 ans</button></td>
+                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_25">Voir l'échéancier sur 25 ans</button></td>
+                                    <td>-</td>
+                                </tr>
                                 
-                                <tr class="loan-section-title"><td colspan="4">TOTAL COMBINÉ</td></tr>
-                                <tr><td>Mensualité Totale</td><td id="comp_mensualite_20">0 €</td><td id="comp_mensualite_25">0 €</td><td id="comp_mensualite_diff">0 €</td></tr>
+                                <tr class="loan-section-title combine-only"><td colspan="4">TOTAL COMBINÉ DE L'OPÉRATION</td></tr>
+                                <tr class="combine-only"><td>Mensualité Totale (Tous crédits)</td><td id="comp_mensualite_20">0 €</td><td id="comp_mensualite_25">0 €</td><td id="comp_mensualite_diff">0 €</td></tr>
+                                <tr class="combine-only" style="font-weight: bold; color: var(--primary-color);"><td>TAEG Global (Projet) <span class="info-icon" data-info-key="taeg_comp_info">ⓘ</span></td><td id="comp_TAEG_global_20">0 %</td><td id="comp_TAEG_global_25">0 %</td><td id="comp_TAEG_global_diff">0 %</td></tr>
+                                
                                 <tr><td>Respect Mensualité Max</td><td id="respectMensualite_20" class="status-cell"></td><td id="respectMensualite_25" class="status-cell"></td><td></td></tr>
                                 <tr><td>Taux Endettement Global</td><td id="comp_tauxEndettement_20">0 %</td><td id="comp_tauxEndettement_25">0 %</td><td id="comp_tauxEndettement_diff">0 %</td></tr>
                                 <tr><td>Reste à Vivre Mensuel</td><td id="comp_resteAVivre_20">0 €</td><td id="comp_resteAVivre_25">0 €</td><td id="comp_resteAVivre_diff">0 €</td></tr>
                                 <tr><td>Coût Total des Crédits</td><td id="comp_coutCredit_20">0 €</td><td id="comp_coutCredit_25">0 €</td><td id="comp_coutCredit_diff">0 €</td></tr>
-                                <tr><td>TAEG Prêt Classique <span class="info-icon" data-info-key="taeg_comp_info">ⓘ</span></td><td id="comp_TAEG_20">0 %</td><td id="comp_TAEG_25">0 %</td><td id="comp_TAEG_diff">0 %</td></tr>
-                                <tr><td>Amort. Prêt Classique</td>
-                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_20">Voir l'échéancier sur 20 ans</button></td>
-                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_25">Voir l'échéancier sur 25 ans</button></td>
-                                    <td>-</td></tr>
                                 <tr><td>Coût Total Opération (avec crédits)</td><td id="comp_coutOperation_20">0 €</td><td id="comp_coutOperation_25">0 €</td><td id="comp_coutOperation_diff">0 €</td></tr>
-                                <tr class="classic-only-row"><td>Coût Total Opération (si Prêt Classique Seul) <span class="info-icon" data-info-key="classic_only_info">ⓘ</span></td><td id="comp_coutOperationClassicOnly_20">0 €</td><td id="comp_coutOperationClassicOnly_25">0 €</td><td id="comp_coutOperationClassicOnly_diff">0 €</td></tr>
-                                <tr class="savings-row"><td>Économie Prêts Bonifiés <span class="info-icon" data-info-key="savings_info">ⓘ</span></td><td id="comp_savings_20">0 €</td><td id="comp_savings_25">0 €</td><td id="comp_savings_diff">0 €</td></tr>
+                                <tr class="combine-only"><td>Coût Total Opération (si Prêt Classique Seul) <span class="info-icon" data-info-key="classic_only_info">ⓘ</span></td><td id="comp_coutOperationClassicOnly_20">0 €</td><td id="comp_coutOperationClassicOnly_25">0 €</td><td id="comp_coutOperationClassicOnly_diff">0 €</td></tr>
+                                <tr class="combine-only savings-row"><td>Économie Prêts Bonifiés <span class="info-icon" data-info-key="savings_info">ⓘ</span></td><td id="comp_savings_20">0 €</td><td id="comp_savings_25">0 €</td><td id="comp_savings_diff">0 €</td></tr>
                             </tbody>
                         </table>
                     </div>
