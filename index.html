@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulateur Achat Immobilier V6.4</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <main class="container">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+            <button id="btn-reset" class="btn-reset">🔄 Réinitialiser la simulation</button>
+        </div>
+        <div id="operation-tab" class="tab-content active">
+             <section id="inputs-section" class="card two-columns">
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>💰 Prix et Frais d'acquisition</h3>
+                        
+                        <div class="input-item">
+                            <label for="P">Prix net vendeur (€) : <span class="info-icon" data-info-key="P_info">ⓘ</span></label>
+                            <input type="range" id="P" min="50000" max="2000000" value="750000" step="10000"> 
+                            <input type="number" id="P_num" min="50000" max="2000000" value="750000" step="10000"> 
+                        </div>
+                        <div class="input-item">
+                            <label for="FAg">Frais d'agence (en %) : <span class="info-icon" data-info-key="FAg_info">ⓘ</span></label>
+                            <input type="range" id="FAg" min="0" max="10" value="5" step="0.1">
+                            <input type="number" id="FAg_num" min="0" max="10" value="5" step="0.1">
+                            <span class="calculated-value"><strong id="FAg_montant">0</strong> €</span>
+                        </div>
+                        <div class="input-item">
+                            <label for="chargeAgence">Frais d'agence à la charge : <span class="info-icon" data-info-key="chargeAgence_info">ⓘ</span></label>
+                            <select id="chargeAgence">
+                                <option value="acquereur" selected>Acquéreur (Moins de frais de notaire)</option>
+                                <option value="vendeur">Vendeur (Moins d'apport exigé)</option>
+                            </select>
+                        </div>
+                        <div class="summary-line">
+                            <p>Prix FAI : <strong id="prixFAI">0</strong> €</p>
+                        </div>
+                        <div class="input-item">
+                            <label for="M">Prix du mobilier (€) : <span class="info-icon" data-info-key="M_info">ⓘ</span></label>
+                            <input type="range" id="M" min="0" max="50000" value="0" step="500">
+                            <input type="number" id="M_num" min="0" max="50000" value="0" step="500">
+                        </div>
+                        <div class="input-item">
+                            <label for="typeBien">Type de bien : <span class="info-icon" data-info-key="typeBien_info">ⓘ</span></label>
+                            <select id="typeBien">
+                                <option value="ancien">Ancien</option>
+                                <option value="neuf">Neuf</option>
+                            </select>
+                        </div>
+                        <div class="input-item">
+                            <label for="FN_mode">Calcul Frais Notaire : <span class="info-icon" data-info-key="FN_mode_info">ⓘ</span></label>
+                            <select id="FN_mode">
+                                <option value="auto" selected>Automatique</option>
+                                <option value="manual">Manuel</option>
+                            </select>
+                        </div>
+                        <div class="input-item fn-input-group">
+                            <label for="FN">Frais de notaire : <span class="info-icon" data-info-key="FN_info">ⓘ</span></label>
+                            <input type="range" id="FN" min="0" max="50000" value="7.5" step="0.1"> 
+                            <input type="number" id="FN_num" min="0" max="50000" value="7.5" step="0.1">
+                            <span class="calculated-value"><strong id="FN_montant">0</strong> € <span id="FN_pc_manual" style="display:none;"> (<span id="FN_montant_pc">0</span> %)</span></span>
+                        </div>
+                        <div class="details-toggle" id="fnDetailsToggleTrigger">Cacher détails calcul auto. frais notaire ▲</div>
+                        <div id="fn_breakdown" class="details-content visible">
+                            <p>Base de calcul : <strong id="fn_base_calc">0</strong> € (<span id="fn_type_bien_label">ancien</span>)</p>
+                            <p>Droits de mutation : <strong id="fn_taxes">0</strong> € (<span id="fn_taxes_pc">0 %</span>)</p>
+                            <p>Émoluments du notaire : <strong id="fn_emoluments">0</strong> € (<span id="fn_emoluments_pc">0 %</span>)</p>
+                            <p>Débours et formalités : <strong id="fn_debours">0</strong> € (<span id="fn_debours_pc">0 %</span>)</p>
+                        </div>
+                        <div class="input-item">
+                            <label for="typeGarantie">Type de garantie Prêt Classique : <span class="info-icon" data-info-key="typeGarantie_info">ⓘ</span></label>
+                            <select id="typeGarantie">
+                                <option value="caution">Caution</option>
+                                <option value="hypotheque">Hypothèque</option>
+                                <option value="ppd">PPD</option>
+                                <option value="manual_guarantee">Manuel</option> 
+                            </select>
+                        </div>
+                        <div class="input-item" id="manualGuaranteeInput" style="display:none;">
+                            <label for="FG_manual">Coût garantie manuel (€) : <span class="info-icon" data-info-key="FG_manual_info">ⓘ</span></label>
+                            <input type="range" id="FG_manual" min="0" max="10000" value="0" step="100">
+                            <input type="number" id="FG_manual_num" min="0" max="10000" value="0" step="100">
+                        </div>
+                        <div class="details-toggle" id="fgDetailsToggleTrigger">Cacher détails garantie Prêt Classique ▲</div>
+                        <div id="FG_details" class="details-content visible">
+                            <p id="FG_description">Description de la garantie.</p>
+                            <p>Coût estimé : <strong id="FG_montant">0</strong> € <span class="info-icon" data-info-key="fg_montant">ⓘ</span></p>
+                        </div>
+                        <div class="input-item">
+                            <label for="FD">Frais dossier Prêt Classique (€) : <span class="info-icon" data-info-key="FD_info">ⓘ</span></label>
+                            <input type="range" id="FD" min="0" max="2000" value="500" step="50">
+                            <input type="number" id="FD_num" min="0" max="2000" value="500" step="50">
+                        </div>
+                        <div class="input-item">
+                            <label for="Courtier">Frais de courtier (€) : <span class="info-icon" data-info-key="Courtier_info">ⓘ</span></label>
+                            <input type="range" id="Courtier" min="0" max="10000" value="0" step="100">
+                            <input type="number" id="Courtier_num" min="0" max="10000" value="0" step="100">
+                        </div>
+                        <hr>
+                        <p class="section-description">Montant total estimé des travaux. Laissez à 0 € si aucun travaux.</p>
+                        <div class="input-item final-travaux-cost">
+                            <label for="T">Montant total travaux (€) : <span class="info-icon" data-info-key="T_info">ⓘ</span></label>
+                            <input type="range" id="T" min="0" max="300000" value="0" step="1000"> <input type="number" id="T_num" min="0" max="300000" value="0" step="1000">
+                        </div>
+                        
+                        
+                    </div>
+                </div>
+
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>📊 Votre Profil Financier & Capacité</h3>
+                        
+                        <div class="input-item">
+                            <label for="A">Apport personnel (€) : <span class="info-icon" data-info-key="A_info">ⓘ</span></label>
+                            <input type="range" id="A" min="0" max="1000000" value="80000" step="1000">
+                            <input type="number" id="A_num" min="0" max="1000000" value="80000" step="1000">
+                        </div>
+                        <div class="input-item">
+                            <label for="S">Salaires nets mensuels (€) : <span class="info-icon" data-info-key="S_info">ⓘ</span></label>
+                            <input type="range" id="S" min="1500" max="30000" value="15000" step="100"> 
+                            <input type="number" id="S_num" min="1500" max="30000" value="15000" step="100">
+                        </div>
+                        <div class="input-item">
+                            <label for="AutresCredits">Autres crédits (mensualité) (€) : <span class="info-icon" data-info-key="AutresCredits_info">ⓘ</span></label>
+                            <input type="range" id="AutresCredits" min="0" max="2000" value="0" step="50"> 
+                            <input type="number" id="AutresCredits_num" min="0" max="2000" value="0" step="50">
+                        </div>
+                        <div class="input-item">
+                            <label for="AutresCharges">Autres charges mensuelles (€) : <span class="info-icon" data-info-key="AutresCharges_info">ⓘ</span></label>
+                            <input type="range" id="AutresCharges" min="0" max="5000" value="0" step="50"> 
+                            <input type="number" id="AutresCharges_num" min="0" max="5000" value="0" step="50">
+                        </div>
+                        <div class="input-item">
+                            <label for="TEdt">Taux endettement max (%) : <span class="info-icon" data-info-key="tedt_info">ⓘ</span></label>
+                            <input type="range" id="TEdt" min="10" max="55" value="35" step="1"> 
+                            <input type="number" id="TEdt_num" min="10" max="55" value="35" step="1">
+                        </div>
+                        <div class="input-item">
+                            <label for="RAV">Reste à vivre min. (€) : <span class="info-icon" data-info-key="rav_info">ⓘ</span></label>
+                            <input type="range" id="RAV" min="500" max="15000" value="8000" step="50"> 
+                            <input type="number" id="RAV_num" min="500" max="15000" value="8000" step="50">
+                        </div>
+
+                        <div class="input-group">
+                            <h4>🏦 Conditions Prêt Classique</h4>
+                             <div class="input-item">
+                                <label for="TE_20">Taux nominal 20 ans (%) : <span class="info-icon" data-info-key="TE_20_info">ⓘ</span></label>
+                                <input type="range" id="TE_20" min="0.5" max="7" value="2.85" step="0.01"> 
+                                <input type="number" id="TE_20_num" min="0.5" max="7" value="2.85" step="0.01">
+                            </div>
+                            <div class="input-item">
+                                <label for="TA_20">Taux assurance 20 ans (%) : <span class="info-icon" data-info-key="TA_20_info">ⓘ</span></label>
+                                <input type="range" id="TA_20" min="0.05" max="1.5" value="0.3" step="0.01"> 
+                                <input type="number" id="TA_20_num" min="0.05" max="1.5" value="0.3" step="0.01">
+                            </div>
+                            <div class="input-item">
+                                <label for="TE_25">Taux nominal 25 ans (%) : <span class="info-icon" data-info-key="TE_25_info">ⓘ</span></label>
+                                <input type="range" id="TE_25" min="0.5" max="7.5" value="2.95" step="0.01"> 
+                                <input type="number" id="TE_25_num" min="0.5" max="7.5" value="2.95" step="0.01">
+                            </div>
+                            <div class="input-item">
+                                <label for="TA_25">Taux assurance 25 ans (%) : <span class="info-icon" data-info-key="TA_25_info">ⓘ</span></label>
+                                <input type="range" id="TA_25" min="0.05" max="1.5" value="0.3" step="0.01"> 
+                                <input type="number" id="TA_25_num" min="0.05" max="1.5" value="0.3" step="0.01">
+                            </div>
+                        </div>
+
+                        
+                    </div>
+                </div>
+            </section>
+            <section id="bonified-loans-section" class="card two-columns">
+                <div style="width: 100%; display: flex; justify-content: center; padding-bottom: 1.5rem; border-bottom: 1px dashed var(--border-color); margin-bottom: 0.5rem;">
+                    <div class="input-item" style="background-color: #e8f5e9; padding: 12px 25px; border-radius: 50px; border: 2px solid var(--primary-color); box-shadow: var(--shadow-medium); justify-content: center; flex-wrap: wrap; gap: 15px; margin: 0;">
+                        
+                        <label for="pibBFMRate" style="font-size: 1.05rem; font-weight: 700; color: var(--primary-color); margin: 0;">
+                            🏦 Taux de base BFM (Commun) : <span class="info-icon" data-info-key="pibBFMRate_info">ⓘ</span>
+                        </label>
+                        
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <input type="range" id="pibBFMRate" min="0.5" max="7" value="3.74" step="0.01" style="width: 180px; height: 8px;">
+                            <input type="number" id="pibBFMRate_num" min="0.5" max="7" value="3.74" step="0.01" style="font-size: 1.1rem; font-weight: bold; width: 80px; text-align: center; color: var(--primary-color); border-color: var(--primary-color);">
+                        </div>
+
+                    </div>
+                </div>
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>🛠️ Prêt Travaux Bonifié (PTB DGAC)</h3>
+                        <div class="input-item checkbox-item">
+                            <input type="checkbox" id="enablePTB">
+                            <label for="enablePTB">Inclure un PTB ?</label>
+                        </div>
+                        <div id="ptbInputsContainer" style="display: none;">
+                            <div class="input-item">
+                                <label for="ptbAgentStatus">Statut agent : <span class="info-icon" data-info-key="ptbAgentStatus_info">ⓘ</span></label>
+                                <select id="ptbAgentStatus"> <option value="actif">Actif</option> <option value="retraite">Retraité</option> </select>
+                            </div>
+                            <div class="input-item">
+                                <label for="ptbZone">Zone travaux (si actif) : <span class="info-icon" data-info-key="ptbZone_info">ⓘ</span></label>
+                                <select id="ptbZone"> <option value="A">A/A bis/Reims/Corse</option> <option value="B1B2">B1/B2</option> <option value="C">C</option> </select>
+                            </div>
+                            <div class="input-item">
+                                <label for="ptbRFR">RFR N-2 (PTB) (€) : <span class="info-icon" data-info-key="ptbRFR_info">ⓘ</span></label>
+                                <input type="range" id="ptbRFR" min="0" max="150000" value="45000" step="1000">
+                                <input type="number" id="ptbRFR_num" min="0" max="150000" value="45000" step="1000">
+                            </div>
+                            <div class="input-item">
+                                <label for="ptbHouseholdSize">Nb pers. foyer (PTB) : <span class="info-icon" data-info-key="ptbHouseholdSize_info">ⓘ</span></label>
+                                <input type="range" id="ptbHouseholdSize" min="1" max="10" value="2" step="1">
+                                <input type="number" id="ptbHouseholdSize_num" min="1" max="10" value="2" step="1">
+                            </div>
+                             <div class="input-item"><label>Taux bonif. PTB :</label><span id="ptbBonificationRate_display" class="read-only-value inline-value"><strong>0.00</strong> %</span></div>
+                            <div class="input-item"><label>Taux empr. PTB :</label><span id="ptbBorrowerRate_display" class="read-only-value inline-value"><strong>0.00</strong> %</span></div>
+                            <div class="input-item"><label>Montant max. PTB :</label><span id="ptbMaxAmount_display" class="read-only-value inline-value"><strong>0</strong> €</span></div>
+                            <div class="input-item">
+                                <label for="ptbAmountWanted">Montant souhaité PTB (€) : <span class="info-icon" data-info-key="ptbAmountWanted_info">ⓘ</span></label>
+                                <input type="range" id="ptbAmountWanted" min="0" max="40000" value="0" step="500">
+                                <input type="number" id="ptbAmountWanted_num" min="0" max="40000" value="0" step="500">
+                            </div>
+                            <div class="input-item">
+                                <label for="ptbDuration">Durée PTB (ans) : <span class="info-icon" data-info-key="ptbDuration_info">ⓘ</span></label>
+                                <input type="range" id="ptbDuration" min="3" max="10" value="7" step="1">
+                                <input type="number" id="ptbDuration_num" min="3" max="10" value="7" step="1">
+                            </div>
+                            <div class="input-item">
+    <label for="ptbInsuranceRate">Taux ass. PTB (%) : <span class="info-icon" data-info-key="ptbIncludeInsurance_info">ⓘ</span></label>
+    <input type="range" id="ptbInsuranceRate" min="0" max="1.5" value="0.36" step="0.01">
+    <input type="number" id="ptbInsuranceRate_num" min="0" max="1.5" value="0.36" step="0.01">
+</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>💸 Prêt Immobilier Bonifié (PIB DGAC)</h3>
+                        <div class="input-item checkbox-item">
+                            <input type="checkbox" id="enablePIB">
+                            <label for="enablePIB">Inclure un PIB ?</label>
+                        </div>
+                        <div id="pibInputsContainer" style="display: none;">
+                            <div class="input-item">
+                                <label for="pibZone">Zone du bien : <span class="info-icon" data-info-key="pibZone_info">ⓘ</span></label>
+                                <select id="pibZone"> <option value="A">A/A bis/Reims/Corse</option> <option value="B1B2">B1/B2</option> <option value="C">C</option> </select>
+                            </div>
+                            <div class="input-item">
+                                <label for="pibRFR">RFR N-2 (PIB) (€) : <span class="info-icon" data-info-key="pibRFR_info">ⓘ</span></label>
+                                <input type="range" id="pibRFR" min="0" max="150000" value="45000" step="1000">
+                                <input type="number" id="pibRFR_num" min="0" max="150000" value="45000" step="1000">
+                            </div>
+                            <div class="input-item">
+                                <label for="pibHouseholdSize">Nb pers. foyer (PIB) : <span class="info-icon" data-info-key="pibHouseholdSize_info">ⓘ</span></label>
+                                <input type="range" id="pibHouseholdSize" min="1" max="10" value="2" step="1">
+                                <input type="number" id="pibHouseholdSize_num" min="1" max="10" value="2" step="1">
+                            </div>
+                            <div class="input-item"><label>Taux bonif. PIB :</label><span id="pibBonificationRate_display" class="read-only-value inline-value"><strong>0.00</strong> %</span></div>
+                            <div class="input-item"><label>Taux empr. PIB :</label><span id="pibBorrowerRate_display" class="read-only-value inline-value"><strong>0.00</strong> %</span></div>
+                            <div class="input-item"><label>Montant max. PIB :</label><span id="pibMaxAmount_display" class="read-only-value inline-value"><strong>0</strong> €</span></div>
+                            <div class="input-item">
+                                <label for="pibDuration">Durée PIB (ans) : <span class="info-icon" data-info-key="pibDuration_info">ⓘ</span></label>
+                                <input type="range" id="pibDuration" min="3" max="12" value="10" step="1">
+                                <input type="number" id="pibDuration_num" min="3" max="12" value="10" step="1">
+                            </div>
+                            <div class="input-item">
+                                <label for="pibInsuranceRate">Taux assurance PIB (%) : <span class="info-icon" data-info-key="pibInsuranceRate_info">ⓘ</span></label>
+                                <input type="range" id="pibInsuranceRate" min="0" max="1.5" value="0.00" step="0.01">
+                                <input type="number" id="pibInsuranceRate_num" min="0" max="1.5" value="0.00" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+<section id="bonified-results-section" class="card two-columns" style="display: none;">
+                <div class="result-column">
+                    <div id="ptbDetailsResultBox" class="result-group" style="display:none; height: 100%; box-sizing: border-box;">
+                        <h4>⚙️ Détails PTB <button class="amort-button" data-loan-type="ptb">Échéancier</button></h4>
+                        
+                        <p id="ptb_warning_msg" style="display:none; color:var(--danger-color); font-weight:600; font-size:0.75rem; background-color:#ffebee; padding:6px; border-radius:4px; margin-top:0;">
+                            ⚠️ Attention : Pour calculer le PTB, vous devez indiquer un "Montant total travaux" > 0 € dans la 1ère section, et demander au moins 7 500 €.
+                        </p>
+
+                        <table class="ptb-details-table">
+                            <tr><td>Montant PTB</td><td id="ptb_res_amount">0 €</td></tr>
+                            <tr><td>Durée</td><td id="ptb_res_duration">0 ans</td></tr>
+                            <tr><td>Taux Nominal BFM</td><td id="ptb_res_bfm_rate">0.00 %</td></tr>
+                            <tr><td>Bonification DGAC</td><td id="ptb_res_bonification_rate">0.00 %</td></tr>
+                            <tr><td>Taux Emprunteur</td><td id="ptb_res_borrower_rate">0.00 %</td></tr>
+                            <tr><td>Taux Assurance PTB</td><td id="ptb_res_insurance_rate">0.00 %</td></tr>
+                            <tr><td>Mensualité PTB</td><td id="ptb_res_monthly_payment">0 €</td></tr>
+                            <tr><td>Coût Intérêts PTB</td><td id="ptb_res_total_interest_cost">0 €</td></tr>
+                            <tr><td>Coût Assurance PTB</td><td id="ptb_res_total_insurance_cost">0 €</td></tr>
+                            <tr class="highlight-row"><td>Coût Total PTB</td><td id="ptb_res_total_cost">0 €</td></tr>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="result-column">
+                    <div id="pibDetailsResultBox" class="result-group" style="display:none; height: 100%; box-sizing: border-box;">
+                        <h4>⭐ Détails PIB <button class="amort-button" data-loan-type="pib">Échéancier</button></h4>
+                        <table class="pib-details-table">
+                            <tr><td>Montant PIB</td><td id="pib_res_amount">0 €</td></tr>
+                            <tr><td>Durée</td><td id="pib_res_duration">0 ans</td></tr>
+                            <tr><td>Taux Nominal BFM</td><td id="pib_res_bfm_rate">0.00 %</td></tr>
+                            <tr><td>Bonification DGAC</td><td id="pib_res_bonification_rate">0.00 %</td></tr>
+                            <tr><td>Taux Emprunteur</td><td id="pib_res_borrower_rate">0.00 %</td></tr>
+                            <tr><td>Taux Assurance PIB</td><td id="pib_res_insurance_rate">0.00 %</td></tr>
+                            <tr><td>Mensualité PIB</td><td id="pib_res_monthly_payment">0 €</td></tr>
+                            <tr><td>Coût Intérêts PIB</td><td id="pib_res_total_interest_cost">0 €</td></tr>
+                            <tr><td>Coût Assurance PIB</td><td id="pib_res_total_insurance_cost">0 €</td></tr>
+                            <tr class="highlight-row"><td>Coût Total PIB</td><td id="pib_res_total_cost">0 €</td></tr>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            <section id="results-section" class="card two-columns">
+                <div class="result-column">
+                    <div class="result-group">
+                        <h3>Résumé de l'opération</h3>
+                        <table>
+                            <tr><th>Prix FAI</th><td id="res_prixFAI">0 €</td></tr>
+                            <tr><th>Frais de notaire <span class="info-icon" data-info-key="res_fn_info">ⓘ</span></th><td id="res_FN_montant">0 €</td></tr>
+                            <tr><th>Frais de garantie (Prêt Classique) <span class="info-icon" data-info-key="res_fg_info">ⓘ</span></th><td id="res_FG_montant">0 €</td></tr>
+                            <tr><th>Frais de dossier (Prêt Classique)</th><td id="res_FD">0 €</td></tr>
+                            <tr><th>Frais de courtier</th><td id="res_Courtier">0 €</td></tr>
+                            <tr><th>Coût des travaux</th><td id="res_T">0 €</td></tr>
+                            <tr class="highlight-row"><th>Coût total de l'opération <span class="info-icon" data-info-key="res_cto_info">ⓘ</span></th><td id="coutTotalOperation">0 €</td></tr>
+                            <tr><th>Apport personnel</th><td id="res_apport">0 €</td></tr>
+                            <tr class="highlight-row"><th>Crédit total nécessaire <span class="info-icon" data-info-key="res_credit_info">ⓘ</span></th><td id="res_credit_demande">0 €</td></tr>
+                            <tr id="res_ptb_amount_row" style="display:none;"><th>↳ Dont PTB</th><td id="res_ptb_amount">0 €</td></tr>
+                            <tr id="res_pib_amount_row" style="display:none;"><th>↳ Dont PIB</th><td id="res_pib_amount">0 €</td></tr>
+                            <tr id="res_classic_loan_amount_row" style="display:none;"><th>↳ Dont Prêt Classique</th><td id="res_classic_loan_amount">0 €</td></tr>
+                        </table>
+                    </div>
+                     
+                </div>
+
+                <div class="result-column">
+                    <div class="result-group">
+                        <h3>Capacité d'emprunt & Mensualité Max <span class="info-icon" data-info-key="res_cap_emp_info">ⓘ</span></h3>
+                        <p>Revenus: <strong id="S_display">0</strong>€. Autres crédits: <strong id="AutresCredits_display">0</strong>€. Autres charges: <strong id="AutresCharges_display">0</strong>€.</p>
+                        <table>
+                            <tr><th>Mensualité Max (Endettement)</th><td id="mensualitemax_tdt">0 €</td></tr>
+                            <tr><th>Mensualité Max (Reste à vivre)</th><td id="mensualitemax_rav">0 €</td></tr>
+                            <tr class="highlight-row"><th>Mensualité Max Retenue</th><td id="mensualitemax_retenue">0 €</td></tr>
+                        </table>
+                        <h4>Capacité emprunt max. Prêt Classique (après PIB/PTB) :</h4>
+                        <table>
+                            <tr><th>Sur 20 ans (<span id="current_TE_20_val">0</span>%/<span id="current_TA_20_val">0</span>% Ass.)</th><td id="capEmpruntMax_20">0 €</td></tr>
+                            <tr><th>Sur 25 ans (<span id="current_TE_25_val">0</span>%/<span id="current_TA_25_val">0</span>% Ass.)</th><td id="capEmpruntMax_25">0 €</td></tr>
+                        </table>
+                    </div>
+                    <div class="result-group">
+                        <h3>Analyse de l'Apport Personnel <span class="info-icon" data-info-key="res_apport_req_info">ⓘ</span></h3>
+                        <p>Votre apport total : <strong id="A_display">0</strong> €.</p>
+                        <div id="apportAnalysisContainer" style="background-color: #fdfdfd; padding: 10px; border: 1px solid var(--border-color); border-radius: var(--border-radius-small);">
+                            </div>
+                    </div>
+                </div>
+            </section>
+            
+
+
+            <section id="loan-scenarios-section" class="card"> 
+                <div class="result-group">
+                    <h3>📊 Scénarios de Financement & Comparaison <span class="info-icon" data-info-key="res_scenarios_info">ⓘ</span></h3>
+                    <div class="scenario-table">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Critère</th>
+                                    <th>Prêt Classique sur 20 ans</th>
+                                    <th>Prêt Classique sur 25 ans</th>
+                                    <th>Différence (25a-20a)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr class="loan-section-title" id="ptb_scenario_header_row" style="display:none;"><td colspan="4">PTB - <span id="ptb_scenario_duration_label"></span></td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_amount_row" style="display:none;"><td>Montant PTB</td><td id="scen_ptb_amount_display" colspan="2">0 €</td><td>-</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_mensualite_row" style="display:none;"><td>Mensualité PTB</td><td id="scen_ptb_mensualite_display" colspan="2">0 €</td><td>-</td></tr>
+
+                                <tr class="loan-section-title" id="pib_scenario_header_row" style="display:none;"><td colspan="4">PIB - <span id="pib_scenario_duration_label"></span></td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_amount_row" style="display:none;"><td>Montant PIB</td><td id="scen_pib_amount_display" colspan="2">0 €</td><td>-</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_mensualite_row" style="display:none;"><td>Mensualité PIB</td><td id="scen_pib_mensualite_display" colspan="2">0 €</td><td>-</td></tr>
+
+                                <tr class="loan-section-title"><td colspan="4">Prêt Classique</td></tr>
+                                <tr class="sub-loan-details"><td>Montant Prêt Classique</td><td id="scen_classic_amount_display" colspan="2">0 €</td><td>-</td></tr>
+                                <tr class="sub-loan-details"><td>Mensualité Prêt Classique</td><td id="scen_classic_mensualite_20">0 €</td><td id="scen_classic_mensualite_25">0 €</td><td id="scen_classic_mensualite_diff">0 €</td></tr>
+                                
+                                <tr class="loan-section-title"><td colspan="4">TOTAL COMBINÉ</td></tr>
+                                <tr><td>Mensualité Totale</td><td id="comp_mensualite_20">0 €</td><td id="comp_mensualite_25">0 €</td><td id="comp_mensualite_diff">0 €</td></tr>
+                                <tr><td>Respect Mensualité Max</td><td id="respectMensualite_20" class="status-cell"></td><td id="respectMensualite_25" class="status-cell"></td><td></td></tr>
+                                <tr><td>Taux Endettement Global</td><td id="comp_tauxEndettement_20">0 %</td><td id="comp_tauxEndettement_25">0 %</td><td id="comp_tauxEndettement_diff">0 %</td></tr>
+                                <tr><td>Reste à Vivre Mensuel</td><td id="comp_resteAVivre_20">0 €</td><td id="comp_resteAVivre_25">0 €</td><td id="comp_resteAVivre_diff">0 €</td></tr>
+                                <tr><td>Coût Total des Crédits</td><td id="comp_coutCredit_20">0 €</td><td id="comp_coutCredit_25">0 €</td><td id="comp_coutCredit_diff">0 €</td></tr>
+                                <tr><td>TAEG Prêt Classique <span class="info-icon" data-info-key="taeg_comp_info">ⓘ</span></td><td id="comp_TAEG_20">0 %</td><td id="comp_TAEG_25">0 %</td><td id="comp_TAEG_diff">0 %</td></tr>
+                                <tr><td>Amort. Prêt Classique</td>
+                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_20">Voir l'échéancier sur 20 ans</button></td>
+                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_25">Voir l'échéancier sur 25 ans</button></td>
+                                    <td>-</td></tr>
+                                <tr><td>Coût Total Opération (avec crédits)</td><td id="comp_coutOperation_20">0 €</td><td id="comp_coutOperation_25">0 €</td><td id="comp_coutOperation_diff">0 €</td></tr>
+                                <tr class="classic-only-row"><td>Coût Total Opération (si Prêt Classique Seul) <span class="info-icon" data-info-key="classic_only_info">ⓘ</span></td><td id="comp_coutOperationClassicOnly_20">0 €</td><td id="comp_coutOperationClassicOnly_25">0 €</td><td id="comp_coutOperationClassicOnly_diff">0 €</td></tr>
+                                <tr class="savings-row"><td>Économie Prêts Bonifiés <span class="info-icon" data-info-key="savings_info">ⓘ</span></td><td id="comp_savings_20">0 €</td><td id="comp_savings_25">0 €</td><td id="comp_savings_diff">0 €</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+            
+            <section id="resale-section" class="card two-columns">
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>🏡 Paramètres de Revente</h3>
+                        
+                        <div class="input-item">
+                            <label for="resaleScenarioRef">Scénario de crédit retenu :</label>
+                            <select id="resaleScenarioRef">
+                                <option value="20" selected>Prêt Classique sur 20 ans</option>
+                                <option value="25">Prêt Classique sur 25 ans</option>
+                            </select>
+                        </div>
+                        
+                        <div class="input-item">
+                            <label for="resaleHorizon">Horizon de revente (années) : <span class="info-icon" data-info-key="resaleHorizon_info">ⓘ</span></label>
+                            <input type="range" id="resaleHorizon" min="1" max="25" value="7" step="1">
+                            <input type="number" id="resaleHorizon_num" min="1" max="25" value="7" step="1">
+                        </div>
+                        
+                        <div class="input-item">
+                            <label for="pv_mode">Évolution de la valeur :</label>
+                            <select id="pv_mode">
+                                <option value="annual">Taux annuel (%)</option>
+                                <option value="manual">Prix de vente manuel (€)</option>
+                            </select>
+                        </div>
+                        <div class="input-item" id="pv_annual_container">
+                            <label for="plusValue">Plus-value annuelle estimée (%) : <span class="info-icon" data-info-key="plusValue_info">ⓘ</span></label>
+                            <input type="range" id="plusValue" min="-5" max="10" value="2" step="0.1">
+                            <input type="number" id="plusValue_num" min="-5" max="10" value="2" step="0.1">
+                        </div>
+                        <div class="input-item" id="pv_manual_container" style="display:none;">
+                            <label for="resalePriceManual">Prix de revente net vendeur (€) :</label>
+                            <input type="range" id="resalePriceManual" min="50000" max="3000000" value="850000" step="10000">
+                            <input type="number" id="resalePriceManual_num" min="50000" max="3000000" value="850000" step="10000">
+                        </div>
+
+                        <div class="input-item">
+                            <label for="inflation_mode">Type d'inflation :</label>
+                            <select id="inflation_mode">
+                                <option value="annual">Moyenne annuelle (%)</option>
+                                <option value="cumulative">Cumulée totale (%)</option>
+                            </select>
+                        </div>
+                        <div class="input-item" id="inflation_annual_container">
+                            <label for="inflation">Inflation annuelle moyenne (%) : <span class="info-icon" data-info-key="inflation_info">ⓘ</span></label>
+                            <input type="range" id="inflation" min="0" max="10" value="2" step="0.1">
+                            <input type="number" id="inflation_num" min="0" max="10" value="2" step="0.1">
+                        </div>
+                        <div class="input-item" id="inflation_cumulative_container" style="display:none;">
+                            <label for="inflationCumulative">Inflation cumulée totale (%) :</label>
+                            <input type="range" id="inflationCumulative" min="0" max="100" value="15" step="0.5">
+                            <input type="number" id="inflationCumulative_num" min="0" max="100" value="15" step="0.5">
+                        </div>
+
+                        <div class="input-item">
+                            <label for="ira_mode">Pénalités remb. anticipé (IRA) :</label>
+                            <select id="ira_mode">
+                                <option value="percentage">Plafonds légaux avec taux (%)</option>
+                                <option value="manual">Montant global manuel (€)</option>
+                            </select>
+                        </div>
+                        
+                        <div id="ira_percentage_container" style="display:flex; flex-direction:column; width:100%;">
+                            <div class="input-item">
+                                <label style="width:100%" for="ira_classic">IRA Prêt Classique (%) : <span class="info-icon" data-info-key="ira_info">ⓘ</span> 
+                                    <span id="ira_classic_amount" class="read-only-value inline-value" style="color:var(--danger-color); font-weight:bold; font-size:0.8rem;">0 €</span>
+                                </label>
+                                <input type="range" id="ira_classic" min="0" max="3" value="3" step="0.1">
+                                <input type="number" id="ira_classic_num" min="0" max="3" value="3" step="0.1">
+                            </div>
+                            <div class="input-item" id="ira_pib_container" style="display:none;">
+                                <label style="width:100%" for="ira_pib">IRA PIB (%) : 
+                                    <span id="ira_pib_amount" class="read-only-value inline-value" style="color:var(--danger-color); font-weight:bold; font-size:0.8rem;">0 €</span>
+                                </label>
+                                <input type="range" id="ira_pib" min="0" max="3" value="0" step="0.1">
+                                <input type="number" id="ira_pib_num" min="0" max="3" value="0" step="0.1">
+                            </div>
+                            <div class="input-item" id="ira_ptb_container" style="display:none;">
+                                <label style="width:100%" for="ira_ptb">IRA PTB (%) : 
+                                    <span id="ira_ptb_amount" class="read-only-value inline-value" style="color:var(--danger-color); font-weight:bold; font-size:0.8rem;">0 €</span>
+                                </label>
+                                <input type="range" id="ira_ptb" min="0" max="3" value="0" step="0.1">
+                                <input type="number" id="ira_ptb_num" min="0" max="3" value="0" step="0.1">
+                            </div>
+                        </div>
+
+                        <div class="input-item" id="ira_manual_container" style="display:none;">
+                            <label for="ira_manual">Montant global pénalités (€) :</label>
+                            <input type="range" id="ira_manual" min="0" max="20000" value="0" step="500">
+                            <input type="number" id="ira_manual_num" min="0" max="20000" value="0" step="500">
+                        </div>
+                        
+                        <h4>Frais de Revente</h4>
+                        <div class="input-item">
+                            <label for="resaleFees">Frais divers (diagnostics, mainlevée...) (€) : <span class="info-icon" data-info-key="resaleDiagnostics_info">ⓘ</span></label>
+                            <input type="range" id="resaleFees" min="0" max="30000" value="1000" step="100">
+                            <input type="number" id="resaleFees_num" min="0" max="30000" value="1000" step="100">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="result-column">
+                    <div class="result-group">
+                        <h3>🏡 Bilans de Revente sur <span id="resale_horizon_display">7</span> ans (Prêt <span id="resale_scenario_duration_display">20</span> ans)</h3>
+                        <table id="resaleReportTable">
+                            <tbody>
+                                <tr><td>Prix de revente net vendeur estimé</td><td id="res_resale_price">0 €</td></tr>
+                                <tr><td>(-) Total Capital Restant Dû (Banque)</td><td id="res_remaining_capital">0 €</td></tr>
+                                <tr><td>(-) Pénalités de remb. anticipé (IRA)</td><td id="res_ira_fees">0 €</td></tr>
+                                <tr><td>(-) Frais de revente divers</td><td id="res_resale_costs">0 €</td></tr>
+                                <tr class="highlight-row"><th>Produit Net de la Vente (Cash libéré)</th><td id="res_net_proceeds">0 €</td></tr>
+                                
+                                <tr><td colspan="2" style="background-color:var(--card-background); height:10px; border:none;"></td></tr>
+                                
+                                <tr><td>(-) Apport Personnel Initial investi</td><td id="res_initial_apport">0 €</td></tr>
+                                <tr><td>(-) Capital remboursé (Épargne forcée)</td><td id="res_capital_amorti">0 €</td></tr>
+                                <tr class="strong-highlight"><th>Bilan Patrimonial (Opération immobilière) <span class="info-icon" data-info-key="bilan_patrimonial_info">ⓘ</span></th><td id="res_bilan_patrimonial">0 €</td></tr>
+                                
+                                <tr><td colspan="2" style="background-color:var(--card-background); height:10px; border:none;"></td></tr>
+                                
+                                <tr><td>(-) Total Intérêts et Assurances versés</td><td id="res_total_wasted_costs">0 €</td></tr>
+                                <tr class="strong-highlight"><th>Bilan Financier Net (Opération globale) <span class="info-icon" data-info-key="bilan_financier_info">ⓘ</span></th><td id="res_net_balance">0 €</td></tr>
+                                <tr><th>Bilan Financier Net (en € constants) <span class="info-icon" data-info-key="res_real_balance_info">ⓘ</span></th><td id="res_real_balance">0 €</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <div id="amortizationModal" class="modal-overlay">
+        <div class="modal-content">
+            <button id="closeAmortizationModal" class="modal-close-button">&times;</button>
+            <h3 id="amortizationModalTitle" class="modal-title">Tableau d'Amortissement</h3>
+            <div id="amortizationTableContainer"></div>
+        </div>
+    </div>
+    <div id="info-tooltip" class="info-tooltip-popup"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>
