@@ -932,8 +932,12 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
             }
         });
 
-        const modeFN = getEl('FN_mode')?.value;
-        if(modeFN === 'manual') {
+        // Initialisation correcte de l'état du slider Frais de Notaire au démarrage
+        const modeFN = getEl('FN_mode')?.value || 'auto';
+        const isManualFN = modeFN === 'manual';
+        setInputState('FN', isManualFN, { min: isManualFN ? 0 : 0.5, max: isManualFN ? 100000 : 10, step: isManualFN ? 100 : 0.1 });
+        
+        if(isManualFN) {
             getEl('fn_breakdown')?.classList.remove('visible');
             setDisplay('fnDetailsToggleTrigger', 'none');
         }
