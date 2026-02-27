@@ -531,7 +531,7 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
         setText('pib_res_bfm_rate', `${formatPercentage(state.pibBFMRate, 2)} %`);
 
         setText('FAg_montant', formatCurrency(FAg_montant)); setText('prixFAI', formatCurrency(prixFAI));
-        setText('res_prixFAI', formatCurrency(prixFAI) + " €"); setText('FN_montant', formatCurrency(fn_details.montant));
+        setText('res_prixFAI', formatCurrency(prixFAI) + " €"); setText('FN_montant', state.FN_mode === 'manual' ? '' : formatCurrency(fn_details.montant) + ' €');
         setText('res_FN_montant', formatCurrency(fn_details.montant) + " €"); setText('FG_description', garDetails.description);
         setText('FG_montant', formatCurrency(garDetails.cout)); setText('res_FG_montant', formatCurrency(garDetails.cout) + " €");
         setText('res_FD', formatCurrency(state.FD) + " €"); setText('res_Courtier', formatCurrency(state.Courtier) + " €");
@@ -799,8 +799,40 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
                 setupSliderAndNumber(id);
             }
         });
-
-        ['typeBien', 'FN_mode', 'typeGarantie', 'enablePIB', 'pibZone', 'enablePTB', 'ptbAgentStatus', 'ptbZone', 'resaleScenarioRef', 'chargeAgence'].forEach(id => {
+// Comportement sur-mesure quand on passe de Auto à Manuel (Frais de Notaire)
+        getEl('FN_mode')?.addEventListener('change', (e) => {
+            const isManual = e.target.value === 'manual';
+            const fnSlider = getEl('FN');
+            const fnNum = getEl('FN_num');
+            
+            if (isManual) {
+                // 1. On récupère le montant en euros actuel (caché dans le résumé)
+                const currentEurosText = getEl('res_FN_montant')?.textContent || '0';
+                const currentEuros = parseFloat(currentEurosText.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+                
+                // 2. On passe le champ en mode "Euros" (Min 0, Max 100 000)
+                setInputState('FN', true, { min: 0, max: 100000, step: 100 });
+                
+                // 3. On injecte les euros à la place de l'ancien pourcentage (ex: remplace 6.9 par 15000)
+                if (fnSlider && fnNum) {
+                    fnSlider.value = currentEuros;
+                    fnNum.value = currentEuros;
+                }
+                
+                // 4. On cache les détails inutiles
+                getEl('fn_breakdown')?.classList.remove('visible');
+                setDisplay('fnDetailsToggleTrigger', 'none');
+                
+            } else {
+                // Retour en mode Auto : On remet les limites pour un petit pourcentage
+                setInputState('FN', false, { min: 0.5, max: 10, step: 0.1 });
+                setDisplay('fnDetailsToggleTrigger', 'inline');
+            }
+            
+            // On relance le calcul global pour que le pourcentage à droite s'ajuste immédiatement
+            calculateAll();
+        });
+        ['typeBien', 'typeGarantie', 'enablePIB', 'pibZone', 'enablePTB', 'ptbAgentStatus', 'ptbZone', 'resaleScenarioRef', 'chargeAgence'].forEach(id => {
             const el = getEl(id);
             if (el) el.addEventListener('change', calculateAll);
         });
