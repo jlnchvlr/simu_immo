@@ -99,12 +99,50 @@ document.addEventListener('DOMContentLoaded', () => {
         A_display: getEl('A_display'),
         apportAnalysisContainer: getEl('apportAnalysisContainer'),
 
+        // Revente - affichage
+        resale_horizon_display: getEl('resale_horizon_display'),
+        resale_scenario_duration_display: getEl('resale_scenario_duration_display'),
+        res_resale_price: getEl('res_resale_price'),
+        res_remaining_capital: getEl('res_remaining_capital'),
+        res_ira_fees: getEl('res_ira_fees'),
+        res_resale_costs: getEl('res_resale_costs'),
+        res_net_proceeds: getEl('res_net_proceeds'),
+        res_initial_apport: getEl('res_initial_apport'),
+        res_capital_amorti: getEl('res_capital_amorti'),
+        res_total_wasted_costs: getEl('res_total_wasted_costs'),
+        res_bilan_patrimonial: getEl('res_bilan_patrimonial'),
+        res_net_balance: getEl('res_net_balance'),
+        res_real_balance: getEl('res_real_balance'),
+        ira_classic_amount: getEl('ira_classic_amount'),
+        ira_pib_amount: getEl('ira_pib_amount'),
+        ira_ptb_amount: getEl('ira_ptb_amount'),
+
         // IRA containers
         ira_mode: getEl('ira_mode'),
         ira_percentage_container: getEl('ira_percentage_container'),
         ira_manual_container: getEl('ira_manual_container'),
         ira_pib_container: getEl('ira_pib_container'),
         ira_ptb_container: getEl('ira_ptb_container'),
+
+        // Revente - containers (toggle)
+        pv_annual_container: getEl('pv_annual_container'),
+        pv_manual_container: getEl('pv_manual_container'),
+        inflation_annual_container: getEl('inflation_annual_container'),
+        inflation_cumulative_container: getEl('inflation_cumulative_container'),
+
+        // Modale amortissement
+        amortizationTableContainer: getEl('amortizationTableContainer'),
+        amortizationModalTitle: getEl('amortizationModalTitle'),
+
+        // Inputs containers (toggle)
+        pibInputsContainer: getEl('pibInputsContainer'),
+        ptbInputsContainer: getEl('ptbInputsContainer'),
+        manualGuaranteeInput: getEl('manualGuaranteeInput'),
+        FG_details: getEl('FG_details'),
+        fgDetailsToggleTrigger: getEl('fgDetailsToggleTrigger'),
+        fn_breakdown: getEl('fn_breakdown'),
+        fnDetailsToggleTrigger: getEl('fnDetailsToggleTrigger'),
+        btn_reset: getEl('btn-reset'),
 
         // PTB/PIB détails
         ptbDetailsResultBox: getEl('ptbDetailsResultBox'),
@@ -148,6 +186,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Form inputs principaux (pour lireEtatFormulaire)
         form: {
+            // Sliders (quand nécessaire)
+            RAV_slider: getEl('RAV'),
+
             P_num: getEl('P_num'),
             FAg_num: getEl('FAg_num'),
             M_num: getEl('M_num'),
@@ -170,7 +211,39 @@ document.addEventListener('DOMContentLoaded', () => {
             TA_25_num: getEl('TA_25_num'),
             enablePIB: getEl('enablePIB'),
             enablePTB: getEl('enablePTB'),
-            pibBFMRate_num: getEl('pibBFMRate_num')
+            pibBFMRate_num: getEl('pibBFMRate_num'),
+            typeGarantie: getEl('typeGarantie'),
+            pibZone: getEl('pibZone'),
+            ptbAgentStatus: getEl('ptbAgentStatus'),
+            ptbZone: getEl('ptbZone'),
+            resaleScenarioRef: getEl('resaleScenarioRef'),
+            pv_mode: getEl('pv_mode'),
+            inflation_mode: getEl('inflation_mode'),
+
+            // PTB/PIB params
+            pibRFR_num: getEl('pibRFR_num'),
+            pibHouseholdSize_num: getEl('pibHouseholdSize_num'),
+            pibDuration_num: getEl('pibDuration_num'),
+            pibInsuranceRate_num: getEl('pibInsuranceRate_num'),
+            ptbRFR_num: getEl('ptbRFR_num'),
+            ptbHouseholdSize_num: getEl('ptbHouseholdSize_num'),
+            ptbAmountWanted_num: getEl('ptbAmountWanted_num'),
+            ptbDuration_num: getEl('ptbDuration_num'),
+            ptbInsuranceRate_num: getEl('ptbInsuranceRate_num'),
+
+            // Revente params
+            resaleHorizon_num: getEl('resaleHorizon_num'),
+            plusValue_num: getEl('plusValue_num'),
+            resalePriceManual_num: getEl('resalePriceManual_num'),
+            resaleFees_num: getEl('resaleFees_num'),
+            inflation_num: getEl('inflation_num'),
+            inflationCumulative_num: getEl('inflationCumulative_num'),
+
+            // IRA inputs
+            ira_manual_num: getEl('ira_manual_num'),
+            ira_classic_num: getEl('ira_classic_num'),
+            ira_pib_num: getEl('ira_pib_num'),
+            ira_ptb_num: getEl('ira_ptb_num')
         }
     });
 
@@ -231,8 +304,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             // On gère les cases à cocher spécifiques pour PTB et PIB qui ont des IDs différents du state
-            if (savedState.isPIBEnabled !== undefined) getEl('enablePIB').checked = savedState.isPIBEnabled;
-            if (savedState.isPTBEnabled !== undefined) getEl('enablePTB').checked = savedState.isPTBEnabled;
+            if (ui?.form?.enablePIB && savedState.isPIBEnabled !== undefined) ui.form.enablePIB.checked = savedState.isPIBEnabled;
+            if (ui?.form?.enablePTB && savedState.isPTBEnabled !== undefined) ui.form.enablePTB.checked = savedState.isPTBEnabled;
 
         } catch (e) {
             console.warn("Erreur lors du chargement de la sauvegarde", e);
@@ -491,8 +564,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const displayAmortizationModal = (loanName, schedule) => {
-        setText('amortizationModalTitle', `Tableau d'Amortissement - ${loanName}`);
-        const container = getEl('amortizationTableContainer');
+        setTextEl(ui?.amortizationModalTitle, `Tableau d'Amortissement - ${loanName}`);
+        const container = ui?.amortizationTableContainer;
         if (!container) return;
 
         container.textContent = '';
@@ -572,11 +645,43 @@ document.addEventListener('DOMContentLoaded', () => {
             TA_25: numFrom(f.TA_25_num),
             isPIBEnabled: !!f.enablePIB?.checked,
             pibBFMRate: numFrom(f.pibBFMRate_num),
-            isPTBEnabled: !!f.enablePTB?.checked
+            isPTBEnabled: !!f.enablePTB?.checked,
+
+            // PTB/PIB params
+            pibZone: f.pibZone?.value || 'A',
+            pibRFR: numFrom(f.pibRFR_num),
+            pibHouseholdSize: Math.max(1, Math.round(numFrom(f.pibHouseholdSize_num) || 1)),
+            pibDuration: Math.max(3, Math.round(numFrom(f.pibDuration_num) || 10)),
+            pibInsuranceRate: numFrom(f.pibInsuranceRate_num),
+
+            ptbAgentStatus: f.ptbAgentStatus?.value || 'actif',
+            ptbZone: f.ptbZone?.value || 'A',
+            ptbRFR: numFrom(f.ptbRFR_num),
+            ptbHouseholdSize: Math.max(1, Math.round(numFrom(f.ptbHouseholdSize_num) || 1)),
+            ptbAmountWanted: numFrom(f.ptbAmountWanted_num),
+            ptbDuration: Math.max(3, Math.round(numFrom(f.ptbDuration_num) || 7)),
+            ptbInsuranceRate: numFrom(f.ptbInsuranceRate_num)
         };
 
         const uiState = {
-            iraMode: ui?.ira_mode?.value || 'percentage'
+            pvMode: f.pv_mode?.value || 'annual',
+            inflationMode: f.inflation_mode?.value || 'annual',
+            iraMode: ui?.ira_mode?.value || 'percentage',
+            scenarioDuration: parseInt(f.resaleScenarioRef?.value || 20, 10),
+            resale: {
+                horizon: numFrom(f.resaleHorizon_num),
+                plusValueAnnual: numFrom(f.plusValue_num),
+                resalePriceManual: numFrom(f.resalePriceManual_num),
+                fees: numFrom(f.resaleFees_num),
+                inflationAnnual: numFrom(f.inflation_num),
+                inflationCumulative: numFrom(f.inflationCumulative_num)
+            },
+            ira: {
+                manualAmount: numFrom(f.ira_manual_num),
+                classicPc: numFrom(f.ira_classic_num),
+                pibPc: numFrom(f.ira_pib_num),
+                ptbPc: numFrom(f.ira_ptb_num)
+            }
         };
 
         return { state, uiState };
@@ -627,8 +732,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function gererPlanFinancement(state, besoinCreditInitial, coutAvantGar) {
-        let pib = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: parseInt(getEl('pibDuration_num')?.value)||10, insuranceRate: getNumVal('pibInsuranceRate') };
-        let ptb = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: parseInt(getEl('ptbDuration_num')?.value)||7, insuranceRate: getNumVal('ptbInsuranceRate') };    
+        let pib = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: state.pibDuration || 10, insuranceRate: state.pibInsuranceRate };
+        let ptb = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: state.ptbDuration || 7, insuranceRate: state.ptbInsuranceRate };    
         const determinerPretBonifie = (loan, RFR, foyer, zone, amountWanted, maxLimitRef) => {
             let bonifRate = 0.02;
             const thresholds = BONIFICATION_THRESHOLDS[zone];
@@ -644,17 +749,17 @@ document.addEventListener('DOMContentLoaded', () => {
         };
 
         if (state.isPTBEnabled && state.T > 0) {
-            const statut = getEl('ptbAgentStatus')?.value || 'actif';
-            const zonePtb = statut === 'retraite' ? "A" : (getEl('ptbZone')?.value || "A");
+            const statut = state.ptbAgentStatus || 'actif';
+            const zonePtb = statut === 'retraite' ? "A" : (state.ptbZone || "A");
             ptb.maxPossible = PTB_MAX_AMOUNTS[statut]?.[zonePtb] || 0;
-            determinerPretBonifie(ptb, getNumVal('ptbRFR'), parseInt(getEl('ptbHouseholdSize_num')?.value)||1, zonePtb, getNumVal('ptbAmountWanted'), Math.min(state.T, besoinCreditInitial));
+            determinerPretBonifie(ptb, state.ptbRFR, state.ptbHouseholdSize, zonePtb, state.ptbAmountWanted, Math.min(state.T, besoinCreditInitial));
             besoinCreditInitial = Math.max(0, besoinCreditInitial - ptb.amount);
         }
 
         if (state.isPIBEnabled) {
-            const zonePib = getEl('pibZone')?.value || "A";
+            const zonePib = state.pibZone || "A";
             pib.maxPossible = PIB_MAX_AMOUNTS[zonePib] || 0;
-            determinerPretBonifie(pib, getNumVal('pibRFR'), parseInt(getEl('pibHouseholdSize_num')?.value)||1, zonePib, besoinCreditInitial, besoinCreditInitial);
+            determinerPretBonifie(pib, state.pibRFR, state.pibHouseholdSize, zonePib, besoinCreditInitial, besoinCreditInitial);
             besoinCreditInitial = Math.max(0, besoinCreditInitial - pib.amount);
         }
 
@@ -948,11 +1053,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.comp_TAEG_diff, `${formatPercentage(scenData.scenarios[25].classic_TAEG - scenData.scenarios[20].classic_TAEG, 3)} %`);
         setTextEl(ui.comp_coutOperationClassicOnly_diff, formatCurrency(scenData.scenarios[25].coutOpPourClassicOnly - scenData.scenarios[20].coutOpPourClassicOnly) + " €");
 
-        const parseFormatted = (elId) => {
-            const el = getEl(elId);
-            return el ? parseFloat(el.textContent.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0 : 0;
-        };
-        setTextEl(ui.comp_savings_diff, formatCurrency(parseFormatted('comp_savings_25') - parseFormatted('comp_savings_20')) + " €");
+        setTextEl(ui.comp_savings_diff, formatCurrency(scenData.scenarios[25].savings - scenData.scenarios[20].savings) + " €");
     };
 
     const updateApportAnalysis = (ui, state, analyseApport) => {
@@ -1053,7 +1154,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { state, uiState } = lireEtatFormulaire(ui);
 
         // (Ajustement spécifique de l'interface pour le Reste à Vivre)
-        const ravSlider = getEl('RAV'), ravNum = getEl('RAV_num');
+        const ravSlider = ui?.form?.RAV_slider, ravNum = ui?.form?.RAV_num;
         if(ravSlider && ravNum) {
             const dynamicMaxRav = Math.min(parseFloat(ravSlider.getAttribute('data-original-max') || ravSlider.max), state.S);
             if (!ravSlider.hasAttribute('data-original-max')) ravSlider.setAttribute('data-original-max', ravSlider.max);
@@ -1077,7 +1178,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 4. CALCUL ET AFFICHAGE DE LA REVENTE
         const resultsForResale = { totalCreditNeeded: coutTotalOperation - state.A, pib, ptb, scenarios: scenData.scenarios, coutTotalOperation };
-        calculerRevente(resultsForResale, state.P, state.A);
+        calculerRevente(ui, uiState, resultsForResale, state.P, state.A, state);
         
         // 5. SAUVEGARDE AUTO (throttlée)
         scheduleSave(state);
@@ -1088,26 +1189,26 @@ document.addEventListener('DOMContentLoaded', () => {
         calculateAllCore();
     }
 
-    function calculerRevente(results, prixAchatInitial, apportInitial) {
-        const horizon = getNumVal('resaleHorizon');
-        const pvMode = getEl('pv_mode')?.value || 'annual';
-        const inflationMode = getEl('inflation_mode')?.value || 'annual';
-        const iraMode = getEl('ira_mode')?.value || 'percentage';
-        const fraisRevente = getNumVal('resaleFees'); 
+    function calculerRevente(ui, uiState, results, prixAchatInitial, apportInitial, state) {
+        const horizon = uiState?.resale?.horizon || 0;
+        const pvMode = uiState?.pvMode || 'annual';
+        const inflationMode = uiState?.inflationMode || 'annual';
+        const iraMode = uiState?.iraMode || 'percentage';
+        const fraisRevente = uiState?.resale?.fees || 0;
 
-        const scenarioDuration = parseInt(getEl('resaleScenarioRef')?.value || 20);
+        const scenarioDuration = uiState?.scenarioDuration || 20;
         const scenarioRef = results.scenarios[scenarioDuration];
-        const tauxClassiqueUsed = getNumVal(`TE_${scenarioDuration}`);
+        const tauxClassiqueUsed = scenarioDuration === 25 ? state.TE_25 : state.TE_20;
 
-        setText('resale_horizon_display', horizon);
-        setText('resale_scenario_duration_display', scenarioDuration);
+        setTextEl(ui.resale_horizon_display, horizon);
+        setTextEl(ui.resale_scenario_duration_display, scenarioDuration);
         
         let prixRevente = 0;
         if (pvMode === 'annual') {
-            const plusValue = getNumVal('plusValue');
+            const plusValue = uiState?.resale?.plusValueAnnual || 0;
             prixRevente = prixAchatInitial * Math.pow(1 + plusValue / 100, horizon);
         } else {
-            prixRevente = getNumVal('resalePriceManual');
+            prixRevente = uiState?.resale?.resalePriceManual || 0;
         }
 
         const moisPayes = horizon * 12;
@@ -1119,9 +1220,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Calcul Pénalités IRA Multiples
         let ira_fees = 0;
         if (iraMode === 'percentage') {
-            const ira_classic_pc = getNumVal('ira_classic');
-            const ira_pib_pc = getNumVal('ira_pib');
-            const ira_ptb_pc = getNumVal('ira_ptb');
+            const ira_classic_pc = uiState?.ira?.classicPc || 0;
+            const ira_pib_pc = uiState?.ira?.pibPc || 0;
+            const ira_ptb_pc = uiState?.ira?.ptbPc || 0;
 
             const sixMoisIntClassic = (crd_classic * (tauxClassiqueUsed/100)) / 2;
             const maxIraClassic = Math.min(crd_classic * 0.03, sixMoisIntClassic);
@@ -1135,13 +1236,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const maxIraPtb = Math.min(crd_ptb * 0.03, sixMoisIntPtb);
             const ira_ptb_fees = maxIraPtb * (ira_ptb_pc / 3);
 
-            setText('ira_classic_amount', formatCurrency(ira_classic_fees) + " €");
-            setText('ira_pib_amount', formatCurrency(ira_pib_fees) + " €");
-            setText('ira_ptb_amount', formatCurrency(ira_ptb_fees) + " €");
+            setTextEl(ui.ira_classic_amount, formatCurrency(ira_classic_fees) + " €");
+            setTextEl(ui.ira_pib_amount, formatCurrency(ira_pib_fees) + " €");
+            setTextEl(ui.ira_ptb_amount, formatCurrency(ira_ptb_fees) + " €");
 
             ira_fees = ira_classic_fees + ira_pib_fees + ira_ptb_fees;
         } else {
-            ira_fees = getNumVal('ira_manual');
+            ira_fees = uiState?.ira?.manualAmount || 0;
         }
 
         const produitNet = prixRevente - totalCRD - ira_fees - fraisRevente;
@@ -1166,34 +1267,31 @@ document.addEventListener('DOMContentLoaded', () => {
         // Application de l'inflation sur le Bilan Financier Final
         let inflationFactor = 1;
         if (inflationMode === 'annual') {
-            const inflationAnnual = getNumVal('inflation');
+            const inflationAnnual = uiState?.resale?.inflationAnnual || 0;
             inflationFactor = Math.pow(1 + inflationAnnual / 100, horizon);
         } else {
-            const inflationCumul = getNumVal('inflationCumulative');
+            const inflationCumul = uiState?.resale?.inflationCumulative || 0;
             inflationFactor = 1 + (inflationCumul / 100);
         }
         const realNetBalance = bilanFinancierNet / inflationFactor;
         
-        setText('res_resale_price', formatCurrency(prixRevente) + " €");
-        setText('res_remaining_capital', formatCurrency(totalCRD) + " €");
-        setText('res_ira_fees', formatCurrency(ira_fees) + " €");
-        setText('res_resale_costs', formatCurrency(fraisRevente) + " €");
-        setText('res_net_proceeds', formatCurrency(produitNet) + " €");
-        setText('res_initial_apport', formatCurrency(apportInitial) + " €");
-        setText('res_capital_amorti', formatCurrency(capitalAmorti) + " €");
-        setText('res_total_wasted_costs', formatCurrency(interetsEtAssurancePayes) + " €");
-        
-        setText('res_bilan_patrimonial', formatCurrency(bilanPatrimonial) + " €");
-        const bilPatEl = getEl('res_bilan_patrimonial');
-        if(bilPatEl) bilPatEl.style.color = bilanPatrimonial >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
+        setTextEl(ui.res_resale_price, formatCurrency(prixRevente) + " €");
+        setTextEl(ui.res_remaining_capital, formatCurrency(totalCRD) + " €");
+        setTextEl(ui.res_ira_fees, formatCurrency(ira_fees) + " €");
+        setTextEl(ui.res_resale_costs, formatCurrency(fraisRevente) + " €");
+        setTextEl(ui.res_net_proceeds, formatCurrency(produitNet) + " €");
+        setTextEl(ui.res_initial_apport, formatCurrency(apportInitial) + " €");
+        setTextEl(ui.res_capital_amorti, formatCurrency(capitalAmorti) + " €");
+        setTextEl(ui.res_total_wasted_costs, formatCurrency(interetsEtAssurancePayes) + " €");
 
-        setText('res_net_balance', formatCurrency(bilanFinancierNet) + " €");
-        const bilNetEl = getEl('res_net_balance');
-        if(bilNetEl) bilNetEl.style.color = bilanFinancierNet >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
-        
-        setText('res_real_balance', formatCurrency(realNetBalance) + " €");
-        const realNetEl = getEl('res_real_balance');
-        if(realNetEl) realNetEl.style.color = realNetBalance >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
+        setTextEl(ui.res_bilan_patrimonial, formatCurrency(bilanPatrimonial) + " €");
+        if (ui.res_bilan_patrimonial) ui.res_bilan_patrimonial.style.color = bilanPatrimonial >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
+
+        setTextEl(ui.res_net_balance, formatCurrency(bilanFinancierNet) + " €");
+        if (ui.res_net_balance) ui.res_net_balance.style.color = bilanFinancierNet >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
+
+        setTextEl(ui.res_real_balance, formatCurrency(realNetBalance) + " €");
+        if (ui.res_real_balance) ui.res_real_balance.style.color = realNetBalance >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
     }
 
 
@@ -1259,25 +1357,34 @@ document.addEventListener('DOMContentLoaded', () => {
             // On relance le calcul global pour que le pourcentage à droite s'ajuste immédiatement
             calculateAll();
         });
-        ['typeBien', 'typeGarantie', 'enablePIB', 'pibZone', 'enablePTB', 'ptbAgentStatus', 'ptbZone', 'resaleScenarioRef', 'chargeAgence'].forEach(id => {
-            const el = getEl(id);
+        [
+            ui.form.typeBien,
+            ui.form.typeGarantie,
+            ui.form.enablePIB,
+            ui.form.pibZone,
+            ui.form.enablePTB,
+            ui.form.ptbAgentStatus,
+            ui.form.ptbZone,
+            ui.form.resaleScenarioRef,
+            ui.form.chargeAgence
+        ].forEach(el => {
             if (el) el.addEventListener('change', calculateAll);
         });
 
         // Toggles pour la revente (Mode de saisie PV, Inflation, IRA)
-        getEl('pv_mode')?.addEventListener('change', e => {
-            setDisplay('pv_annual_container', e.target.value === 'annual' ? 'flex' : 'none');
-            setDisplay('pv_manual_container', e.target.value === 'manual' ? 'flex' : 'none');
+        ui.form.pv_mode?.addEventListener('change', e => {
+            setDisplayEl(ui.pv_annual_container, e.target.value === 'annual' ? 'flex' : 'none');
+            setDisplayEl(ui.pv_manual_container, e.target.value === 'manual' ? 'flex' : 'none');
             calculateAll();
         });
-        getEl('inflation_mode')?.addEventListener('change', e => {
-            setDisplay('inflation_annual_container', e.target.value === 'annual' ? 'flex' : 'none');
-            setDisplay('inflation_cumulative_container', e.target.value === 'cumulative' ? 'flex' : 'none');
+        ui.form.inflation_mode?.addEventListener('change', e => {
+            setDisplayEl(ui.inflation_annual_container, e.target.value === 'annual' ? 'flex' : 'none');
+            setDisplayEl(ui.inflation_cumulative_container, e.target.value === 'cumulative' ? 'flex' : 'none');
             calculateAll();
         });
-        getEl('ira_mode')?.addEventListener('change', e => {
-            setDisplay('ira_percentage_container', e.target.value === 'percentage' ? 'flex' : 'none');
-            setDisplay('ira_manual_container', e.target.value === 'manual' ? 'flex' : 'none');
+        ui.ira_mode?.addEventListener('change', e => {
+            setDisplayEl(ui.ira_percentage_container, e.target.value === 'percentage' ? 'flex' : 'none');
+            setDisplayEl(ui.ira_manual_container, e.target.value === 'manual' ? 'flex' : 'none');
             calculateAll();
         });
 
@@ -1306,11 +1413,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Listener `FN_mode` unique : géré plus haut (évite double traitement)
         
-        getEl('typeGarantie')?.addEventListener('change', (e) => {
+        ui.form.typeGarantie?.addEventListener('change', (e) => {
             const isManualGuarantee = e.target.value === 'manual_guarantee';
-            setDisplay('manualGuaranteeInput', isManualGuarantee ? 'flex' : 'none');
-            const details = getEl('FG_details');
-            const trigger = getEl('fgDetailsToggleTrigger');
+            setDisplayEl(ui.manualGuaranteeInput, isManualGuarantee ? 'flex' : 'none');
+            const details = ui.FG_details;
+            const trigger = ui.fgDetailsToggleTrigger;
             if (details && trigger) {
                 if (isManualGuarantee) {
                     details.classList.remove('visible');
@@ -1324,11 +1431,11 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateAll();
         });
 
-        getEl('enablePIB')?.addEventListener('change', e => { setDisplay('pibInputsContainer', e.target.checked ? 'block' : 'none'); calculateAll(); });
-        getEl('enablePTB')?.addEventListener('change', e => { setDisplay('ptbInputsContainer', e.target.checked ? 'block' : 'none'); calculateAll(); });
-        getEl('ptbAgentStatus')?.addEventListener('change', e => { 
-            const ptbZoneSlider = getEl('ptbZone');
-            if(ptbZoneSlider) ptbZoneSlider.disabled = (e.target.value === 'retraite'); 
+        ui.form.enablePIB?.addEventListener('change', e => { setDisplayEl(ui.pibInputsContainer, e.target.checked ? 'block' : 'none'); calculateAll(); });
+        ui.form.enablePTB?.addEventListener('change', e => { setDisplayEl(ui.ptbInputsContainer, e.target.checked ? 'block' : 'none'); calculateAll(); });
+        ui.form.ptbAgentStatus?.addEventListener('change', e => { 
+            const ptbZoneSlider = ui.form.ptbZone;
+            if (ptbZoneSlider) ptbZoneSlider.disabled = (e.target.value === 'retraite'); 
             calculateAll();
         });
 
@@ -1340,58 +1447,62 @@ document.addEventListener('DOMContentLoaded', () => {
                 const loanType = e.target.dataset.loanType;
                 let schedule, loanName = "";
                 
-                const parseElFormatted = id => { const el = getEl(id); return el ? (parseFloat(el.textContent.replace(/[^\d,.-]/g,'').replace(',','.')) || 0) : 0; };
+                const parseElFormatted = el => el ? (parseFloat(el.textContent.replace(/[^\d,.-]/g,'').replace(',','.')) || 0) : 0;
                 
-                const currentPtbAmount = parseElFormatted('ptb_res_amount');
-                const currentPibAmount = parseElFormatted('pib_res_amount');
-                const currentClassicLoanAmount = parseElFormatted('scen_classic_amount_display');
+                const currentPtbAmount = parseElFormatted(ui?.ptb_res_amount);
+                const currentPibAmount = parseElFormatted(ui?.pib_res_amount);
+                const currentClassicLoanAmount = parseElFormatted(ui?.scen_classic_amount_display);
+                const { state } = lireEtatFormulaire(ui);
 
                 if (loanType==='ptb'&&currentPtbAmount>0) { 
-                    loanName=`PTB (${getNumVal('ptbDuration')}a)`; 
-                    const bonifRate = (getNumVal('ptbRFR') <= (BONIFICATION_THRESHOLDS[getEl('ptbZone')?.value || 'A']?.[Math.min(parseInt(getNumVal('ptbHouseholdSize'))||1, 5)] || 0)) ? 3 : 2;
-                    schedule=generateAmortizationSchedule("PTB",currentPtbAmount,Math.max(0, getNumVal('pibBFMRate') - bonifRate),getNumVal('ptbDuration'),getNumVal('ptbInsuranceRate')); 
+                    loanName=`PTB (${state.ptbDuration}a)`; 
+                    const zone = (state.ptbAgentStatus === 'retraite') ? 'A' : (state.ptbZone || 'A');
+                    const thresholds = BONIFICATION_THRESHOLDS[zone];
+                    const bonifRate = (thresholds && state.ptbRFR <= (thresholds[Math.min(state.ptbHouseholdSize, 5)] || 0)) ? 3 : 2;
+                    schedule=generateAmortizationSchedule("PTB",currentPtbAmount,Math.max(0, state.pibBFMRate - bonifRate),state.ptbDuration,state.ptbInsuranceRate); 
                 }
                 else if (loanType==='pib'&&currentPibAmount>0) { 
-                    loanName=`PIB (${getNumVal('pibDuration')}a)`; 
-                    const bonifRate = (getNumVal('pibRFR') <= (BONIFICATION_THRESHOLDS[getEl('pibZone')?.value || 'A']?.[Math.min(parseInt(getNumVal('pibHouseholdSize'))||1, 5)] || 0)) ? 3 : 2;
-                    schedule=generateAmortizationSchedule("PIB",currentPibAmount,Math.max(0, getNumVal('pibBFMRate') - bonifRate),getNumVal('pibDuration'),getNumVal('pibInsuranceRate')); 
+                    loanName=`PIB (${state.pibDuration}a)`; 
+                    const thresholds = BONIFICATION_THRESHOLDS[state.pibZone || 'A'];
+                    const bonifRate = (thresholds && state.pibRFR <= (thresholds[Math.min(state.pibHouseholdSize, 5)] || 0)) ? 3 : 2;
+                    schedule=generateAmortizationSchedule("PIB",currentPibAmount,Math.max(0, state.pibBFMRate - bonifRate),state.pibDuration,state.pibInsuranceRate); 
                 }
                 else if (loanType==='classic_20'&&currentClassicLoanAmount>0) { 
                     loanName=`Classique (20a)`; 
-                    schedule=generateAmortizationSchedule("Classique 20a",currentClassicLoanAmount,getNumVal('TE_20'),20,getNumVal('TA_20')); 
+                    schedule=generateAmortizationSchedule("Classique 20a",currentClassicLoanAmount,state.TE_20,20,state.TA_20); 
                 }
                 else if (loanType==='classic_25'&&currentClassicLoanAmount>0) { 
                     loanName=`Classique (25a)`; 
-                    schedule=generateAmortizationSchedule("Classique 25a",currentClassicLoanAmount,getNumVal('TE_25'),25,getNumVal('TA_25')); 
+                    schedule=generateAmortizationSchedule("Classique 25a",currentClassicLoanAmount,state.TE_25,25,state.TA_25); 
                 }
 
                 if (schedule && schedule.length > 0) displayAmortizationModal(loanName, schedule);
                 else { 
-                    setHTML('amortizationTableContainer', "<p>Données non disponibles ou montant nul.</p>"); 
-                    setText('amortizationModalTitle', "Erreur"); 
+                    setHTMLEl(ui?.amortizationTableContainer, "<p>Données non disponibles ou montant nul.</p>"); 
+                    setTextEl(ui?.amortizationModalTitle, "Erreur"); 
                     document.querySelector('.modal-overlay')?.classList.add('visible'); 
                 }
             }
         });
 
         // Initialisation correcte de l'état du slider Frais de Notaire au démarrage
-        const modeFN = getEl('FN_mode')?.value || 'auto';
+        const modeFN = ui.form.FN_mode?.value || 'auto';
         const isManualFN = modeFN === 'manual';
         setInputState('FN', isManualFN, { min: isManualFN ? 0 : 0.5, max: isManualFN ? 100000 : 10, step: isManualFN ? 100 : 0.1 });
         
         if(isManualFN) {
-            getEl('fn_breakdown')?.classList.remove('visible');
-            setDisplay('fnDetailsToggleTrigger', 'none');
+            ui.fn_breakdown?.classList.remove('visible');
+            setDisplayEl(ui.fnDetailsToggleTrigger, 'none');
         }
-        const modeGar = getEl('typeGarantie')?.value;
+        const modeGar = ui.form.typeGarantie?.value;
         if(modeGar === 'manual_guarantee') {
-            getEl('FG_details')?.classList.remove('visible');
-            setDisplay('fgDetailsToggleTrigger', 'none');
-            setDisplay('manualGuaranteeInput', 'flex');
+            ui.FG_details?.classList.remove('visible');
+            setDisplayEl(ui.fgDetailsToggleTrigger, 'none');
+            setDisplayEl(ui.manualGuaranteeInput, 'flex');
         }
 
         // Bouton de réinitialisation
-        getEl('btn-reset')?.addEventListener('click', () => {
+        ui.btn_reset?.addEventListener('click', () => {
             if (confirm("Voulez-vous vraiment réinitialiser toutes les données et repartir de zéro ?")) {
                 localStorage.removeItem('simuImmoDGAC_sauvegarde');
                 window.location.reload(); // Recharge la page à neuf
