@@ -3,9 +3,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === 1. FONCTIONS UTILITAIRES ET SETTERS SÉCURISÉS ===
     const getEl = id => document.getElementById(id);
+
+    // Regroupement des recalculs UI pour éviter le jank pendant le drag (1 calcul par frame max)
+    let calcRafId = null;
+    const requestRecalc = () => {
+        if (calcRafId !== null) return;
+        calcRafId = requestAnimationFrame(() => {
+            calcRafId = null;
+            calculateAllCore();
+        });
+    };
     const sauvegarderEtat = (state) => {
         // On sauvegarde l'objet state sous forme de texte dans le navigateur
         localStorage.setItem('simuImmoDGAC_sauvegarde', JSON.stringify(state));
+    };
+
+    // Évite de spammer localStorage pendant le drag (I/O sync potentiellement coûteux)
+    let saveTimerId = null;
+    let pendingStateForSave = null;
+    const scheduleSave = (state) => {
+        pendingStateForSave = state;
+        if (saveTimerId !== null) clearTimeout(saveTimerId);
+        saveTimerId = setTimeout(() => {
+            saveTimerId = null;
+            if (pendingStateForSave) sauvegarderEtat(pendingStateForSave);
+        }, 250);
     };
 
     const chargerEtat = () => {
@@ -225,7 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!slider.disabled) { 
                 num.value = slider.value; 
                 updateSliderVisual(); 
-                calculateAll(); 
+                requestRecalc(); 
             }
         });
         num.addEventListener('input', () => {
@@ -235,7 +257,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (currentVal >= parseFloat(slider.min) && currentVal <= parseFloat(slider.max)) slider.value = currentVal;
                 }
                 updateSliderVisual(); 
-                calculateAll();
+                requestRecalc();
             }
         });
         num.addEventListener('blur', () => {
@@ -247,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 val = isNaN(val) || val < minVal ? minVal : (val > maxVal ? maxVal : val);
                 num.value = val.toFixed(decimals); slider.value = num.value;
                 updateSliderVisual(); 
-                calculateAll();
+                requestRecalc();
             }
         });
 
@@ -258,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 slider.value = defaultValue;
                 num.value = defaultValue;
                 updateSliderVisual();
-                calculateAll();
+                requestRecalc();
             }
         });
 
@@ -297,9 +319,54 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const displayAmortizationModal = (loanName, schedule) => {
         setText('amortizationModalTitle', `Tableau d'Amortissement - ${loanName}`);
-        let tableHTML = `<table class="amortization-data-table"><thead><tr><th>Mois</th><th>Mens.(hors ass.)</th><th>Intérêts</th><th>Capital Remb.</th><th>Assurance</th><th>Mens. Totale</th><th>Capital Rest. Dû</th></tr></thead><tbody>`;
-        schedule.forEach(r => { tableHTML += `<tr><td>${r.month}</td><td>${formatCurrency(r.paymentWithoutInsurance,2)}€</td><td>${formatCurrency(r.interest,2)}€</td><td>${formatCurrency(r.principalRepaid,2)}€</td><td>${formatCurrency(r.insurance,2)}€</td><td>${formatCurrency(r.totalPayment,2)}€</td><td>${formatCurrency(r.remainingBalance,2)}€</td></tr>`; });
-        setHTML('amortizationTableContainer', `${tableHTML}</tbody></table>`);
+        const container = getEl('amortizationTableContainer');
+        if (!container) return;
+
+        container.textContent = '';
+
+        const table = document.createElement('table');
+        table.className = 'amortization-data-table';
+
+        const thead = document.createElement('thead');
+        const headRow = document.createElement('tr');
+        [
+            'Mois',
+            'Mens.(hors ass.)',
+            'Intérêts',
+            'Capital Remb.',
+            'Assurance',
+            'Mens. Totale',
+            'Capital Rest. Dû'
+        ].forEach(label => {
+            const th = document.createElement('th');
+            th.textContent = label;
+            headRow.appendChild(th);
+        });
+        thead.appendChild(headRow);
+
+        const tbody = document.createElement('tbody');
+        schedule.forEach(r => {
+            const tr = document.createElement('tr');
+            const cells = [
+                String(r.month),
+                `${formatCurrency(r.paymentWithoutInsurance, 2)}€`,
+                `${formatCurrency(r.interest, 2)}€`,
+                `${formatCurrency(r.principalRepaid, 2)}€`,
+                `${formatCurrency(r.insurance, 2)}€`,
+                `${formatCurrency(r.totalPayment, 2)}€`,
+                `${formatCurrency(r.remainingBalance, 2)}€`
+            ];
+            cells.forEach(v => {
+                const td = document.createElement('td');
+                td.textContent = v;
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+
+        table.appendChild(thead);
+        table.appendChild(tbody);
+        container.appendChild(table);
         document.querySelector('.modal-overlay')?.classList.add('visible');
     };
 
@@ -562,7 +629,10 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
                     else if (key === 'duration') setText(detailsMap[key], valueToDisplay + " ans");
                     else setText(detailsMap[key], valueToDisplay);
                 }
-                if (type === 'ptb') setText('ptb_res_insurance_status', loanObj.insuranceIncluded ? `Incluse (0,36%)` : 'Non incluse');
+                if (type === 'ptb') {
+                    const isIncluded = (Number(loanObj.insuranceRate) || 0) > 0;
+                    setText('ptb_res_insurance_status', isIncluded ? `Incluse (${formatPercentage(loanObj.insuranceRate, 2)}%)` : 'Non incluse');
+                }
                 setText(`${type}_scenario_duration_label`, `${loanObj.duration} ans (fixe)`);
             }
             
@@ -716,7 +786,7 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
         // --- FIN DU NOUVEAU BLOC ---
     }
 
-    function calculateAll() {
+    function calculateAllCore() {
         // 1. LECTURE DES DONNÉES
         const state = lireEtatFormulaire();
 
@@ -747,8 +817,13 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
         const resultsForResale = { totalCreditNeeded: coutTotalOperation - state.A, pib, ptb, scenarios: scenData.scenarios, coutTotalOperation };
         calculerRevente(resultsForResale, state.P, state.A);
         
-        // 5. SAUVEGARDE AUTO (Pour l'étape 2)
-        sauvegarderEtat(state);
+        // 5. SAUVEGARDE AUTO (throttlée)
+        scheduleSave(state);
+    }
+
+    // Compatibilité: les événements \"change\" et le code existant appellent calculateAll().
+    function calculateAll() {
+        calculateAllCore();
     }
 
     function calculerRevente(results, prixAchatInitial, apportInitial) {
@@ -884,6 +959,8 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
             const isManual = e.target.value === 'manual';
             const fnSlider = getEl('FN');
             const fnNum = getEl('FN_num');
+            const breakdown = getEl('fn_breakdown');
+            const trigger = getEl('fnDetailsToggleTrigger');
             
             if (isManual) {
                 // 1. On récupère le montant en euros actuel (caché dans le résumé)
@@ -900,13 +977,20 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
                 }
                 
                 // 4. On cache les détails inutiles
-                getEl('fn_breakdown')?.classList.remove('visible');
-                setDisplay('fnDetailsToggleTrigger', 'none');
+                breakdown?.classList.remove('visible');
+                if (trigger) {
+                    trigger.textContent = "Détails calcul auto. frais notaire ▼";
+                    trigger.style.display = 'none';
+                }
                 
             } else {
                 // Retour en mode Auto : On remet les limites pour un petit pourcentage
                 setInputState('FN', false, { min: 0.5, max: 10, step: 0.1 });
-                setDisplay('fnDetailsToggleTrigger', 'inline');
+                breakdown?.classList.add('visible');
+                if (trigger) {
+                    trigger.textContent = "Cacher détails calcul auto. frais notaire ▲";
+                    trigger.style.display = 'inline';
+                }
             }
             
             // On relance le calcul global pour que le pourcentage à droite s'ajuste immédiatement
@@ -957,24 +1041,7 @@ function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetail
         setupDetailsToggle('fnDetailsToggleTrigger', 'fn_breakdown', "Détails calcul auto. frais notaire ▼", "Cacher détails calcul auto. frais notaire ▲");
         setupDetailsToggle('fgDetailsToggleTrigger', 'FG_details', "Détails garantie Prêt Classique ▼", "Cacher détails garantie Prêt Classique ▲");
 
-        getEl('FN_mode')?.addEventListener('change', (e) => {
-            const isManual = e.target.value === 'manual';
-            setInputState('FN', isManual, { min:isManual?0:0.5, max:isManual?100000:10, step:isManual?100:0.1 });
-            const breakdown = getEl('fn_breakdown');
-            const trigger = getEl('fnDetailsToggleTrigger');
-            if(breakdown && trigger) {
-                if (isManual) {
-                    breakdown.classList.remove('visible');
-                    trigger.textContent = "Détails calcul auto. frais notaire ▼";
-                    trigger.style.display = 'none';
-                } else {
-                    breakdown.classList.add('visible');
-                    trigger.textContent = "Cacher détails calcul auto. frais notaire ▲";
-                    trigger.style.display = 'block';
-                }
-            }
-            calculateAll();
-        });
+        // Listener `FN_mode` unique : géré plus haut (évite double traitement)
         
         getEl('typeGarantie')?.addEventListener('change', (e) => {
             const isManualGuarantee = e.target.value === 'manual_guarantee';
