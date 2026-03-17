@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     const inputs = {}; 
+    let ui = null;
 
     // === 1. FONCTIONS UTILITAIRES ET SETTERS SÉCURISÉS ===
     const elCache = new Map();
@@ -9,6 +10,169 @@ document.addEventListener('DOMContentLoaded', () => {
         elCache.set(id, el);
         return el;
     };
+
+    const buildUI = () => ({
+        // Conteneurs / sections
+        bonifiedResultsSection: getEl('bonified-results-section'),
+        // Résumé haut
+        prixFAI: getEl('prixFAI'),
+        FAg_montant: getEl('FAg_montant'),
+        // Résumé opération
+        res_prixFAI: getEl('res_prixFAI'),
+        FN_montant: getEl('FN_montant'),
+        res_FN_montant: getEl('res_FN_montant'),
+        FG_description: getEl('FG_description'),
+        FG_montant: getEl('FG_montant'),
+        res_FG_montant: getEl('res_FG_montant'),
+        res_FD: getEl('res_FD'),
+        res_Courtier: getEl('res_Courtier'),
+        res_T: getEl('res_T'),
+        coutTotalOperation: getEl('coutTotalOperation'),
+        res_apport: getEl('res_apport'),
+        res_credit_demande: getEl('res_credit_demande'),
+        res_classic_loan_amount: getEl('res_classic_loan_amount'),
+        res_classic_loan_amount_row: getEl('res_classic_loan_amount_row'),
+        // Capacité / limites
+        S_display: getEl('S_display'),
+        AutresCredits_display: getEl('AutresCredits_display'),
+        AutresCharges_display: getEl('AutresCharges_display'),
+        mensualitemax_tdt: getEl('mensualitemax_tdt'),
+        mensualitemax_rav: getEl('mensualitemax_rav'),
+        mensualitemax_retenue: getEl('mensualitemax_retenue'),
+        capEmpruntMax_20: getEl('capEmpruntMax_20'),
+        capEmpruntMax_25: getEl('capEmpruntMax_25'),
+        current_TE_20_val: getEl('current_TE_20_val'),
+        current_TA_20_val: getEl('current_TA_20_val'),
+        current_TE_25_val: getEl('current_TE_25_val'),
+        current_TA_25_val: getEl('current_TA_25_val'),
+
+        // Scénarios / comparaisons
+        scen_classic_amount_display: getEl('scen_classic_amount_display'),
+        scen_classic_mensualite_20: getEl('scen_classic_mensualite_20'),
+        scen_classic_mensualite_25: getEl('scen_classic_mensualite_25'),
+        scen_classic_mensualite_diff: getEl('scen_classic_mensualite_diff'),
+        comp_mensualite_20: getEl('comp_mensualite_20'),
+        comp_mensualite_25: getEl('comp_mensualite_25'),
+        comp_mensualite_diff: getEl('comp_mensualite_diff'),
+        comp_resteAVivre_20: getEl('comp_resteAVivre_20'),
+        comp_resteAVivre_25: getEl('comp_resteAVivre_25'),
+        comp_resteAVivre_diff: getEl('comp_resteAVivre_diff'),
+        comp_coutCredit_20: getEl('comp_coutCredit_20'),
+        comp_coutCredit_25: getEl('comp_coutCredit_25'),
+        comp_coutCredit_diff: getEl('comp_coutCredit_diff'),
+        comp_coutOperation_20: getEl('comp_coutOperation_20'),
+        comp_coutOperation_25: getEl('comp_coutOperation_25'),
+        comp_coutOperation_diff: getEl('comp_coutOperation_diff'),
+        comp_TAEG_20: getEl('comp_TAEG_20'),
+        comp_TAEG_25: getEl('comp_TAEG_25'),
+        comp_TAEG_diff: getEl('comp_TAEG_diff'),
+        comp_tauxEndettement_20: getEl('comp_tauxEndettement_20'),
+        comp_tauxEndettement_25: getEl('comp_tauxEndettement_25'),
+        comp_tauxEndettement_diff: getEl('comp_tauxEndettement_diff'),
+        respectMensualite_20: getEl('respectMensualite_20'),
+        respectMensualite_25: getEl('respectMensualite_25'),
+        comp_coutOperationClassicOnly_20: getEl('comp_coutOperationClassicOnly_20'),
+        comp_coutOperationClassicOnly_25: getEl('comp_coutOperationClassicOnly_25'),
+        comp_coutOperationClassicOnly_diff: getEl('comp_coutOperationClassicOnly_diff'),
+        comp_savings_20: getEl('comp_savings_20'),
+        comp_savings_25: getEl('comp_savings_25'),
+        comp_savings_diff: getEl('comp_savings_diff'),
+
+        // TAEG global
+        comp_TAEG_global_20: getEl('comp_TAEG_global_20'),
+        comp_TAEG_global_25: getEl('comp_TAEG_global_25'),
+        comp_TAEG_global_diff: getEl('comp_TAEG_global_diff'),
+
+        // Lignes scénario bonifiés
+        ptb_scenario_header_row: getEl('ptb_scenario_header_row'),
+        ptb_scenario_amount_row: getEl('ptb_scenario_amount_row'),
+        ptb_scenario_mensualite_row: getEl('ptb_scenario_mensualite_row'),
+        scen_ptb_amount_display: getEl('scen_ptb_amount_display'),
+        scen_ptb_mensualite_display: getEl('scen_ptb_mensualite_display'),
+        pib_scenario_header_row: getEl('pib_scenario_header_row'),
+        pib_scenario_amount_row: getEl('pib_scenario_amount_row'),
+        pib_scenario_mensualite_row: getEl('pib_scenario_mensualite_row'),
+        scen_pib_amount_display: getEl('scen_pib_amount_display'),
+        scen_pib_mensualite_display: getEl('scen_pib_mensualite_display'),
+
+        // Analyse apport
+        A_display: getEl('A_display'),
+        apportAnalysisContainer: getEl('apportAnalysisContainer'),
+
+        // IRA containers
+        ira_mode: getEl('ira_mode'),
+        ira_percentage_container: getEl('ira_percentage_container'),
+        ira_manual_container: getEl('ira_manual_container'),
+        ira_pib_container: getEl('ira_pib_container'),
+        ira_ptb_container: getEl('ira_ptb_container'),
+
+        // PTB/PIB détails
+        ptbDetailsResultBox: getEl('ptbDetailsResultBox'),
+        pibDetailsResultBox: getEl('pibDetailsResultBox'),
+        ptb_warning_msg: getEl('ptb_warning_msg'),
+        res_ptb_amount_row: getEl('res_ptb_amount_row'),
+        res_pib_amount_row: getEl('res_pib_amount_row'),
+        res_ptb_amount: getEl('res_ptb_amount'),
+        res_pib_amount: getEl('res_pib_amount'),
+
+        ptb_res_amount: getEl('ptb_res_amount'),
+        ptb_res_duration: getEl('ptb_res_duration'),
+        ptb_res_bfm_rate: getEl('ptb_res_bfm_rate'),
+        ptb_res_bonification_rate: getEl('ptb_res_bonification_rate'),
+        ptb_res_borrower_rate: getEl('ptb_res_borrower_rate'),
+        ptb_res_insurance_rate: getEl('ptb_res_insurance_rate'),
+        ptb_res_insurance_status: getEl('ptb_res_insurance_status'),
+        ptb_res_monthly_payment: getEl('ptb_res_monthly_payment'),
+        ptb_res_total_interest_cost: getEl('ptb_res_total_interest_cost'),
+        ptb_res_total_insurance_cost: getEl('ptb_res_total_insurance_cost'),
+        ptb_res_total_cost: getEl('ptb_res_total_cost'),
+        ptbMaxAmount_display: getEl('ptbMaxAmount_display'),
+        ptbBonificationRate_display: getEl('ptbBonificationRate_display'),
+        ptbBorrowerRate_display: getEl('ptbBorrowerRate_display'),
+        ptb_scenario_duration_label: getEl('ptb_scenario_duration_label'),
+
+        pib_res_amount: getEl('pib_res_amount'),
+        pib_res_duration: getEl('pib_res_duration'),
+        pib_res_bfm_rate: getEl('pib_res_bfm_rate'),
+        pib_res_bonification_rate: getEl('pib_res_bonification_rate'),
+        pib_res_borrower_rate: getEl('pib_res_borrower_rate'),
+        pib_res_insurance_rate: getEl('pib_res_insurance_rate'),
+        pib_res_monthly_payment: getEl('pib_res_monthly_payment'),
+        pib_res_total_interest_cost: getEl('pib_res_total_interest_cost'),
+        pib_res_total_insurance_cost: getEl('pib_res_total_insurance_cost'),
+        pib_res_total_cost: getEl('pib_res_total_cost'),
+        pibMaxAmount_display: getEl('pibMaxAmount_display'),
+        pibBonificationRate_display: getEl('pibBonificationRate_display'),
+        pibBorrowerRate_display: getEl('pibBorrowerRate_display'),
+        pib_scenario_duration_label: getEl('pib_scenario_duration_label'),
+
+        // Form inputs principaux (pour lireEtatFormulaire)
+        form: {
+            P_num: getEl('P_num'),
+            FAg_num: getEl('FAg_num'),
+            M_num: getEl('M_num'),
+            typeBien: getEl('typeBien'),
+            chargeAgence: getEl('chargeAgence'),
+            FN_mode: getEl('FN_mode'),
+            FN_num: getEl('FN_num'),
+            FD_num: getEl('FD_num'),
+            Courtier_num: getEl('Courtier_num'),
+            T_num: getEl('T_num'),
+            A_num: getEl('A_num'),
+            S_num: getEl('S_num'),
+            AutresCredits_num: getEl('AutresCredits_num'),
+            AutresCharges_num: getEl('AutresCharges_num'),
+            TEdt_num: getEl('TEdt_num'),
+            RAV_num: getEl('RAV_num'),
+            TE_20_num: getEl('TE_20_num'),
+            TA_20_num: getEl('TA_20_num'),
+            TE_25_num: getEl('TE_25_num'),
+            TA_25_num: getEl('TA_25_num'),
+            enablePIB: getEl('enablePIB'),
+            enablePTB: getEl('enablePTB'),
+            pibBFMRate_num: getEl('pibBFMRate_num')
+        }
+    });
 
     // Regroupement des recalculs UI pour éviter le jank pendant le drag (1 calcul par frame max)
     let calcRafId = null;
@@ -85,6 +249,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const setText = (id, text) => { const el = getEl(id); if (el) el.textContent = text; };
     const setHTML = (id, html) => { const el = getEl(id); if (el) el.innerHTML = html; };
     const setDisplay = (id, display) => { const el = getEl(id); if (el) el.style.display = display; };
+    const setTextEl = (el, text) => { if (el) el.textContent = text; };
+    const setHTMLEl = (el, html) => { if (el) el.innerHTML = html; };
+    const setDisplayEl = (el, display) => { if (el) el.style.display = display; };
 
     const infoMessages = {
         chargeAgence_info: "Charge Acquéreur : Les frais d'agence sont exclus du calcul des frais de notaire (économie), mais la banque exigera souvent que vous les payiez avec votre apport personnel. Charge Vendeur : L'agence est incluse dans le prix, le notaire taxe le tout (plus cher), mais la banque le finance plus facilement (moins d'apport exigé).",
@@ -378,18 +545,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === 4. LOGIQUE D'APPLICATION Principale ===
 
-    function lireEtatFormulaire() {
-        return {
-            P: getNumVal('P'), FAg: getNumVal('FAg'), M: getNumVal('M'), typeBien: getEl('typeBien')?.value || 'ancien',
-            chargeAgence: getEl('chargeAgence')?.value || 'acquereur', // NOUVELLE LIGNE
-            FN_mode: getEl('FN_mode')?.value || 'auto', FN_input: getNumVal('FN'),
-            FD: getNumVal('FD'), Courtier: getNumVal('Courtier'), T: getNumVal('T'), A: getNumVal('A'),
-            S: getNumVal('S'), AutresCredits: getNumVal('AutresCredits'), AutresCharges: getNumVal('AutresCharges'),
-            TEdt: getNumVal('TEdt'), RAV: getNumVal('RAV'),
-            TE_20: getNumVal('TE_20'), TA_20: getNumVal('TA_20'), TE_25: getNumVal('TE_25'), TA_25: getNumVal('TA_25'),
-            isPIBEnabled: getEl('enablePIB')?.checked || false, pibBFMRate: getNumVal('pibBFMRate'),
-            isPTBEnabled: getEl('enablePTB')?.checked || false
+    const numFrom = (el) => (el ? (parseFloat(el.value) || 0) : 0);
+
+    function lireEtatFormulaire(ui) {
+        const f = ui?.form || {};
+        const state = {
+            P: numFrom(f.P_num),
+            FAg: numFrom(f.FAg_num),
+            M: numFrom(f.M_num),
+            typeBien: f.typeBien?.value || 'ancien',
+            chargeAgence: f.chargeAgence?.value || 'acquereur',
+            FN_mode: f.FN_mode?.value || 'auto',
+            FN_input: numFrom(f.FN_num),
+            FD: numFrom(f.FD_num),
+            Courtier: numFrom(f.Courtier_num),
+            T: numFrom(f.T_num),
+            A: numFrom(f.A_num),
+            S: numFrom(f.S_num),
+            AutresCredits: numFrom(f.AutresCredits_num),
+            AutresCharges: numFrom(f.AutresCharges_num),
+            TEdt: numFrom(f.TEdt_num),
+            RAV: numFrom(f.RAV_num),
+            TE_20: numFrom(f.TE_20_num),
+            TA_20: numFrom(f.TA_20_num),
+            TE_25: numFrom(f.TE_25_num),
+            TA_25: numFrom(f.TA_25_num),
+            isPIBEnabled: !!f.enablePIB?.checked,
+            pibBFMRate: numFrom(f.pibBFMRate_num),
+            isPTBEnabled: !!f.enablePTB?.checked
         };
+
+        const uiState = {
+            iraMode: ui?.ira_mode?.value || 'percentage'
+        };
+
+        return { state, uiState };
     }
 
     function gererFraisAcquisition(state) {
@@ -606,129 +796,167 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    const updateBonifiedLoanDisplay = (state, loanObj, type, detailsMap) => {
+    const updateBonifiedLoanDisplay = (ui, state, loanObj, type, detailsMap) => {
         const isEnabled = type === 'ptb' ? state.isPTBEnabled : state.isPIBEnabled;
+        const detailsBox = type === 'ptb' ? ui.ptbDetailsResultBox : ui.pibDetailsResultBox;
+        const resAmountRow = type === 'ptb' ? ui.res_ptb_amount_row : ui.res_pib_amount_row;
+        const resAmount = type === 'ptb' ? ui.res_ptb_amount : ui.res_pib_amount;
+        const maxEl = type === 'ptb' ? ui.ptbMaxAmount_display : ui.pibMaxAmount_display;
+        const bonifEl = type === 'ptb' ? ui.ptbBonificationRate_display : ui.pibBonificationRate_display;
+        const borrowerEl = type === 'ptb' ? ui.ptbBorrowerRate_display : ui.pibBorrowerRate_display;
+        const durationLabelEl = type === 'ptb' ? ui.ptb_scenario_duration_label : ui.pib_scenario_duration_label;
 
-        // On affiche le tableau dès que c'est coché (Option 2)
-        setDisplay(`${type}DetailsResultBox`, isEnabled ? 'block' : 'none');
-        // On affiche la ligne dans le mini-résumé général seulement s'il y a un montant
-        setDisplay(`res_${type}_amount_row`, loanObj.amount > 0 ? 'table-row' : 'none');
+        setDisplayEl(detailsBox, isEnabled ? 'block' : 'none');
+        setDisplayEl(resAmountRow, loanObj.amount > 0 ? 'table-row' : 'none');
 
-        // Gestion de l'avertissement pour le PTB (Option 3)
         if (type === 'ptb') {
-            setDisplay('ptb_warning_msg', (isEnabled && loanObj.amount === 0) ? 'block' : 'none');
+            setDisplayEl(ui.ptb_warning_msg, (isEnabled && loanObj.amount === 0) ? 'block' : 'none');
         }
 
         if (isEnabled) {
-            // On met à jour les chiffres même s'ils sont à 0, pour montrer le tableau vide
-            setText(`res_${type}_amount`, formatCurrency(loanObj.amount) + " €");
+            setTextEl(resAmount, formatCurrency(loanObj.amount) + " €");
             for (const key in detailsMap) {
+                const el = detailsMap[key];
                 const valueToDisplay = loanObj[key];
-                if (['interestRate', 'bonification', 'insuranceRate'].includes(key)) setText(detailsMap[key], formatPercentage(valueToDisplay, 2) + " %");
-                else if (['monthlyPayment', 'totalCost'].includes(key)) setText(detailsMap[key], formatCurrency(valueToDisplay, 2) + " €");
-                else if (['totalInterest', 'totalInsurance', 'amount'].includes(key)) setText(detailsMap[key], formatCurrency(valueToDisplay, 0) + " €");
-                else if (key === 'duration') setText(detailsMap[key], valueToDisplay + " ans");
-                else setText(detailsMap[key], valueToDisplay);
+                if (!el) continue;
+                if (['interestRate', 'bonification', 'insuranceRate'].includes(key)) setTextEl(el, formatPercentage(valueToDisplay, 2) + " %");
+                else if (['monthlyPayment', 'totalCost'].includes(key)) setTextEl(el, formatCurrency(valueToDisplay, 2) + " €");
+                else if (['totalInterest', 'totalInsurance', 'amount'].includes(key)) setTextEl(el, formatCurrency(valueToDisplay, 0) + " €");
+                else if (key === 'duration') setTextEl(el, valueToDisplay + " ans");
+                else setTextEl(el, valueToDisplay);
             }
             if (type === 'ptb') {
                 const isIncluded = (Number(loanObj.insuranceRate) || 0) > 0;
-                setText('ptb_res_insurance_status', isIncluded ? `Incluse (${formatPercentage(loanObj.insuranceRate, 2)}%)` : 'Non incluse');
+                setTextEl(ui.ptb_res_insurance_status, isIncluded ? `Incluse (${formatPercentage(loanObj.insuranceRate, 2)}%)` : 'Non incluse');
             }
-            setText(`${type}_scenario_duration_label`, `${loanObj.duration} ans (fixe)`);
+            setTextEl(durationLabelEl, `${loanObj.duration} ans (fixe)`);
         }
 
-        setHTML(`${type}MaxAmount_display`, `<strong>${formatCurrency(loanObj.maxPossible)}</strong> €`);
-        setHTML(`${type}BonificationRate_display`, `<strong>${formatPercentage(loanObj.bonification, 1)}</strong> %`);
-        setHTML(`${type}BorrowerRate_display`, `<strong>${formatPercentage(loanObj.interestRate, 2)}</strong> %`);
+        setHTMLEl(maxEl, `<strong>${formatCurrency(loanObj.maxPossible)}</strong> €`);
+        setHTMLEl(bonifEl, `<strong>${formatPercentage(loanObj.bonification, 1)}</strong> %`);
+        setHTMLEl(borrowerEl, `<strong>${formatPercentage(loanObj.interestRate, 2)}</strong> %`);
     };
 
-    const updateBonifiedSections = (state, pib, ptb) => {
-        setDisplay('bonified-results-section', (state.isPTBEnabled || state.isPIBEnabled) ? 'flex' : 'none');
-        updateBonifiedLoanDisplay(state, ptb, 'ptb', { amount: 'ptb_res_amount', duration: 'ptb_res_duration', interestRate: 'ptb_res_borrower_rate', bonification: 'ptb_res_bonification_rate', insuranceRate: 'ptb_res_insurance_rate', monthlyPayment: 'ptb_res_monthly_payment', totalInterest: 'ptb_res_total_interest_cost', totalInsurance: 'ptb_res_total_insurance_cost', totalCost: 'ptb_res_total_cost' });
-        setText('ptb_res_bfm_rate', `${formatPercentage(state.pibBFMRate, 2)} %`);
-        updateBonifiedLoanDisplay(state, pib, 'pib', { amount: 'pib_res_amount', duration: 'pib_res_duration', interestRate: 'pib_res_borrower_rate', bonification: 'pib_res_bonification_rate', insuranceRate: 'pib_res_insurance_rate', monthlyPayment: 'pib_res_monthly_payment', totalInterest: 'pib_res_total_interest_cost', totalInsurance: 'pib_res_total_insurance_cost', totalCost: 'pib_res_total_cost' });
-        setText('pib_res_bfm_rate', `${formatPercentage(state.pibBFMRate, 2)} %`);
+    const updateBonifiedSections = (ui, state, pib, ptb) => {
+        setDisplayEl(ui.bonifiedResultsSection, (state.isPTBEnabled || state.isPIBEnabled) ? 'flex' : 'none');
+        updateBonifiedLoanDisplay(
+            ui,
+            state,
+            ptb,
+            'ptb',
+            {
+                amount: ui.ptb_res_amount,
+                duration: ui.ptb_res_duration,
+                interestRate: ui.ptb_res_borrower_rate,
+                bonification: ui.ptb_res_bonification_rate,
+                insuranceRate: ui.ptb_res_insurance_rate,
+                monthlyPayment: ui.ptb_res_monthly_payment,
+                totalInterest: ui.ptb_res_total_interest_cost,
+                totalInsurance: ui.ptb_res_total_insurance_cost,
+                totalCost: ui.ptb_res_total_cost
+            }
+        );
+        setTextEl(ui.ptb_res_bfm_rate, `${formatPercentage(state.pibBFMRate, 2)} %`);
+
+        updateBonifiedLoanDisplay(
+            ui,
+            state,
+            pib,
+            'pib',
+            {
+                amount: ui.pib_res_amount,
+                duration: ui.pib_res_duration,
+                interestRate: ui.pib_res_borrower_rate,
+                bonification: ui.pib_res_bonification_rate,
+                insuranceRate: ui.pib_res_insurance_rate,
+                monthlyPayment: ui.pib_res_monthly_payment,
+                totalInterest: ui.pib_res_total_interest_cost,
+                totalInsurance: ui.pib_res_total_insurance_cost,
+                totalCost: ui.pib_res_total_cost
+            }
+        );
+        setTextEl(ui.pib_res_bfm_rate, `${formatPercentage(state.pibBFMRate, 2)} %`);
     };
 
-    const updateOperationSummary = (state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique) => {
-        setText('FAg_montant', formatCurrency(FAg_montant));
-        setText('prixFAI', formatCurrency(prixFAI));
+    const updateOperationSummary = (ui, state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique) => {
+        setTextEl(ui.FAg_montant, formatCurrency(FAg_montant));
+        setTextEl(ui.prixFAI, formatCurrency(prixFAI));
 
-        setText('res_prixFAI', formatCurrency(prixFAI) + " €");
-        setText('FN_montant', state.FN_mode === 'manual' ? '' : formatCurrency(fn_details.montant) + ' €');
-        setText('res_FN_montant', formatCurrency(fn_details.montant) + " €");
+        setTextEl(ui.res_prixFAI, formatCurrency(prixFAI) + " €");
+        setTextEl(ui.FN_montant, state.FN_mode === 'manual' ? '' : formatCurrency(fn_details.montant) + ' €');
+        setTextEl(ui.res_FN_montant, formatCurrency(fn_details.montant) + " €");
 
-        setText('FG_description', garDetails.description);
-        setText('FG_montant', formatCurrency(garDetails.cout));
-        setText('res_FG_montant', formatCurrency(garDetails.cout) + " €");
+        setTextEl(ui.FG_description, garDetails.description);
+        setTextEl(ui.FG_montant, formatCurrency(garDetails.cout));
+        setTextEl(ui.res_FG_montant, formatCurrency(garDetails.cout) + " €");
 
-        setText('res_FD', formatCurrency(state.FD) + " €");
-        setText('res_Courtier', formatCurrency(state.Courtier) + " €");
-        setText('res_T', formatCurrency(state.T) + " €");
+        setTextEl(ui.res_FD, formatCurrency(state.FD) + " €");
+        setTextEl(ui.res_Courtier, formatCurrency(state.Courtier) + " €");
+        setTextEl(ui.res_T, formatCurrency(state.T) + " €");
 
-        setText('coutTotalOperation', formatCurrency(coutTotalOperation) + " €");
-        setText('res_apport', formatCurrency(state.A) + " €");
-        setText('res_credit_demande', formatCurrency(coutTotalOperation - state.A) + " €");
-        setText('res_classic_loan_amount', formatCurrency(besoinCreditFinalClassique) + " €");
-        setText('scen_classic_amount_display', formatCurrency(besoinCreditFinalClassique) + " €");
-        setDisplay('res_classic_loan_amount_row', besoinCreditFinalClassique > 0 ? 'table-row' : 'none');
+        setTextEl(ui.coutTotalOperation, formatCurrency(coutTotalOperation) + " €");
+        setTextEl(ui.res_apport, formatCurrency(state.A) + " €");
+        setTextEl(ui.res_credit_demande, formatCurrency(coutTotalOperation - state.A) + " €");
+        setTextEl(ui.res_classic_loan_amount, formatCurrency(besoinCreditFinalClassique) + " €");
+        setTextEl(ui.scen_classic_amount_display, formatCurrency(besoinCreditFinalClassique) + " €");
+        setDisplayEl(ui.res_classic_loan_amount_row, besoinCreditFinalClassique > 0 ? 'table-row' : 'none');
     };
 
-    const updateCapacityAndLimits = (state, scenData) => {
-        setText('S_display', formatCurrency(state.S));
-        setText('AutresCredits_display', formatCurrency(state.AutresCredits));
-        setText('AutresCharges_display', formatCurrency(state.AutresCharges));
+    const updateCapacityAndLimits = (ui, state, scenData) => {
+        setTextEl(ui.S_display, formatCurrency(state.S));
+        setTextEl(ui.AutresCredits_display, formatCurrency(state.AutresCredits));
+        setTextEl(ui.AutresCharges_display, formatCurrency(state.AutresCharges));
 
-        setText('mensualitemax_tdt', formatCurrency(scenData.mensualiteMaxTdtGlobale) + " €");
-        setText('mensualitemax_rav', formatCurrency(scenData.mensualiteMaxRavGlobale) + " €");
-        setText('mensualitemax_retenue', formatCurrency(scenData.mensualiteMaxRetenueGlobale) + " €");
+        setTextEl(ui.mensualitemax_tdt, formatCurrency(scenData.mensualiteMaxTdtGlobale) + " €");
+        setTextEl(ui.mensualitemax_rav, formatCurrency(scenData.mensualiteMaxRavGlobale) + " €");
+        setTextEl(ui.mensualitemax_retenue, formatCurrency(scenData.mensualiteMaxRetenueGlobale) + " €");
 
-        setText('capEmpruntMax_20', formatCurrency(scenData.capEmpruntMax_20) + " €");
-        setText('capEmpruntMax_25', formatCurrency(scenData.capEmpruntMax_25) + " €");
-        setText('current_TE_20_val', formatNumber(state.TE_20, 2));
-        setText('current_TA_20_val', formatNumber(state.TA_20, 2));
-        setText('current_TE_25_val', formatNumber(state.TE_25, 2));
-        setText('current_TA_25_val', formatNumber(state.TA_25, 2));
+        setTextEl(ui.capEmpruntMax_20, formatCurrency(scenData.capEmpruntMax_20) + " €");
+        setTextEl(ui.capEmpruntMax_25, formatCurrency(scenData.capEmpruntMax_25) + " €");
+        setTextEl(ui.current_TE_20_val, formatNumber(state.TE_20, 2));
+        setTextEl(ui.current_TA_20_val, formatNumber(state.TA_20, 2));
+        setTextEl(ui.current_TE_25_val, formatNumber(state.TE_25, 2));
+        setTextEl(ui.current_TA_25_val, formatNumber(state.TA_25, 2));
     };
 
-    const updateScenarioValues = (state, scenData, coutTotalOperation) => {
+    const updateScenarioValues = (ui, state, scenData, coutTotalOperation) => {
         [20, 25].forEach(duree => {
             const s = scenData.scenarios[duree];
-            setText(`scen_classic_mensualite_${duree}`, formatCurrency(s.mensTotaleClassique, 2) + " €");
-            setText(`comp_mensualite_${duree}`, formatCurrency(s.mensTotaleGlobale, 2) + " €");
-            setText(`comp_resteAVivre_${duree}`, formatCurrency(s.resteAVivre) + " €");
-            setText(`comp_coutCredit_${duree}`, formatCurrency(s.coutCreditGlobal) + " €");
-            setText(`comp_TAEG_${duree}`, `${formatPercentage(s.classic_TAEG, 3)} %`);
-            setText(`comp_tauxEndettement_${duree}`, s.tauxEndettement === Infinity ? "N/A" : `${formatPercentage(s.tauxEndettement, 2)} %`);
-            setText(`comp_coutOperation_${duree}`, formatCurrency(coutTotalOperation + s.coutCreditGlobal) + " €");
+            setTextEl(duree === 20 ? ui.scen_classic_mensualite_20 : ui.scen_classic_mensualite_25, formatCurrency(s.mensTotaleClassique, 2) + " €");
+            setTextEl(duree === 20 ? ui.comp_mensualite_20 : ui.comp_mensualite_25, formatCurrency(s.mensTotaleGlobale, 2) + " €");
+            setTextEl(duree === 20 ? ui.comp_resteAVivre_20 : ui.comp_resteAVivre_25, formatCurrency(s.resteAVivre) + " €");
+            setTextEl(duree === 20 ? ui.comp_coutCredit_20 : ui.comp_coutCredit_25, formatCurrency(s.coutCreditGlobal) + " €");
+            setTextEl(duree === 20 ? ui.comp_TAEG_20 : ui.comp_TAEG_25, `${formatPercentage(s.classic_TAEG, 3)} %`);
+            setTextEl(duree === 20 ? ui.comp_tauxEndettement_20 : ui.comp_tauxEndettement_25, s.tauxEndettement === Infinity ? "N/A" : `${formatPercentage(s.tauxEndettement, 2)} %`);
+            setTextEl(duree === 20 ? ui.comp_coutOperation_20 : ui.comp_coutOperation_25, formatCurrency(coutTotalOperation + s.coutCreditGlobal) + " €");
 
-            const cellRespect = getEl(`respectMensualite_${duree}`);
+            const cellRespect = duree === 20 ? ui.respectMensualite_20 : ui.respectMensualite_25;
             if (cellRespect) {
                 cellRespect.textContent = (coutTotalOperation - state.A) <= 0 ? 'N/A' : (s.respect ? '✅ OK' : '❌ NON');
                 cellRespect.className = `status-cell ${(coutTotalOperation - state.A) <= 0 ? '' : (s.respect ? 'ok' : 'nok')}`;
             }
-            setText(`comp_coutOperationClassicOnly_${duree}`, formatCurrency(s.coutOpPourClassicOnly) + " €");
-            setText(`comp_savings_${duree}`, formatCurrency(s.savings) + " €");
+            setTextEl(duree === 20 ? ui.comp_coutOperationClassicOnly_20 : ui.comp_coutOperationClassicOnly_25, formatCurrency(s.coutOpPourClassicOnly) + " €");
+            setTextEl(duree === 20 ? ui.comp_savings_20 : ui.comp_savings_25, formatCurrency(s.savings) + " €");
         });
 
-        setText('scen_classic_mensualite_diff', formatCurrency(scenData.scenarios[25].mensTotaleClassique - scenData.scenarios[20].mensTotaleClassique, 2) + " €");
-        setText('comp_mensualite_diff', formatCurrency(scenData.scenarios[25].mensTotaleGlobale - scenData.scenarios[20].mensTotaleGlobale, 2) + " €");
-        setText('comp_coutCredit_diff', formatCurrency(scenData.scenarios[25].coutCreditGlobal - scenData.scenarios[20].coutCreditGlobal) + " €");
-        setText('comp_coutOperation_diff', formatCurrency((coutTotalOperation + scenData.scenarios[25].coutCreditGlobal) - (coutTotalOperation + scenData.scenarios[20].coutCreditGlobal)) + " €");
-        setText('comp_tauxEndettement_diff', (scenData.scenarios[20].tauxEndettement === Infinity || scenData.scenarios[25].tauxEndettement === Infinity) ? "N/A" : `${formatPercentage(scenData.scenarios[25].tauxEndettement - scenData.scenarios[20].tauxEndettement, 2)} %`);
-        setText('comp_resteAVivre_diff', formatCurrency(scenData.scenarios[25].resteAVivre - scenData.scenarios[20].resteAVivre) + " €");
-        setText('comp_TAEG_diff', `${formatPercentage(scenData.scenarios[25].classic_TAEG - scenData.scenarios[20].classic_TAEG, 3)} %`);
-        setText('comp_coutOperationClassicOnly_diff', formatCurrency(scenData.scenarios[25].coutOpPourClassicOnly - scenData.scenarios[20].coutOpPourClassicOnly) + " €");
+        setTextEl(ui.scen_classic_mensualite_diff, formatCurrency(scenData.scenarios[25].mensTotaleClassique - scenData.scenarios[20].mensTotaleClassique, 2) + " €");
+        setTextEl(ui.comp_mensualite_diff, formatCurrency(scenData.scenarios[25].mensTotaleGlobale - scenData.scenarios[20].mensTotaleGlobale, 2) + " €");
+        setTextEl(ui.comp_coutCredit_diff, formatCurrency(scenData.scenarios[25].coutCreditGlobal - scenData.scenarios[20].coutCreditGlobal) + " €");
+        setTextEl(ui.comp_coutOperation_diff, formatCurrency((coutTotalOperation + scenData.scenarios[25].coutCreditGlobal) - (coutTotalOperation + scenData.scenarios[20].coutCreditGlobal)) + " €");
+        setTextEl(ui.comp_tauxEndettement_diff, (scenData.scenarios[20].tauxEndettement === Infinity || scenData.scenarios[25].tauxEndettement === Infinity) ? "N/A" : `${formatPercentage(scenData.scenarios[25].tauxEndettement - scenData.scenarios[20].tauxEndettement, 2)} %`);
+        setTextEl(ui.comp_resteAVivre_diff, formatCurrency(scenData.scenarios[25].resteAVivre - scenData.scenarios[20].resteAVivre, 2) + " €");
+        setTextEl(ui.comp_TAEG_diff, `${formatPercentage(scenData.scenarios[25].classic_TAEG - scenData.scenarios[20].classic_TAEG, 3)} %`);
+        setTextEl(ui.comp_coutOperationClassicOnly_diff, formatCurrency(scenData.scenarios[25].coutOpPourClassicOnly - scenData.scenarios[20].coutOpPourClassicOnly) + " €");
 
         const parseFormatted = (elId) => {
             const el = getEl(elId);
             return el ? parseFloat(el.textContent.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0 : 0;
         };
-        setText('comp_savings_diff', formatCurrency(parseFormatted('comp_savings_25') - parseFormatted('comp_savings_20')) + " €");
+        setTextEl(ui.comp_savings_diff, formatCurrency(parseFormatted('comp_savings_25') - parseFormatted('comp_savings_20')) + " €");
     };
 
-    const updateApportAnalysis = (state, analyseApport) => {
-        setText('A_display', formatCurrency(state.A));
+    const updateApportAnalysis = (ui, state, analyseApport) => {
+        setTextEl(ui.A_display, formatCurrency(state.A));
 
         let htmlApport = `
             <div style="margin-bottom: 8px;">
@@ -758,29 +986,29 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        setHTML('apportAnalysisContainer', htmlApport);
+        setHTMLEl(ui.apportAnalysisContainer, htmlApport);
     };
 
-    const updateIraVisibility = (state) => {
-        const iraMode = getEl('ira_mode')?.value || 'percentage';
-        setDisplay('ira_percentage_container', iraMode === 'percentage' ? 'flex' : 'none');
-        setDisplay('ira_manual_container', iraMode === 'manual' ? 'flex' : 'none');
+    const updateIraVisibility = (ui, state, uiState) => {
+        const iraMode = uiState?.iraMode || 'percentage';
+        setDisplayEl(ui.ira_percentage_container, iraMode === 'percentage' ? 'flex' : 'none');
+        setDisplayEl(ui.ira_manual_container, iraMode === 'manual' ? 'flex' : 'none');
         if (iraMode === 'percentage') {
-            setDisplay('ira_pib_container', state.isPIBEnabled ? 'flex' : 'none');
-            setDisplay('ira_ptb_container', state.isPTBEnabled ? 'flex' : 'none');
+            setDisplayEl(ui.ira_pib_container, state.isPIBEnabled ? 'flex' : 'none');
+            setDisplayEl(ui.ira_ptb_container, state.isPTBEnabled ? 'flex' : 'none');
         }
     };
 
     let combineOnlyEls = null;
-    const updateTaegGlobalAndCombinedRows = (scenData, pib, ptb) => {
+    const updateTaegGlobalAndCombinedRows = (ui, scenData, pib, ptb) => {
         if (scenData && scenData.scenarios) {
             [20, 25].forEach(duree => {
                 const s = scenData.scenarios[duree];
-                if (s && s.taegGlobal !== undefined) setText(`comp_TAEG_global_${duree}`, `${formatPercentage(s.taegGlobal, 2)} %`);
+                if (s && s.taegGlobal !== undefined) setTextEl(duree === 20 ? ui.comp_TAEG_global_20 : ui.comp_TAEG_global_25, `${formatPercentage(s.taegGlobal, 2)} %`);
             });
             if (scenData.scenarios[20] && scenData.scenarios[25]) {
                 const taegDiff = (scenData.scenarios[25].taegGlobal || 0) - (scenData.scenarios[20].taegGlobal || 0);
-                setText('comp_TAEG_global_diff', `${formatPercentage(taegDiff, 2)} %`);
+                setTextEl(ui.comp_TAEG_global_diff, `${formatPercentage(taegDiff, 2)} %`);
             }
         }
 
@@ -788,20 +1016,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasPIB = pib && pib.amount > 0;
         const hasBonifiedLoans = hasPTB || hasPIB;
 
-        setDisplay('ptb_scenario_header_row', hasPTB ? 'table-row' : 'none');
-        setDisplay('ptb_scenario_amount_row', hasPTB ? 'table-row' : 'none');
-        setDisplay('ptb_scenario_mensualite_row', hasPTB ? 'table-row' : 'none');
+        setDisplayEl(ui.ptb_scenario_header_row, hasPTB ? 'table-row' : 'none');
+        setDisplayEl(ui.ptb_scenario_amount_row, hasPTB ? 'table-row' : 'none');
+        setDisplayEl(ui.ptb_scenario_mensualite_row, hasPTB ? 'table-row' : 'none');
         if (hasPTB) {
-            setText('scen_ptb_amount_display', formatCurrency(ptb.amount) + " €");
-            setText('scen_ptb_mensualite_display', formatCurrency(ptb.monthlyPayment, 2) + " €");
+            setTextEl(ui.scen_ptb_amount_display, formatCurrency(ptb.amount) + " €");
+            setTextEl(ui.scen_ptb_mensualite_display, formatCurrency(ptb.monthlyPayment, 2) + " €");
         }
 
-        setDisplay('pib_scenario_header_row', hasPIB ? 'table-row' : 'none');
-        setDisplay('pib_scenario_amount_row', hasPIB ? 'table-row' : 'none');
-        setDisplay('pib_scenario_mensualite_row', hasPIB ? 'table-row' : 'none');
+        setDisplayEl(ui.pib_scenario_header_row, hasPIB ? 'table-row' : 'none');
+        setDisplayEl(ui.pib_scenario_amount_row, hasPIB ? 'table-row' : 'none');
+        setDisplayEl(ui.pib_scenario_mensualite_row, hasPIB ? 'table-row' : 'none');
         if (hasPIB) {
-            setText('scen_pib_amount_display', formatCurrency(pib.amount) + " €");
-            setText('scen_pib_mensualite_display', formatCurrency(pib.monthlyPayment, 2) + " €");
+            setTextEl(ui.scen_pib_amount_display, formatCurrency(pib.amount) + " €");
+            setTextEl(ui.scen_pib_mensualite_display, formatCurrency(pib.monthlyPayment, 2) + " €");
         }
 
         if (!combineOnlyEls) combineOnlyEls = Array.from(document.querySelectorAll('.combine-only'));
@@ -810,19 +1038,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    function mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport) {
-        updateBonifiedSections(state, pib, ptb);
-        updateOperationSummary(state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique);
-        updateCapacityAndLimits(state, scenData);
-        updateScenarioValues(state, scenData, coutTotalOperation);
-        updateApportAnalysis(state, analyseApport);
-        updateIraVisibility(state);
-        updateTaegGlobalAndCombinedRows(scenData, pib, ptb);
+    function mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport) {
+        updateBonifiedSections(ui, state, pib, ptb);
+        updateOperationSummary(ui, state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique);
+        updateCapacityAndLimits(ui, state, scenData);
+        updateScenarioValues(ui, state, scenData, coutTotalOperation);
+        updateApportAnalysis(ui, state, analyseApport);
+        updateIraVisibility(ui, state, uiState);
+        updateTaegGlobalAndCombinedRows(ui, scenData, pib, ptb);
     }
 
     function calculateAllCore() {
         // 1. LECTURE DES DONNÉES
-        const state = lireEtatFormulaire();
+        const { state, uiState } = lireEtatFormulaire(ui);
 
         // (Ajustement spécifique de l'interface pour le Reste à Vivre)
         const ravSlider = getEl('RAV'), ravNum = getEl('RAV_num');
@@ -845,7 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const analyseApport = calculerExigencesApport(state, fn_details, garDetails, FAg_montant);
 
         // 3. MISE À JOUR DE L'INTERFACE
-        mettreAJourInterface(state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport);
+        mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport);
 
         // 4. CALCUL ET AFFICHAGE DE LA REVENTE
         const resultsForResale = { totalCreditNeeded: coutTotalOperation - state.A, pib, ptb, scenarios: scenData.scenarios, coutTotalOperation };
@@ -971,6 +1199,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === 5. INITIALISATION (Start App) ===
     function startApp() {
+        ui = buildUI();
         const inputIds = [
             'P', 'FAg', 'M', 'FN', 'FD', 'Courtier', 'A', 'TE_20', 'TA_20', 'TE_25', 'TA_25', 'S', 
             'AutresCredits', 'AutresCharges', 'TEdt', 'RAV', 'T', 'FG_manual', 
