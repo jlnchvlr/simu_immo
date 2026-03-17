@@ -76,7 +76,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const PTB_MAX_AMOUNTS = { actif: { "A": 40000, "B1B2": 32000, "C": 25000 }, retraite: { "A": 15000, "B1B2": 15000, "C": 15000 }};
     const MIN_BONIFIED_AMOUNT = 7500;
     const BONIFICATION_THRESHOLDS = { "A": {1:37000,2:51800,3:62900,4:74000,5:85100}, "B1B2":{1:32000,2:44800,3:54400,4:64000,5:73600}, "C":{1:27000,2:37800,3:45900,4:54000,5:62100}};
-    const PTB_INSURANCE_RATE = 0.0036;
+
 
     // === 2. FONCTIONS DE CALCUL MATHÉMATIQUE ===
 

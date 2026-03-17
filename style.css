@@ -155,8 +155,7 @@ table th {
     background-color: var(--secondary-color); color: #fff; font-weight: 600;
     font-size: .65rem; text-transform: uppercase; letter-spacing: .5px;
 }
-table#apportReqTable td:first-child, table#resaleReportTable td:first-child { font-weight: 500; }
-table#apportReqTable .percentage-coverage { font-size: .65rem; color: var(--text-light-color); margin-left: 3px; }
+table#resaleReportTable td:first-child { font-weight: 500; }
 table td { background-color: #fdfdfd; color: var(--text-light-color); }
 table td strong { color: var(--text-color); }
 table tr:nth-child(even) td { background-color: #f7f7f7; }
@@ -172,7 +171,6 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
     font-weight: 700 !important; font-size: .85rem !important;
 }
 .savings-row td { background-color: #e8f5e9 !important; font-weight: bold; color: var(--primary-color) !important; }
-.classic-only-row td { background-color: #fff3e0 !important; }
 .status-cell { font-weight: 600; text-align: center; }
 .status-cell.ok { color: var(--primary-color); }
 .status-cell.nok { color: var(--danger-color); }
