@@ -193,6 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Courtier_num: getEl('Courtier_num'),
             T_num: getEl('T_num'),
             A_num: getEl('A_num'),
+            FG_manual_num: getEl('FG_manual_num'),
             S_num: getEl('S_num'),
             AutresCredits_num: getEl('AutresCredits_num'),
             AutresCharges_num: getEl('AutresCharges_num'),
@@ -339,10 +340,49 @@ document.addEventListener('DOMContentLoaded', () => {
         P_info: "Prix net vendeur : Le prix affiché par le propriétaire ou l'agence, hors frais supplémentaires.", FAg_info: "Frais d'agence : Pourcentage du prix net vendeur que l'agence immobilière perçoit pour ses services. Ils sont généralement inclus dans le prix final 'Frais d'Agence Inclus' (FAI).", M_info: "Prix du mobilier : Le prix du mobilier éventuellement inclus dans la vente. Ce montant peut être déduit de l'assiette de calcul des frais de notaire sur l'ancien, réduisant ainsi leur coût.", typeBien_info: "Type de bien : 'Ancien' pour les biens existants (frais de notaire plus élevés). 'Neuf' pour les constructions neuves ou VEFA (Vente en l'État Futur d'Achèvement) où les frais de notaire sont réduits.", FN_mode_info: "Calcul Frais Notaire : 'Automatique' utilise un barème notarial estimatif. 'Manuel' vous permet de saisir un montant précis si vous l'avez déjà obtenu.", FN_info: "Frais de notaire : Incluent les taxes (droits de mutation), les émoluments du notaire et les débours. Leur montant dépend du prix du bien et de son type (ancien/neuf).", typeGarantie_info: "Type de garantie du prêt classique : La garantie est une sûreté prise par la banque en cas de non-remboursement du prêt classique. Le PIB/PTB ne requiert pas de garantie spécifique selon la documentation DGAC.", FG_manual_info: "Coût garantie manuel : Si vous avez une estimation précise ou un type de garantie non standard pour le prêt classique, entrez son coût ici.", FD_info: "Frais de dossier bancaire pour le prêt classique : Somme facturée par la banque pour l'étude et la mise en place de votre dossier de prêt immobilier classique. Le PIB/PTB n'a pas de frais de dossier.", T_info: "Montant total des travaux : Coût estimé des rénovations ou aménagements que vous prévoyez de réaliser après l'acquisition. Ce montant s'ajoute au coût total de l'opération et peut être partiellement financé par un PTB.", A_info: "Apport personnel : Somme d'argent dont vous disposez et que vous êtes prêt à investir dans l'opération. Il réduit le montant du crédit à demander.", TE_20_info: "Taux d'intérêt nominal du prêt classique sur 20 ans, hors assurance.", TA_20_info: "Taux annuel de l'assurance emprunteur pour le prêt classique sur 20 ans.", TE_25_info: "Taux d'intérêt nominal du prêt classique sur 25 ans, hors assurance.", TA_25_info: "Taux annuel de l'assurance emprunteur pour le prêt classique sur 25 ans.", S_info: "Salaires nets mensuels du foyer : Le total des revenus nets de votre foyer par mois, avant impôt sur le revenu mais après prélèvements sociaux.", AutresCredits_info: "Autres crédits en cours : La somme des mensualités de vos autres crédits (crédit auto, crédit consommation, etc.) qui s'ajoutent à votre charge d'endettement.", AutresCharges_info: "Autres charges mensuelles fixes : Entrez ici le total de vos autres charges mensuelles récurrentes qui ne sont pas des crédits (par exemple, un loyer si vous en payez encore un, pensions alimentaires versées, etc.). Ces charges réduisent votre capacité d'emprunt.", tedt_info: "Taux d'endettement maximal : Pourcentage de vos revenus nets que les banques acceptent généralement comme mensualités de crédits (tous crédits confondus, y compris le nouveau prêt immobilier) et charges fixes. Souvent plafonné à 35%.", rav_info: "Reste à vivre minimal : Somme minimale que la banque estime nécessaire pour vos dépenses courantes après paiement de toutes les mensualités (crédits, nouveau prêt) et charges fixes. Varie selon la composition du foyer et la localisation.", res_credit_info: "Crédit Total Nécessaire = Coût Total de l'Opération (incluant frais de garantie et dossier du prêt classique) - Apport Personnel. Ce montant sera réparti entre le PTB, PIB (si applicable) et le prêt classique.", res_fg_info: "Montant estimé des frais de garantie pour le prêt classique.", res_cto_info: "Coût Total de l'Opération = Prix FAI + Frais de Notaire + Frais de Garantie (prêt classique) + Frais de Dossier (prêt classique) + Frais de Courtier + Coût des Travaux. C'est le montant total à financer avant apport.", pibZone_info: "Zone géographique du bien (A/A bis, B1/B2, C) selon l'arrêté du 1er août 2014. Détermine le montant maximum du PIB et les plafonds de ressources pour la bonification de 3%.", pibRFR_info: "Revenu Fiscal de Référence de votre foyer pour l'année N-2 (ex: avis d'impôt 2024 sur revenus 2023 pour une demande en 2025). Sert à déterminer l'éligibilité à la bonification de 3%.", pibHouseholdSize_info: "Nombre de personnes composant le foyer fiscal (figurant sur l'avis d'imposition). Utilisé pour les plafonds de ressources de la bonification de 3%.", pibBFMRate_info: "Taux d'intérêt nominal proposé par la Banque Française Mutualiste (BFM) avant la bonification de la DGAC. Par défaut 3,74% (valable du 01/01/2025 au 30/06/2025). Ce taux est révisé semestriellement et s'applique au PIB et au PTB.", pibDuration_info: "Durée de remboursement du PIB, entre 3 et 12 ans.", pibInsuranceRate_info: "Taux annuel de l'assurance emprunteur pour le PIB (obligatoire). Saisissez le taux proposé par votre assureur (BFM ou autre). La DGAC ne spécifie pas de taux pour l'assurance groupe BFM du PIB. Mettre 0 si vous ne connaissez pas le taux, mais cela sous-estimera la mensualité réelle.", ptbAgentStatus_info: "Statut de l'agent DGAC/ENAC (Actif ou Retraité). Impacte le montant maximum du PTB.", ptbZone_info: "Zone géographique des travaux. Pertinent pour les agents actifs pour déterminer le montant maximum du PTB. Pour les retraités, le plafond est unique et la zone n'est pas utilisée pour le plafond.", ptbRFR_info: "Revenu Fiscal de Référence N-2 du foyer. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbHouseholdSize_info: "Nombre de personnes au foyer fiscal. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbAmountWanted_info: "Montant que vous souhaitez emprunter via le PTB. Sera plafonné par le montant total des travaux et le maximum autorisé pour le PTB (minimum 7 500€ si pris).", ptbDuration_info: "Durée de remboursement du PTB, entre 3 et 10 ans.", ptbIncludeInsurance_info: "L'assurance pour le PTB est facultative et s'élève à 0,36% du capital emprunté si vous la souscrivez.", fg_montant: "Coût estimé de la garantie pour le prêt classique. Le PIB/PTB n'exige pas de caution spécifique selon la documentation DGAC.", taeg_comp_info: "TAEG (Taux Annuel Effectif Global) du Prêt Classique : Coût total du prêt classique exprimé en pourcentage annuel. Il intègre son taux d'intérêt nominal, son coût d'assurance, les frais de dossier, les frais de courtier et les frais de garantie. Le PIB/PTB, n'ayant pas de frais de dossier ni de garantie spécifiques, a un coût plus direct.", res_scenarios_info: "Simulation de financement combiné (PTB + PIB + Prêt Classique sur 20 et 25 ans), avec calcul des mensualités, du coût total des crédits, du TAEG du prêt classique, de votre taux d'endettement et du reste à vivre.", res_apport_req_info: "Exigences d'apport : Les banques demandent souvent un apport couvrant au moins les frais d'acquisition (notaire, garantie, dossier, courtier). Un apport de 10% du prix du bien est une règle commune pour rassurer.", cas1_info: "Frais d'acquisition (Notaire, Garantie Prêt Classique, Dossier Prêt Classique, Courtier) + 10% du prix net vendeur : Exigence courante des banques. Votre apport doit couvrir l'ensemble des frais liés à l'acquisition PLUS au moins 10% du prix d'achat du bien.", cas2_info: "10% du coût total de l'opération : Une autre exigence courante, où votre apport doit représenter au moins 10% du montant total de l'opération (incluant tous les frais et travaux).", cas3_info: "Couverture des frais d'acquisition : Le minimum d'apport souvent exigé par les banques, il doit couvrir tous les frais liés à l'acquisition (frais de notaire, frais de garantie, frais de dossier bancaire du prêt classique et frais de courtier).", cas4_info: "Votre apport comparé à 10% du prix du bien hors frais d'agence. Un indicateur de base pour évaluer votre mise de fonds par rapport au prix 'brut' du bien.", cas5_info: "Votre apport comparé à 10% du prix du bien incluant les frais d'agence. Cet indicateur prend en compte le coût du bien tel qu'il est souvent affiché.", cas6_info: "Votre apport comparé à la somme des frais d'acquisition (notaire, garantie prêt classique, dossier prêt classique, courtier) ET de 10% du prix du bien incluant les frais d'agence. C'est un scénario d'apport solide.", classic_only_info: "Estimation du coût total de votre projet si l'intégralité du 'Crédit total nécessaire' était financée par un prêt classique uniquement (aux taux et conditions du prêt classique saisis), incluant les frais de garantie recalculés pour ce montant total.", savings_info: "Différence entre le coût total de l'opération avec un financement 100% classique et le coût total avec l'utilisation des prêts bonifiés (PTB/PIB). Un chiffre positif indique une économie."
     };
 
-    const PIB_MAX_AMOUNTS = { "A": 40000, "B1B2": 32000, "C": 25000 };
-    const PTB_MAX_AMOUNTS = { actif: { "A": 40000, "B1B2": 32000, "C": 25000 }, retraite: { "A": 15000, "B1B2": 15000, "C": 15000 }};
-    const MIN_BONIFIED_AMOUNT = 7500;
-    const BONIFICATION_THRESHOLDS = { "A": {1:37000,2:51800,3:62900,4:74000,5:85100}, "B1B2":{1:32000,2:44800,3:54400,4:64000,5:73600}, "C":{1:27000,2:37800,3:45900,4:54000,5:62100}};
+    // === 0. CONFIGURATION MÉTIER (Phase 0) ===
+    const CONFIG = {
+        // Prêts bonifiés DGAC
+        PIB_MAX_AMOUNTS:       { A: 40000, B1B2: 32000, C: 25000 },
+        PTB_MAX_AMOUNTS:       { actif: { A: 40000, B1B2: 32000, C: 25000 }, retraite: { A: 15000, B1B2: 15000, C: 15000 } },
+        MIN_BONIFIED_AMOUNT:   7500,
+        BONIFICATION_THRESHOLDS: {
+            A:    { 1: 37000, 2: 51800, 3: 62900, 4: 74000, 5: 85100 },
+            B1B2: { 1: 32000, 2: 44800, 3: 54400, 4: 64000, 5: 73600 },
+            C:    { 1: 27000, 2: 37800, 3: 45900, 4: 54000, 5: 62100 },
+        },
+
+        // Barème émoluments notaire (art. A444-91 du CoJu) — tranches en €
+        EMOLUMENTS_NOTAIRE: [
+            { seuil: 6500,  taux: 0.03870, fixe: 0       },
+            { seuil: 17000, taux: 0.01596, fixe: 251.55   },
+            { seuil: 60000, taux: 0.01064, fixe: 419.13   },
+            { seuil: Infinity, taux: 0.00799, fixe: 876.65 },
+        ],
+        EMOLUMENTS_TVA:       1.20,   // TVA sur émoluments
+        FN_DEBOURS:           800,    // Débours forfaitaires (€)
+        FN_TAXES_ANCIEN:      0.0580665,
+        FN_TAXES_NEUF:        0.00715,
+
+        // Garantie
+        CAUTION_RATE:         0.012,
+        HYPOTHEQUE_TPF_RATE:  0.00715,
+        HYPOTHEQUE_CSI_RATE:  0.0005,
+        HYPOTHEQUE_CSI_MIN:   15,
+        HYPOTHEQUE_DIVERS:    250,
+        PPD_DIVERS:           200,
+        GARANTIE_EMOL_TRANCHES: [
+            { seuil: 30000,   taux: 0.0150, fixe: 0    },
+            { seuil: 100000,  taux: 0.0100, fixe: 450  },
+            { seuil: Infinity, taux: 0.0075, fixe: 1150 },
+        ],
+    };
+
+    // Aliases directs pour compatibilité avec le reste du code (lecture seule)
+    const PIB_MAX_AMOUNTS        = CONFIG.PIB_MAX_AMOUNTS;
+    const PTB_MAX_AMOUNTS        = CONFIG.PTB_MAX_AMOUNTS;
+    const MIN_BONIFIED_AMOUNT    = CONFIG.MIN_BONIFIED_AMOUNT;
+    const BONIFICATION_THRESHOLDS = CONFIG.BONIFICATION_THRESHOLDS;
 
 
     // === 2. FONCTIONS DE CALCUL MATHÉMATIQUE ===
@@ -371,46 +411,47 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function calculerEmolumentsNotaire(base) {
-        if (base <= 0) return 0; 
-        if (base <= 6500) return base * 0.03870;
-        if (base <= 17000) return 251.55 + (base - 6500) * 0.01596; 
-        if (base <= 60000) return 251.55 + 167.58 + (base - 17000) * 0.01064; 
-        return 251.55 + 167.58 + 457.52 + (base - 60000) * 0.00799; 
+        if (base <= 0) return 0;
+        const t = CONFIG.EMOLUMENTS_NOTAIRE.find(t => base <= t.seuil);
+        const prev = CONFIG.EMOLUMENTS_NOTAIRE[CONFIG.EMOLUMENTS_NOTAIRE.indexOf(t) - 1];
+        const seuil = prev?.seuil ?? 0;
+        return (t.fixe) + (base - seuil) * t.taux;
     }
 
     function evaluerFraisGarantie(typeGarantie, montantPret, isAncien, valeurManuelle) {
         if (montantPret <= 0) return { cout: 0, description: "Aucune garantie nécessaire." };
-        if (typeGarantie === 'manual_guarantee') return { cout: valeurManuelle, description: "Garantie manuelle." };
+        if (typeGarantie === 'manual_guarantee') return { cout: valeurManuelle || 0, description: "Garantie manuelle." };
 
-        const calculerEmolumentsGarantie = b => { 
-            if(b<=0) return 0; 
-            if(b<=30000) return b*0.015; 
-            if(b<=100000) return 450+(b-30000)*0.01; 
-            return 1150+(b-100000)*0.0075; 
+        const calculerEmolumentsGarantie = b => {
+            if (b <= 0) return 0;
+            const t = CONFIG.GARANTIE_EMOL_TRANCHES.find(t => b <= t.seuil);
+            const prev = CONFIG.GARANTIE_EMOL_TRANCHES[CONFIG.GARANTIE_EMOL_TRANCHES.indexOf(t) - 1];
+            return t.fixe + (b - (prev?.seuil ?? 0)) * t.taux;
         };
 
         let cout = 0, description = "";
         switch (typeGarantie) {
-            case 'caution': 
-                cout = montantPret * 0.012; 
-                description = `Caution prêt classique (environ 1.2% de ${formatCurrency(montantPret)}).`; 
+            case 'caution':
+                cout = montantPret * CONFIG.CAUTION_RATE;
+                description = `Caution prêt classique (environ ${(CONFIG.CAUTION_RATE * 100).toFixed(1)}% de ${formatCurrency(montantPret)}).`;
                 break;
-            case 'hypotheque': 
-                const tpfHyp = montantPret * 0.00715;
-                const csiHyp = Math.max(15, montantPret * 0.0005);
-                const emolsActe = calculerEmolumentsGarantie(montantPret);
-                cout = tpfHyp + csiHyp + (emolsActe * 1.2) + 250; 
-                description = `Hypothèque conventionnelle.`; 
+            case 'hypotheque': {
+                const tpf  = montantPret * CONFIG.HYPOTHEQUE_TPF_RATE;
+                const csi  = Math.max(CONFIG.HYPOTHEQUE_CSI_MIN, montantPret * CONFIG.HYPOTHEQUE_CSI_RATE);
+                const emol = calculerEmolumentsGarantie(montantPret) * CONFIG.EMOLUMENTS_TVA;
+                cout = tpf + csi + emol + CONFIG.HYPOTHEQUE_DIVERS;
+                description = `Hypothèque conventionnelle.`;
                 break;
-            case 'ppd': 
+            }
+            case 'ppd':
                 if (isAncien) {
-                    const emolsActePPD = calculerEmolumentsGarantie(montantPret);
-                    const csiPPD = Math.max(15, montantPret * 0.0005);
-                    cout = (emolsActePPD * 1.2) + csiPPD + 200; 
+                    const emol = calculerEmolumentsGarantie(montantPret) * CONFIG.EMOLUMENTS_TVA;
+                    const csi  = Math.max(CONFIG.HYPOTHEQUE_CSI_MIN, montantPret * CONFIG.HYPOTHEQUE_CSI_RATE);
+                    cout = emol + csi + CONFIG.PPD_DIVERS;
                     description = `Privilège Prêteur de Deniers (PPD).`;
                 } else {
-                    cout = montantPret * 0.012; 
-                    description = `PPD non applicable (neuf), caution estimée à 1.2%.`;
+                    cout = montantPret * CONFIG.CAUTION_RATE;
+                    description = `PPD non applicable (neuf), caution estimée à ${(CONFIG.CAUTION_RATE * 100).toFixed(1)}%.`;
                 }
                 break;
         }
@@ -650,6 +691,7 @@ document.addEventListener('DOMContentLoaded', () => {
             Courtier: numFrom(f.Courtier_num),
             T: numFrom(f.T_num),
             A: numFrom(f.A_num),
+            FG_manual: numFrom(f.FG_manual_num),
             S: numFrom(f.S_num),
             AutresCredits: numFrom(f.AutresCredits_num),
             AutresCharges: numFrom(f.AutresCharges_num),
@@ -709,45 +751,40 @@ document.addEventListener('DOMContentLoaded', () => {
     function gererFraisAcquisition(state) {
         const FAg_montant = state.P * (state.FAg / 100);
         const prixFAI = state.P + FAg_montant;
-
-        let fn_details = { montant: 0, baseCalcul: 0, taxes: 0, emolumentsTTC: 0, debours: 0 };
-        
-        // NOUVEAU : Base Notaire -> Si charge vendeur, on taxe sur le prix FAI. Si charge acquéreur, sur le net vendeur.
         const baseNotaireBrute = state.chargeAgence === 'vendeur' ? prixFAI : state.P;
 
+        let fn_details = { montant: 0, baseCalcul: 0, taxes: 0, emolumentsTTC: 0, debours: 0 };
+        // Valeurs d'affichage produites ici, consommées par renderFraisNotaire()
+        let fn_display = {};
+
         if (state.FN_mode === 'auto') {
-            fn_details.baseCalcul = state.typeBien === 'ancien' ? Math.max(0, baseNotaireBrute - state.M) : baseNotaireBrute;
-            fn_details.taxes = state.typeBien === 'ancien' ? fn_details.baseCalcul * 0.0580665 : fn_details.baseCalcul * 0.00715;
-            const emolHT = calculerEmolumentsNotaire(state.typeBien === 'ancien' ? fn_details.baseCalcul : baseNotaireBrute);
-            fn_details.emolumentsTTC = emolHT * 1.2;
-            fn_details.debours = 800;
-            fn_details.montant = fn_details.taxes + fn_details.emolumentsTTC + fn_details.debours;
-            
-            // Mise à jour visuelle
-            if (baseNotaireBrute > 0) {
-                const val = (fn_details.montant / baseNotaireBrute) * 100;
-                const fnSlider = getEl('FN'), fnNum = getEl('FN_num');
-                if (fnSlider && fnNum) {
-                    fnNum.value = val.toFixed(1); fnSlider.value = val.toFixed(1);
-                }
-            }
-            setText('fn_base_calc', formatCurrency(fn_details.baseCalcul) + " €");
-            setText('fn_type_bien_label', state.typeBien);
-            setText('fn_taxes', formatCurrency(fn_details.taxes) + " €");
-            setText('fn_emoluments', formatCurrency(fn_details.emolumentsTTC) + " €");
-            setText('fn_debours', formatCurrency(fn_details.debours) + " €");
-            setText('fn_taxes_pc', `${formatNumber(state.typeBien === 'ancien' ? 5.80665 : 0.715, 3)} %`);
-            setText('fn_emoluments_pc', `${formatNumber(fn_details.baseCalcul > 0 ? (fn_details.emolumentsTTC / fn_details.baseCalcul) * 100 : 0, 3)} %`);
-            setText('fn_debours_pc', baseNotaireBrute > 0 ? `${formatNumber((fn_details.debours / baseNotaireBrute) * 100, 3)} %` : '0 %');
+            fn_details.baseCalcul   = state.typeBien === 'ancien' ? Math.max(0, baseNotaireBrute - state.M) : baseNotaireBrute;
+            fn_details.taxes        = fn_details.baseCalcul * (state.typeBien === 'ancien' ? CONFIG.FN_TAXES_ANCIEN : CONFIG.FN_TAXES_NEUF);
+            const emolHT            = calculerEmolumentsNotaire(state.typeBien === 'ancien' ? fn_details.baseCalcul : baseNotaireBrute);
+            fn_details.emolumentsTTC = emolHT * CONFIG.EMOLUMENTS_TVA;
+            fn_details.debours      = CONFIG.FN_DEBOURS;
+            fn_details.montant      = fn_details.taxes + fn_details.emolumentsTTC + fn_details.debours;
+
+            fn_display.mode         = 'auto';
+            fn_display.fnPourcent   = baseNotaireBrute > 0 ? (fn_details.montant / baseNotaireBrute) * 100 : 0;
+            fn_display.baseCalcul   = formatCurrency(fn_details.baseCalcul) + " €";
+            fn_display.typeBien     = state.typeBien;
+            fn_display.taxes        = formatCurrency(fn_details.taxes) + " €";
+            fn_display.emoluments   = formatCurrency(fn_details.emolumentsTTC) + " €";
+            fn_display.debours      = formatCurrency(fn_details.debours) + " €";
+            fn_display.taxesPc      = `${formatNumber(state.typeBien === 'ancien' ? 5.80665 : 0.715, 3)} %`;
+            fn_display.emolumentsPc = `${formatNumber(fn_details.baseCalcul > 0 ? (fn_details.emolumentsTTC / fn_details.baseCalcul) * 100 : 0, 3)} %`;
+            fn_display.debourssPc   = baseNotaireBrute > 0 ? `${formatNumber((fn_details.debours / baseNotaireBrute) * 100, 3)} %` : '0 %';
         } else {
             fn_details.montant = state.FN_input;
-            setText('FN_montant_pc', formatNumber(baseNotaireBrute > 0 ? (state.FN_input / baseNotaireBrute) * 100 : 0, 2));
+            fn_display.mode    = 'manual';
+            fn_display.montantPc = formatNumber(baseNotaireBrute > 0 ? (state.FN_input / baseNotaireBrute) * 100 : 0, 2);
         }
 
-        const coutAvantGar = prixFAI + fn_details.montant + state.T + state.FD + state.Courtier;
-        let besoinCreditInitial = Math.max(0, coutAvantGar - state.A);
+        const coutAvantGar      = prixFAI + fn_details.montant + state.T + state.FD + state.Courtier;
+        const besoinCreditInitial = Math.max(0, coutAvantGar - state.A);
 
-        return { FAg_montant, prixFAI, fn_details, coutAvantGar, besoinCreditInitial };
+        return { FAg_montant, prixFAI, baseNotaireBrute, fn_details, fn_display, coutAvantGar, besoinCreditInitial };
     }
 
     function gererPlanFinancement(state, besoinCreditInitial, coutAvantGar) {
@@ -1121,7 +1158,34 @@ document.addEventListener('DOMContentLoaded', () => {
         combineOnlyEls.forEach(el => { el.style.display = hasBonifiedLoans ? 'table-row' : 'none'; });
     };
 
-    function mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport) {
+    // Phase 0 — render dédié pour les frais de notaire (toutes les écritures DOM extraites de gererFraisAcquisition)
+    const renderFraisNotaire = (ui, fn_display) => {
+        if (fn_display.mode === 'auto') {
+            // Met à jour le slider FN avec le pourcentage calculé
+            const fnSlider = getEl('FN'), fnNum = getEl('FN_num');
+            if (fnSlider && fnNum) {
+                const pct = fn_display.fnPourcent.toFixed(1);
+                fnNum.value   = pct;
+                fnSlider.value = pct;
+                const min = parseFloat(fnSlider.min), max = parseFloat(fnSlider.max);
+                const val = Math.max(min, Math.min(parseFloat(pct), max));
+                fnSlider.style.setProperty('--val', `${max === min ? 0 : ((val - min) / (max - min)) * 100}%`);
+            }
+            setText('fn_base_calc',      fn_display.baseCalcul);
+            setText('fn_type_bien_label', fn_display.typeBien);
+            setText('fn_taxes',          fn_display.taxes);
+            setText('fn_emoluments',     fn_display.emoluments);
+            setText('fn_debours',        fn_display.debours);
+            setText('fn_taxes_pc',       fn_display.taxesPc);
+            setText('fn_emoluments_pc',  fn_display.emolumentsPc);
+            setText('fn_debours_pc',     fn_display.debourssPc);
+        } else {
+            setText('FN_montant_pc', fn_display.montantPc);
+        }
+    };
+
+    function mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport) {
+        renderFraisNotaire(ui, fn_display);
         updateBonifiedSections(ui, state, pib, ptb);
         updateOperationSummary(ui, state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique);
         updateCapacityAndLimits(ui, state, scenData);
@@ -1558,13 +1622,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // 2. CALCULS MÉTIER
-        let { FAg_montant, prixFAI, fn_details, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { FAg_montant, prixFAI, baseNotaireBrute, fn_details, fn_display, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
         let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
         let scenData = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails);
         const analyseApport = calculerExigencesApport(state, fn_details, garDetails, FAg_montant);
 
         // 3. MISE À JOUR DE L'INTERFACE
-        mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport);
+        mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport);
 
         // 4. CALCUL ET AFFICHAGE DE LA REVENTE
         const resultsForResale = { 
@@ -1947,7 +2011,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         getEl('optimizer_run_btn')?.addEventListener('click', () => {
             const { state } = lireEtatFormulaire(ui);
-            let { FAg_montant, prixFAI, fn_details, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+            let { FAg_montant, prixFAI, fn_details, fn_display, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
             let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
             const chargesFixes = state.AutresCredits + state.AutresCharges;
             const mensualiteMaxRetenue = Math.min(
