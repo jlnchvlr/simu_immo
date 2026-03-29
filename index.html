@@ -435,6 +435,38 @@
                 </div>
             </section>
             
+            <!-- ===== PHASE 2 ===== -->
+            <section id="phase2-section" class="card">
+
+                <!-- 2.1 Sensibilité au taux -->
+                <div class="result-group">
+                    <h3>📉 Sensibilité au Taux — "Et si mon taux variait ?"</h3>
+                    <p class="section-description">Impact des variations de taux sur votre mensualité et coût total. Utile pour comparer deux offres bancaires ou anticiper une renégociation.</p>
+                    <div id="sensitivityTableContainer">
+                        <p style="color:var(--text-light-color);font-size:.75rem;">Calcul en cours…</p>
+                    </div>
+                </div>
+
+                <!-- 2.2 Impact de l'apport -->
+                <div class="result-group" style="margin-top:1rem;">
+                    <h3>💰 Impact de l'Apport sur le Financement</h3>
+                    <p class="section-description">Déplacez le slider pour voir comment votre mensualité et votre coût crédit évoluent. Les lignes LTV 80% et 90% marquent les seuils clés de négociation bancaire.</p>
+                    <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:.7rem;">
+                        <label for="apport_alt" style="font-size:.8rem; color:var(--text-light-color); flex-shrink:0;">Apport simulé (€) :</label>
+                        <input type="range" id="apport_alt" min="0" max="1000000" value="80000" step="1000"
+                               style="-webkit-appearance:none;appearance:none;flex-grow:1;min-width:120px;max-width:220px;height:5px;background:transparent;border-radius:4px;outline:none;margin:0 5px;">
+                        <input type="number" id="apport_alt_num" min="0" max="1000000" value="80000" step="1000"
+                               style="min-width:80px;max-width:100px;padding:4px 6px;border:1px solid var(--input-border-color);border-radius:4px;font-size:.75rem;text-align:right;">
+                    </div>
+                    <div id="apportAltInfoContainer" style="background:#f0f7ff;border:1px solid var(--secondary-color);border-radius:var(--border-radius-medium);padding:.7rem;margin-bottom:.7rem;font-size:.8rem;display:none;"></div>
+                    <div style="position:relative; height:270px;">
+                        <canvas id="apportAltCanvas"></canvas>
+                    </div>
+                </div>
+
+            </section>
+            <!-- ===== /PHASE 2 ===== -->
+
             <section id="resale-section" class="card two-columns">
                 <div class="input-column">
                     <div class="input-group">
@@ -562,7 +594,18 @@
         <div class="modal-content">
             <button id="closeAmortizationModal" class="modal-close-button">&times;</button>
             <h3 id="amortizationModalTitle" class="modal-title">Tableau d'Amortissement</h3>
-            <div id="amortizationTableContainer"></div>
+            <!-- Phase 2.3 — Toggle vue graphique / tableau -->
+            <div style="display:flex; gap:8px; margin-bottom:.8rem; align-items:center;">
+                <button id="amortViewChartBtn" class="amort-button" style="background:var(--secondary-color);color:#fff;padding:5px 12px;">📊 Graphique</button>
+                <button id="amortViewTableBtn" class="amort-button" style="padding:5px 12px;">📋 Tableau</button>
+                <span style="font-size:.7rem; color:var(--text-light-color); margin-left:4px;">Barres empilées par année : capital · intérêts · assurance</span>
+            </div>
+            <!-- Canvas graphique amortissement -->
+            <div id="amortChartContainer" style="position:relative; height:320px; margin-bottom:.8rem; display:block;">
+                <canvas id="amortChartCanvas"></canvas>
+            </div>
+            <!-- Tableau classique (masqué par défaut) -->
+            <div id="amortizationTableContainer" style="display:none;"></div>
         </div>
     </div>
     <div id="info-tooltip" class="info-tooltip-popup"></div>

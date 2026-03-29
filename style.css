@@ -274,3 +274,27 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
 }
 .btn-reset:hover { background-color: #d32f2f; }
 .btn-reset:active { transform: scale(0.98); }
+
+/* Phase 2 — slider apport_alt (réutilise les règles des sliders principaux) */
+#apport_alt {
+    -webkit-appearance: none; appearance: none;
+    height: 5px; background: transparent;
+    border-radius: var(--border-radius-small); outline: none; opacity: .9;
+}
+#apport_alt::-webkit-slider-runnable-track {
+    height: 5px; cursor: pointer; border-radius: var(--border-radius-small);
+    background: linear-gradient(to right, var(--secondary-color) var(--val, 0%), #e0e0e0 var(--val, 0%));
+}
+#apport_alt::-moz-range-track {
+    height: 5px; cursor: pointer; border-radius: var(--border-radius-small);
+    background: linear-gradient(to right, var(--secondary-color) var(--val, 0%), #e0e0e0 var(--val, 0%));
+}
+#apport_alt::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 16px; height: 16px;
+    background: var(--primary-color); border-radius: 50%; cursor: pointer;
+    box-shadow: 0 1px 2px rgba(0,0,0,.15); margin-top: -5.5px;
+}
+#apport_alt::-moz-range-thumb {
+    width: 16px; height: 16px; background: var(--primary-color);
+    border-radius: 50%; cursor: pointer; border: none;
+}

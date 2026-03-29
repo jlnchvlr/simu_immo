@@ -65,6 +65,17 @@ document.addEventListener('DOMContentLoaded', () => {
         durationCurveCanvas: getEl('durationCurveCanvas'),
         optimizerResult: getEl('optimizerResult'),
 
+        // Phase 2.1 — Sensibilité taux
+        sensitivityTableContainer: getEl('sensitivityTableContainer'),
+
+        // Phase 2.2 — Apport optimal
+        apportAltCanvas: getEl('apportAltCanvas'),
+        apportAltInfoContainer: getEl('apportAltInfoContainer'),
+
+        // Phase 2.3 — Graphique amortissement (dans modal)
+        amortChartCanvas: getEl('amortChartCanvas'),
+        amortChartContainer: getEl('amortChartContainer'),
+
         // Lignes scénario bonifiés
         ptb_scenario_header_row: getEl('ptb_scenario_header_row'),
         ptb_scenario_amount_row: getEl('ptb_scenario_amount_row'),
@@ -551,11 +562,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const displayAmortizationModal = (loanName, schedule) => {
-        setTextEl(ui?.amortizationModalTitle, `Tableau d'Amortissement - ${loanName}`);
+    const displayAmortizationModal = (loanName, schedule, additionalSchedules = []) => {
+        setTextEl(ui?.amortizationModalTitle, `Tableau d'Amortissement — ${loanName}`);
         const container = ui?.amortizationTableContainer;
         if (!container) return;
 
+        // Build table (inchangé)
         container.textContent = '';
 
         const table = document.createElement('table');
@@ -601,6 +613,22 @@ document.addEventListener('DOMContentLoaded', () => {
         table.appendChild(thead);
         table.appendChild(tbody);
         container.appendChild(table);
+
+        // Phase 2.3 — Rendu graphique
+        const allSchedules = [{ name: loanName, data: schedule }, ...additionalSchedules];
+        renderAmortissementChart(allSchedules);
+
+        // Afficher graphique par défaut
+        const chartContainer = ui?.amortChartContainer;
+        if (chartContainer) chartContainer.style.display = 'block';
+        container.style.display = 'none';
+
+        // Reset boutons toggle
+        const btnChart = getEl('amortViewChartBtn');
+        const btnTable = getEl('amortViewTableBtn');
+        if (btnChart) { btnChart.style.backgroundColor = 'var(--secondary-color)'; btnChart.style.color = '#fff'; }
+        if (btnTable) { btnTable.style.backgroundColor = ''; btnTable.style.color = ''; }
+
         document.querySelector('.modal-overlay')?.classList.add('visible');
     };
 
@@ -1103,6 +1131,246 @@ document.addEventListener('DOMContentLoaded', () => {
         updateTaegGlobalAndCombinedRows(ui, scenData, pib, ptb);
     }
 
+    // === PHASE 2 — Sensibilité taux / Apport optimal / Graphique amortissement ===
+
+    let apportChart = null;
+    let amortChart  = null;
+    let _p2Cache    = null; // { state, coutTotalOperation, prixFAI, pib, ptb, courbeApport }
+
+    // ── 2.1 Sensibilité au taux ──────────────────────────────────────────────
+
+    function calculerSensibiliteTaux(state, besoinCreditFinalClassique, pib, ptb) {
+        const chargesFixes = state.AutresCredits + state.AutresCharges;
+        return [-0.5, -0.25, -0.1, 0, 0.1, 0.25, 0.5].map(delta => {
+            const taux    = Math.max(0.01, state.TE + delta);
+            const mensInt = calculerMensualiteCredit(besoinCreditFinalClassique, taux, state.duree * 12);
+            const mensAss = besoinCreditFinalClassique > 0 ? besoinCreditFinalClassique * (state.TA / 100 / 12) : 0;
+            const mensTotaleClassique = besoinCreditFinalClassique > 0 ? mensInt + mensAss : 0;
+            const mensTotaleGlobale   = mensTotaleClassique + pib.monthlyPayment + ptb.monthlyPayment;
+            const coutCreditClassique = Math.max(0, (mensInt * state.duree * 12) - besoinCreditFinalClassique) + (mensAss * state.duree * 12);
+            const coutCreditGlobal    = coutCreditClassique + pib.totalCost + ptb.totalCost;
+            return { delta, taux, mensTotaleClassique, mensTotaleGlobale, coutCreditGlobal };
+        });
+    }
+
+    function renderSensibiliteTaux(ui, sensData) {
+        const container = ui?.sensitivityTableContainer;
+        if (!container) return;
+        const base = sensData.find(r => r.delta === 0);
+        if (!base) return;
+        const sign = v => (v > 0 ? '+' : '') + formatCurrency(Math.round(v), 0);
+        let html = `<div style="overflow-x:auto"><table>
+            <thead><tr>
+                <th>Taux nominal</th><th>Δ Taux</th>
+                <th>Mensualité totale</th><th>Δ Mensualité</th>
+                <th>Coût total crédits</th><th>Δ Coût crédit</th>
+            </tr></thead><tbody>`;
+        sensData.forEach(r => {
+            const isCur = r.delta === 0;
+            const dM = r.mensTotaleGlobale - base.mensTotaleGlobale;
+            const dC = r.coutCreditGlobal  - base.coutCreditGlobal;
+            const rowCls = isCur ? ' class="highlight-row"' : '';
+            const cM = isCur ? '' : `style="color:${dM > 0 ? 'var(--danger-color)' : 'var(--primary-color)'}"`;
+            const cC = isCur ? '' : `style="color:${dC > 0 ? 'var(--danger-color)' : 'var(--primary-color)'}"`;
+            html += `<tr${rowCls}>
+                <td><strong>${formatPercentage(r.taux, 2)} %</strong></td>
+                <td>${isCur ? '—' : `${r.delta > 0 ? '+' : ''}${r.delta.toFixed(2)} %`}</td>
+                <td>${formatCurrency(r.mensTotaleGlobale, 0)} €/mois</td>
+                <td ${cM}>${isCur ? '—' : sign(dM) + ' €'}</td>
+                <td>${formatCurrency(r.coutCreditGlobal)} €</td>
+                <td ${cC}>${isCur ? '—' : sign(dC) + ' €'}</td>
+            </tr>`;
+        });
+        html += '</tbody></table></div>';
+        container.innerHTML = html;
+    }
+
+    // ── 2.2 Impact de l'apport ───────────────────────────────────────────────
+
+    const NB_APPORT_POINTS = 51;
+
+    function calculerDonneesApportCourbe(state, coutTotalOperation, prixFAI, pib, ptb) {
+        const maxApport  = Math.max(coutTotalOperation, 1);
+        const step       = maxApport / (NB_APPORT_POINTS - 1);
+        const bonified   = pib.amount + ptb.amount;
+        return Array.from({ length: NB_APPORT_POINTS }, (_, i) => {
+            const apport       = Math.round(i * step);
+            const classicAmt   = Math.max(0, coutTotalOperation - apport - bonified);
+            const ltv          = prixFAI > 0 ? (classicAmt / prixFAI) * 100 : 0;
+            const mensInt      = calculerMensualiteCredit(classicAmt, state.TE, state.duree * 12);
+            const mensAss      = classicAmt * (state.TA / 100 / 12);
+            const mensTotGlob  = (classicAmt > 0 ? mensInt + mensAss : 0) + pib.monthlyPayment + ptb.monthlyPayment;
+            const coutCredit   = Math.max(0, (mensInt * state.duree * 12) - classicAmt) + (mensAss * state.duree * 12) + pib.totalCost + ptb.totalCost;
+            return { apport, classicAmt, ltv, mensTotGlob, coutCredit };
+        });
+    }
+
+    function mettreAJourInfoApportAlt(apportAlt, courbeData) {
+        const container = ui?.apportAltInfoContainer;
+        if (!container || !courbeData || !courbeData.length) return;
+        const maxA = courbeData[courbeData.length - 1].apport;
+        const idx  = Math.round((Math.min(apportAlt, maxA) / maxA) * (NB_APPORT_POINTS - 1));
+        const pt   = courbeData[Math.max(0, Math.min(idx, courbeData.length - 1))];
+        const ltvColor = pt.ltv > 90 ? 'var(--danger-color)' : pt.ltv > 80 ? '#FF9800' : 'var(--primary-color)';
+        container.style.display = 'block';
+        container.innerHTML = `
+            <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:center;">
+                <div><span style="font-size:.7rem;color:var(--text-light-color);">Prêt classique</span><br><strong>${formatCurrency(pt.classicAmt)} €</strong></div>
+                <div><span style="font-size:.7rem;color:var(--text-light-color);">Mensualité totale</span><br><strong>${formatCurrency(pt.mensTotGlob, 0)} €/mois</strong></div>
+                <div><span style="font-size:.7rem;color:var(--text-light-color);">Coût total crédits</span><br><strong>${formatCurrency(pt.coutCredit)} €</strong></div>
+                <div><span style="font-size:.7rem;color:var(--text-light-color);">LTV</span><br><strong style="color:${ltvColor}">${formatPercentage(pt.ltv, 1)} %</strong></div>
+            </div>`;
+        if (apportChart) { apportChart._currentApport = apportAlt; apportChart.update('none'); }
+    }
+
+    function mettreAJourApportChart(courbeData, prixFAI, pib, ptb, coutTotalOperation) {
+        const canvas = ui?.apportAltCanvas;
+        if (!canvas || typeof Chart === 'undefined' || !courbeData) return;
+
+        const labels   = courbeData.map(d => d.apport);
+        const dataMens = courbeData.map(d => Math.round(d.mensTotGlob));
+        const dataCout = courbeData.map(d => Math.round(d.coutCredit));
+
+        // Seuils LTV
+        const bonified     = pib.amount + ptb.amount;
+        const apportLTV90  = Math.max(0, coutTotalOperation - bonified - 0.9 * prixFAI);
+        const apportLTV80  = Math.max(0, coutTotalOperation - bonified - 0.8 * prixFAI);
+
+        const vertPlugin = {
+            id: 'apportVLines',
+            afterDraw(chart) {
+                const { ctx, scales, chartArea } = chart;
+                if (!scales.x || !chartArea) return;
+                const lines = [
+                    { xVal: apportLTV90, color: '#FF9800', label: 'LTV 90%', dash: true  },
+                    { xVal: apportLTV80, color: '#4CAF50', label: 'LTV 80%', dash: true  },
+                    { xVal: chart._currentApport ?? -1, color: '#2196F3', label: '',     dash: false }
+                ];
+                lines.forEach(({ xVal, color, label, dash }) => {
+                    if (xVal < 0 || xVal > labels[labels.length - 1]) return;
+                    const xPx = scales.x.getPixelForValue(xVal);
+                    if (xPx < chartArea.left || xPx > chartArea.right) return;
+                    ctx.save();
+                    ctx.beginPath(); ctx.moveTo(xPx, chartArea.top); ctx.lineTo(xPx, chartArea.bottom);
+                    ctx.strokeStyle = color; ctx.lineWidth = dash ? 1.5 : 2.5;
+                    if (dash) ctx.setLineDash([5, 3]);
+                    ctx.stroke();
+                    if (label) {
+                        ctx.fillStyle = color; ctx.font = 'bold 9px Poppins, sans-serif';
+                        ctx.textAlign = 'center'; ctx.fillText(label, xPx, chartArea.top - 4);
+                    }
+                    ctx.restore();
+                });
+            }
+        };
+
+        const currentApport = parseFloat(getEl('apport_alt')?.value || 0);
+
+        if (apportChart) {
+            apportChart.data.labels = labels;
+            apportChart.data.datasets[0].data = dataMens;
+            apportChart.data.datasets[1].data = dataCout;
+            apportChart._currentApport = currentApport;
+            apportChart.update('none');
+            return;
+        }
+
+        apportChart = new Chart(canvas, {
+            type: 'line',
+            plugins: [vertPlugin],
+            data: {
+                labels,
+                datasets: [
+                    { label: 'Mensualité totale (€/mois)', data: dataMens, borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,0.07)', tension: 0.3, pointRadius: 0, yAxisID: 'y',  fill: false },
+                    { label: 'Coût total crédits (€)',     data: dataCout, borderColor: '#FF9800', backgroundColor: 'rgba(255,152,0,0.07)',   tension: 0.3, pointRadius: 0, yAxisID: 'y2', fill: false }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                layout: { padding: { top: 18 } },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 } } },
+                    tooltip: { callbacks: {
+                        title: items => `Apport : ${Number(items[0].label).toLocaleString('fr-FR')} €`,
+                        label:  ctx  => `${ctx.dataset.label.split(' (')[0]} : ${ctx.parsed.y.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €`
+                    }}
+                },
+                scales: {
+                    x:  { ticks: { font: { size: 9 }, maxTicksLimit: 8, callback: (_, i) => i < labels.length ? (labels[i] / 1000).toFixed(0) + ' k€' : '' } },
+                    y:  { position: 'left',  title: { display: true, text: 'Mensualité (€/mois)',  font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' } },
+                    y2: { position: 'right', title: { display: true, text: 'Coût crédits (€)',     font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }, grid: { drawOnChartArea: false } }
+                }
+            }
+        });
+        apportChart._currentApport = currentApport;
+    }
+
+    // ── 2.3 Graphique d'amortissement ────────────────────────────────────────
+
+    function agrégerParAnnée(schedule) {
+        const byYear = {};
+        schedule.forEach(row => {
+            const yr = Math.ceil(row.month / 12);
+            if (!byYear[yr]) byYear[yr] = { capital: 0, interets: 0, assurance: 0, crdFin: 0 };
+            byYear[yr].capital   += row.principalRepaid;
+            byYear[yr].interets  += row.interest;
+            byYear[yr].assurance += row.insurance;
+            byYear[yr].crdFin     = row.remainingBalance;
+        });
+        return Object.entries(byYear).sort((a, b) => +a[0] - +b[0]).map(([yr, d]) => ({ year: +yr, ...d }));
+    }
+
+    function renderAmortissementChart(allSchedules) {
+        const canvas = getEl('amortChartCanvas');
+        if (!canvas || typeof Chart === 'undefined' || !allSchedules?.length) return;
+        if (amortChart) { amortChart.destroy(); amortChart = null; }
+
+        const maxYear = Math.max(...allSchedules.map(s => {
+            const last = s.data[s.data.length - 1];
+            return last ? Math.ceil(last.month / 12) : 0;
+        }));
+        const labels = Array.from({ length: maxYear }, (_, i) => `A${i + 1}`);
+
+        // Agrégation toutes durées confondues
+        const tot = Array.from({ length: maxYear }, () => ({ capital: 0, interets: 0, assurance: 0, crd: 0 }));
+        allSchedules.forEach(({ data }) => {
+            agrégerParAnnée(data).forEach(({ year, capital, interets, assurance, crdFin }) => {
+                if (year <= maxYear) {
+                    tot[year - 1].capital   += capital;
+                    tot[year - 1].interets  += interets;
+                    tot[year - 1].assurance += assurance;
+                    tot[year - 1].crd       += crdFin;
+                }
+            });
+        });
+
+        amortChart = new Chart(canvas, {
+            data: {
+                labels,
+                datasets: [
+                    { type:'bar',  label:'Capital remboursé',  data: tot.map(t => Math.round(t.capital)),   backgroundColor:'rgba(33,150,243,0.8)',  stack:'s', yAxisID:'y',  order:2 },
+                    { type:'bar',  label:'Intérêts',           data: tot.map(t => Math.round(t.interets)),  backgroundColor:'rgba(244,67,54,0.72)',  stack:'s', yAxisID:'y',  order:2 },
+                    { type:'bar',  label:'Assurance',          data: tot.map(t => Math.round(t.assurance)), backgroundColor:'rgba(255,152,0,0.72)',  stack:'s', yAxisID:'y',  order:2 },
+                    { type:'line', label:'Capital restant dû', data: tot.map(t => Math.round(t.crd)),       borderColor:'#4CAF50', backgroundColor:'rgba(76,175,80,0.1)', tension:0.3, pointRadius:2, borderWidth:2, yAxisID:'y2', order:1, fill:false }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend:  { position:'top', labels: { font: { size: 10 }, boxWidth: 12 } },
+                    tooltip: { callbacks: { label: ctx => `${ctx.dataset.label} : ${ctx.parsed.y.toLocaleString('fr-FR')} €` } }
+                },
+                scales: {
+                    x:  { stacked: true, ticks: { font: { size: 9 }, maxRotation: 45 } },
+                    y:  { stacked: true, position:'left',  title:{ display:true, text:'Remboursements (€/an)',  font:{ size:10 } }, ticks:{ font:{ size:9 }, callback: v => v.toLocaleString('fr-FR') + ' €' } },
+                    y2: { stacked: false,position:'right', title:{ display:true, text:'Capital restant dû (€)', font:{ size:10 } }, ticks:{ font:{ size:9 }, callback: v => v.toLocaleString('fr-FR') + ' €' }, grid:{ drawOnChartArea:false } }
+                }
+            }
+        });
+    }
+
     // === PHASE 1 — Courbe Durée vs Coût + Optimiseur ===
 
     let durationChart = null; // instance Chart.js réutilisée
@@ -1311,7 +1579,29 @@ document.addEventListener('DOMContentLoaded', () => {
         // 5. COURBE DURÉE vs COÛT (Phase 1)
         mettreAJourCourbeDuree(state, besoinCreditFinalClassique, pib, ptb, scenData.mensualiteMaxRetenueGlobale);
 
-        // 6. SAUVEGARDE AUTO (throttlée)
+        // 6. PHASE 2 — Sensibilité taux + Apport optimal
+        const sensData = calculerSensibiliteTaux(state, besoinCreditFinalClassique, pib, ptb);
+        renderSensibiliteTaux(ui, sensData);
+
+        const courbeApport = calculerDonneesApportCourbe(state, coutTotalOperation, prixFAI, pib, ptb);
+        mettreAJourApportChart(courbeApport, prixFAI, pib, ptb, coutTotalOperation);
+
+        // Mettre à jour le max du slider apport_alt et synchro info
+        const sliderAlt = getEl('apport_alt'), numAlt = getEl('apport_alt_num');
+        if (sliderAlt && numAlt) {
+            sliderAlt.max = Math.ceil(coutTotalOperation);
+            numAlt.max    = Math.ceil(coutTotalOperation);
+            const curAlt  = Math.min(parseFloat(sliderAlt.value) || 0, coutTotalOperation);
+            sliderAlt.value = curAlt; numAlt.value = curAlt;
+            const minA = 0, maxA = parseFloat(sliderAlt.max);
+            sliderAlt.style.setProperty('--val', `${maxA > 0 ? (curAlt / maxA) * 100 : 0}%`);
+        }
+
+        // Cache pour le slider apport_alt (update asynchrone)
+        _p2Cache = { state, coutTotalOperation, prixFAI, pib, ptb, courbeApport };
+        mettreAJourInfoApportAlt(parseFloat(getEl('apport_alt')?.value || state.A), courbeApport);
+
+        // 7. SAUVEGARDE AUTO (throttlée)
         scheduleSave(state);
     }
 
@@ -1600,7 +1890,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 else if (loanType==='classic'&&currentClassicLoanAmount>0) { 
                     loanName=`Classique (${state.duree}a)`; 
-                    schedule=generateAmortizationSchedule(`Classique ${state.duree}a`,currentClassicLoanAmount,state.TE,state.duree,state.TA); 
+                    schedule=generateAmortizationSchedule(`Classique ${state.duree}a`,currentClassicLoanAmount,state.TE,state.duree,state.TA);
+                    // Phase 2.3 — ajouter PIB/PTB si actifs
+                    const extras = [];
+                    if (currentPibAmount > 0) {
+                        const thPib = BONIFICATION_THRESHOLDS[state.pibZone || 'A'];
+                        const bPib  = (thPib && state.pibRFR <= (thPib[Math.min(state.pibHouseholdSize,5)] || 0)) ? 3 : 2;
+                        extras.push({ name:`PIB (${state.pibDuration}a)`, data: generateAmortizationSchedule('PIB', currentPibAmount, Math.max(0, state.pibBFMRate - bPib), state.pibDuration, state.pibInsuranceRate) });
+                    }
+                    if (currentPtbAmount > 0) {
+                        const zPtb  = state.ptbAgentStatus === 'retraite' ? 'A' : (state.ptbZone || 'A');
+                        const thPtb = BONIFICATION_THRESHOLDS[zPtb];
+                        const bPtb  = (thPtb && state.ptbRFR <= (thPtb[Math.min(state.ptbHouseholdSize,5)] || 0)) ? 3 : 2;
+                        extras.push({ name:`PTB (${state.ptbDuration}a)`, data: generateAmortizationSchedule('PTB', currentPtbAmount, Math.max(0, state.pibBFMRate - bPtb), state.ptbDuration, state.ptbInsuranceRate) });
+                    }
+                    if (schedule && schedule.length > 0) { displayAmortizationModal(loanName, schedule, extras); return; }
                 }
 
                 if (schedule && schedule.length > 0) displayAmortizationModal(loanName, schedule);
@@ -1651,6 +1955,46 @@ document.addEventListener('DOMContentLoaded', () => {
                 Math.max(0, state.S - chargesFixes - state.RAV)
             );
             lancerOptimiseur(state, besoinCreditFinalClassique, pib, ptb, mensualiteMaxRetenue);
+        });
+
+        // Phase 2.2 — Slider apport_alt (mise à jour info + marqueur sans recalcul global)
+        const onApportAltChange = () => {
+            if (!_p2Cache) return;
+            const val = parseFloat(getEl('apport_alt')?.value || 0);
+            // Sync num <-> range
+            const numEl = getEl('apport_alt_num');
+            if (numEl && numEl !== document.activeElement) numEl.value = val;
+            const slEl = getEl('apport_alt');
+            if (slEl) {
+                const maxA = parseFloat(slEl.max) || 1;
+                slEl.style.setProperty('--val', `${(val / maxA) * 100}%`);
+            }
+            mettreAJourInfoApportAlt(val, _p2Cache.courbeApport);
+        };
+        getEl('apport_alt')?.addEventListener('input', onApportAltChange);
+        getEl('apport_alt_num')?.addEventListener('input', () => {
+            const numEl = getEl('apport_alt_num'), slEl = getEl('apport_alt');
+            if (numEl && slEl) { slEl.value = numEl.value; onApportAltChange(); }
+        });
+
+        // Phase 2.3 — Boutons toggle graphique / tableau dans la modale
+        getEl('amortViewChartBtn')?.addEventListener('click', () => {
+            const chartCont = ui?.amortChartContainer;
+            const tableCont = ui?.amortizationTableContainer;
+            if (chartCont) chartCont.style.display = 'block';
+            if (tableCont) tableCont.style.display = 'none';
+            const bC = getEl('amortViewChartBtn'), bT = getEl('amortViewTableBtn');
+            if (bC) { bC.style.backgroundColor = 'var(--secondary-color)'; bC.style.color = '#fff'; }
+            if (bT) { bT.style.backgroundColor = ''; bT.style.color = ''; }
+        });
+        getEl('amortViewTableBtn')?.addEventListener('click', () => {
+            const chartCont = ui?.amortChartContainer;
+            const tableCont = ui?.amortizationTableContainer;
+            if (chartCont) chartCont.style.display = 'none';
+            if (tableCont) tableCont.style.display = 'block';
+            const bC = getEl('amortViewChartBtn'), bT = getEl('amortViewTableBtn');
+            if (bT) { bT.style.backgroundColor = 'var(--secondary-color)'; bT.style.color = '#fff'; }
+            if (bC) { bC.style.backgroundColor = ''; bC.style.color = ''; }
         });
 
         chargerEtat(); // On recharge les données avant de lancer le premier calcul
