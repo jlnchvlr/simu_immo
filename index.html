@@ -148,25 +148,20 @@
 
                         <div class="input-group">
                             <h4>🏦 Conditions Prêt Classique</h4>
-                             <div class="input-item">
-                                <label for="TE_20">Taux nominal 20 ans (%) : <span class="info-icon" data-info-key="TE_20_info">ⓘ</span></label>
-                                <input type="range" id="TE_20" min="0.5" max="7" value="2.85" step="0.01"> 
-                                <input type="number" id="TE_20_num" min="0.5" max="7" value="2.85" step="0.01">
+                            <div class="input-item">
+                                <label for="duree">Durée du prêt (ans) :</label>
+                                <input type="range" id="duree" min="10" max="30" value="20" step="1">
+                                <input type="number" id="duree_num" min="10" max="30" value="20" step="1">
                             </div>
                             <div class="input-item">
-                                <label for="TA_20">Taux assurance 20 ans (%) : <span class="info-icon" data-info-key="TA_20_info">ⓘ</span></label>
-                                <input type="range" id="TA_20" min="0.05" max="1.5" value="0.3" step="0.01"> 
-                                <input type="number" id="TA_20_num" min="0.05" max="1.5" value="0.3" step="0.01">
+                                <label for="TE">Taux nominal (%) :</label>
+                                <input type="range" id="TE" min="0.5" max="7" value="2.85" step="0.01">
+                                <input type="number" id="TE_num" min="0.5" max="7" value="2.85" step="0.01">
                             </div>
                             <div class="input-item">
-                                <label for="TE_25">Taux nominal 25 ans (%) : <span class="info-icon" data-info-key="TE_25_info">ⓘ</span></label>
-                                <input type="range" id="TE_25" min="0.5" max="7.5" value="2.95" step="0.01"> 
-                                <input type="number" id="TE_25_num" min="0.5" max="7.5" value="2.95" step="0.01">
-                            </div>
-                            <div class="input-item">
-                                <label for="TA_25">Taux assurance 25 ans (%) : <span class="info-icon" data-info-key="TA_25_info">ⓘ</span></label>
-                                <input type="range" id="TA_25" min="0.05" max="1.5" value="0.3" step="0.01"> 
-                                <input type="number" id="TA_25_num" min="0.05" max="1.5" value="0.3" step="0.01">
+                                <label for="TA">Taux assurance (%) :</label>
+                                <input type="range" id="TA" min="0.05" max="1.5" value="0.3" step="0.01">
+                                <input type="number" id="TA_num" min="0.05" max="1.5" value="0.3" step="0.01">
                             </div>
                         </div>
 
@@ -352,8 +347,7 @@
                         </table>
                         <h4>Capacité emprunt max. Prêt Classique (après PIB/PTB) :</h4>
                         <table>
-                            <tr><th>Sur 20 ans (<span id="current_TE_20_val">0</span>%/<span id="current_TA_20_val">0</span>% Ass.)</th><td id="capEmpruntMax_20">0 €</td></tr>
-                            <tr><th>Sur 25 ans (<span id="current_TE_25_val">0</span>%/<span id="current_TA_25_val">0</span>% Ass.)</th><td id="capEmpruntMax_25">0 €</td></tr>
+                            <tr><th>Sur <span id="current_duree_val">20</span> ans (<span id="current_TE_val">0</span>% / <span id="current_TA_val">0</span>% Ass.)</th><td id="capEmpruntMax">0 €</td></tr>
                         </table>
                     </div>
                     <div class="result-group">
@@ -369,50 +363,75 @@
 
             <section id="loan-scenarios-section" class="card"> 
                 <div class="result-group">
-                    <h3>📊 Scénarios de Financement & Comparaison <span class="info-icon" data-info-key="res_scenarios_info">ⓘ</span></h3>
+                    <h3>📊 Scénarios de Financement — Prêt Classique sur <span id="scen_duree_display">20</span> ans <span class="info-icon" data-info-key="res_scenarios_info">ⓘ</span></h3>
                     <div class="scenario-table">
                         <table>
                             <thead>
                                 <tr>
                                     <th>Critère</th>
-                                    <th>Prêt Classique sur 20 ans</th>
-                                    <th>Prêt Classique sur 25 ans</th>
-                                    <th>Différence (25a-20a)</th>
+                                    <th>Valeur</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="loan-section-title" id="ptb_scenario_header_row" style="display:none;"><td colspan="4">PTB - <span id="ptb_scenario_duration_label"></span></td></tr>
-                                <tr class="sub-loan-details" id="ptb_scenario_amount_row" style="display:none;"><td>Montant PTB</td><td id="scen_ptb_amount_display" colspan="2">0 €</td><td>-</td></tr>
-                                <tr class="sub-loan-details" id="ptb_scenario_mensualite_row" style="display:none;"><td>Mensualité PTB</td><td id="scen_ptb_mensualite_display" colspan="2">0 €</td><td>-</td></tr>
+                                <tr class="loan-section-title" id="ptb_scenario_header_row" style="display:none;"><td colspan="2">PTB - <span id="ptb_scenario_duration_label"></span></td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_amount_row" style="display:none;"><td>Montant PTB</td><td id="scen_ptb_amount_display">0 €</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_mensualite_row" style="display:none;"><td>Mensualité PTB</td><td id="scen_ptb_mensualite_display">0 €</td></tr>
 
-                                <tr class="loan-section-title" id="pib_scenario_header_row" style="display:none;"><td colspan="4">PIB - <span id="pib_scenario_duration_label"></span></td></tr>
-                                <tr class="sub-loan-details" id="pib_scenario_amount_row" style="display:none;"><td>Montant PIB</td><td id="scen_pib_amount_display" colspan="2">0 €</td><td>-</td></tr>
-                                <tr class="sub-loan-details" id="pib_scenario_mensualite_row" style="display:none;"><td>Mensualité PIB</td><td id="scen_pib_mensualite_display" colspan="2">0 €</td><td>-</td></tr>
+                                <tr class="loan-section-title" id="pib_scenario_header_row" style="display:none;"><td colspan="2">PIB - <span id="pib_scenario_duration_label"></span></td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_amount_row" style="display:none;"><td>Montant PIB</td><td id="scen_pib_amount_display">0 €</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_mensualite_row" style="display:none;"><td>Mensualité PIB</td><td id="scen_pib_mensualite_display">0 €</td></tr>
 
-                                <tr class="loan-section-title"><td colspan="4">Prêt Classique</td></tr>
-                                <tr class="sub-loan-details"><td>Montant Prêt Classique</td><td id="scen_classic_amount_display" colspan="2">0 €</td><td>-</td></tr>
-                                <tr class="sub-loan-details"><td>Mensualité Prêt Classique</td><td id="scen_classic_mensualite_20">0 €</td><td id="scen_classic_mensualite_25">0 €</td><td id="scen_classic_mensualite_diff">0 €</td></tr>
-                                <tr class="sub-loan-details"><td>TAEG Prêt Classique (Banque)</td><td id="comp_TAEG_20">0 %</td><td id="comp_TAEG_25">0 %</td><td id="comp_TAEG_diff">0 %</td></tr>
-                                <tr class="sub-loan-details"><td>Amort. Prêt Classique</td>
-                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_20">Voir l'échéancier sur 20 ans</button></td>
-                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic_25">Voir l'échéancier sur 25 ans</button></td>
-                                    <td>-</td>
+                                <tr class="loan-section-title"><td colspan="2">Prêt Classique</td></tr>
+                                <tr class="sub-loan-details"><td>Montant Prêt Classique</td><td id="scen_classic_amount_display">0 €</td></tr>
+                                <tr class="sub-loan-details"><td>Mensualité Prêt Classique</td><td id="scen_classic_mensualite">0 €</td></tr>
+                                <tr class="sub-loan-details"><td>TAEG Prêt Classique (Banque)</td><td id="comp_TAEG">0 %</td></tr>
+                                <tr class="sub-loan-details"><td>Tableau d'amortissement</td>
+                                    <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic">Voir l'échéancier</button></td>
                                 </tr>
-                                
-                                <tr class="loan-section-title combine-only"><td colspan="4">TOTAL COMBINÉ DE L'OPÉRATION</td></tr>
-                                <tr class="combine-only"><td>Mensualité Totale (Tous crédits)</td><td id="comp_mensualite_20">0 €</td><td id="comp_mensualite_25">0 €</td><td id="comp_mensualite_diff">0 €</td></tr>
-                                <tr class="combine-only" style="font-weight: bold; color: var(--primary-color);"><td>TAEG Global (Projet) <span class="info-icon" data-info-key="taeg_comp_info">ⓘ</span></td><td id="comp_TAEG_global_20">0 %</td><td id="comp_TAEG_global_25">0 %</td><td id="comp_TAEG_global_diff">0 %</td></tr>
-                                
-                                <tr><td>Respect Mensualité Max</td><td id="respectMensualite_20" class="status-cell"></td><td id="respectMensualite_25" class="status-cell"></td><td></td></tr>
-                                <tr><td>Taux Endettement Global</td><td id="comp_tauxEndettement_20">0 %</td><td id="comp_tauxEndettement_25">0 %</td><td id="comp_tauxEndettement_diff">0 %</td></tr>
-                                <tr><td>Reste à Vivre Mensuel</td><td id="comp_resteAVivre_20">0 €</td><td id="comp_resteAVivre_25">0 €</td><td id="comp_resteAVivre_diff">0 €</td></tr>
-                                <tr><td>Coût Total des Crédits</td><td id="comp_coutCredit_20">0 €</td><td id="comp_coutCredit_25">0 €</td><td id="comp_coutCredit_diff">0 €</td></tr>
-                                <tr><td>Coût Total Opération (avec crédits)</td><td id="comp_coutOperation_20">0 €</td><td id="comp_coutOperation_25">0 €</td><td id="comp_coutOperation_diff">0 €</td></tr>
-                                <tr class="combine-only"><td>Coût Total Opération (si Prêt Classique Seul) <span class="info-icon" data-info-key="classic_only_info">ⓘ</span></td><td id="comp_coutOperationClassicOnly_20">0 €</td><td id="comp_coutOperationClassicOnly_25">0 €</td><td id="comp_coutOperationClassicOnly_diff">0 €</td></tr>
-                                <tr class="combine-only savings-row"><td>Économie Prêts Bonifiés <span class="info-icon" data-info-key="savings_info">ⓘ</span></td><td id="comp_savings_20">0 €</td><td id="comp_savings_25">0 €</td><td id="comp_savings_diff">0 €</td></tr>
+
+                                <tr class="loan-section-title combine-only"><td colspan="2">TOTAL COMBINÉ DE L'OPÉRATION</td></tr>
+                                <tr class="combine-only"><td>Mensualité Totale (Tous crédits)</td><td id="comp_mensualite">0 €</td></tr>
+                                <tr class="combine-only" style="font-weight:bold;color:var(--primary-color);"><td>TAEG Global (Projet) <span class="info-icon" data-info-key="taeg_comp_info">ⓘ</span></td><td id="comp_TAEG_global">0 %</td></tr>
+
+                                <tr><td>Respect Mensualité Max</td><td id="respectMensualite" class="status-cell"></td></tr>
+                                <tr><td>Taux Endettement Global</td><td id="comp_tauxEndettement">0 %</td></tr>
+                                <tr><td>Reste à Vivre Mensuel</td><td id="comp_resteAVivre">0 €</td></tr>
+                                <tr><td>Coût Total des Crédits</td><td id="comp_coutCredit">0 €</td></tr>
+                                <tr><td>Coût Total Opération (avec crédits)</td><td id="comp_coutOperation">0 €</td></tr>
+                                <tr class="combine-only"><td>Coût Total Opération (si Prêt Classique Seul) <span class="info-icon" data-info-key="classic_only_info">ⓘ</span></td><td id="comp_coutOperationClassicOnly">0 €</td></tr>
+                                <tr class="combine-only savings-row"><td>Économie Prêts Bonifiés <span class="info-icon" data-info-key="savings_info">ⓘ</span></td><td id="comp_savings">0 €</td></tr>
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                <!-- Phase 1 — Courbe durée vs coût/mensualité -->
+                <div class="result-group" style="margin-top:1rem;">
+                    <h3>📈 Courbe Durée vs Coût / Mensualité (10–30 ans)</h3>
+                    <p class="section-description">Visualisez l'impact de la durée sur votre mensualité totale et le coût total des intérêts + assurance du prêt classique.</p>
+                    <div style="position:relative; height:280px;">
+                        <canvas id="durationCurveCanvas"></canvas>
+                    </div>
+                </div>
+
+                <!-- Phase 1 — Optimiseur de durée -->
+                <div class="result-group" style="margin-top:1rem;">
+                    <h3>🎯 Optimiseur de Durée</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-bottom:.8rem;">
+                        <div class="input-item" style="margin:0;">
+                            <label style="font-size:.8rem;">Mode :</label>
+                            <select id="optimizer_mode" style="min-width:200px; max-width:260px; font-size:.8rem;">
+                                <option value="mensualite_max">A — Mensualité max (durée la plus courte)</option>
+                                <option value="cout_min">B — Coude de la courbe (coût optimal)</option>
+                            </select>
+                        </div>
+                        <div class="input-item" id="optimizer_target_container" style="margin:0;">
+                            <label for="optimizer_target" style="font-size:.8rem;">Mensualité max totale (€) :</label>
+                            <input type="number" id="optimizer_target" min="0" max="20000" value="2000" step="50" style="min-width:80px; max-width:100px;">
+                        </div>
+                        <button id="optimizer_run_btn" style="background:var(--primary-color);color:#fff;border:none;padding:7px 16px;border-radius:var(--border-radius-small);cursor:pointer;font-weight:600;font-size:.8rem;">Trouver la durée idéale</button>
+                    </div>
+                    <div id="optimizerResult" style="background:#f0f7f0; border:1px solid var(--primary-color); border-radius:var(--border-radius-medium); padding:.8rem; font-size:.85rem; display:none;"></div>
                 </div>
             </section>
             
@@ -420,15 +439,6 @@
                 <div class="input-column">
                     <div class="input-group">
                         <h3>🏡 Paramètres de Revente</h3>
-                        
-                        <div class="input-item">
-                            <label for="resaleScenarioRef">Scénario de crédit retenu :</label>
-                            <select id="resaleScenarioRef">
-                                <option value="20" selected>Prêt Classique sur 20 ans</option>
-                                <option value="25">Prêt Classique sur 25 ans</option>
-                            </select>
-                        </div>
-                        
                         <div class="input-item">
                             <label for="resaleHorizon">Horizon de revente (années) : <span class="info-icon" data-info-key="resaleHorizon_info">ⓘ</span></label>
                             <input type="range" id="resaleHorizon" min="1" max="25" value="7" step="1">
@@ -557,6 +567,7 @@
     </div>
     <div id="info-tooltip" class="info-tooltip-popup"></div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

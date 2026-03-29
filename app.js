@@ -39,49 +39,31 @@ document.addEventListener('DOMContentLoaded', () => {
         mensualitemax_tdt: getEl('mensualitemax_tdt'),
         mensualitemax_rav: getEl('mensualitemax_rav'),
         mensualitemax_retenue: getEl('mensualitemax_retenue'),
-        capEmpruntMax_20: getEl('capEmpruntMax_20'),
-        capEmpruntMax_25: getEl('capEmpruntMax_25'),
-        current_TE_20_val: getEl('current_TE_20_val'),
-        current_TA_20_val: getEl('current_TA_20_val'),
-        current_TE_25_val: getEl('current_TE_25_val'),
-        current_TA_25_val: getEl('current_TA_25_val'),
+        capEmpruntMax: getEl('capEmpruntMax'),
+        current_duree_val: getEl('current_duree_val'),
+        current_TE_val: getEl('current_TE_val'),
+        current_TA_val: getEl('current_TA_val'),
 
         // Scénarios / comparaisons
+        scen_duree_display: getEl('scen_duree_display'),
         scen_classic_amount_display: getEl('scen_classic_amount_display'),
-        scen_classic_mensualite_20: getEl('scen_classic_mensualite_20'),
-        scen_classic_mensualite_25: getEl('scen_classic_mensualite_25'),
-        scen_classic_mensualite_diff: getEl('scen_classic_mensualite_diff'),
-        comp_mensualite_20: getEl('comp_mensualite_20'),
-        comp_mensualite_25: getEl('comp_mensualite_25'),
-        comp_mensualite_diff: getEl('comp_mensualite_diff'),
-        comp_resteAVivre_20: getEl('comp_resteAVivre_20'),
-        comp_resteAVivre_25: getEl('comp_resteAVivre_25'),
-        comp_resteAVivre_diff: getEl('comp_resteAVivre_diff'),
-        comp_coutCredit_20: getEl('comp_coutCredit_20'),
-        comp_coutCredit_25: getEl('comp_coutCredit_25'),
-        comp_coutCredit_diff: getEl('comp_coutCredit_diff'),
-        comp_coutOperation_20: getEl('comp_coutOperation_20'),
-        comp_coutOperation_25: getEl('comp_coutOperation_25'),
-        comp_coutOperation_diff: getEl('comp_coutOperation_diff'),
-        comp_TAEG_20: getEl('comp_TAEG_20'),
-        comp_TAEG_25: getEl('comp_TAEG_25'),
-        comp_TAEG_diff: getEl('comp_TAEG_diff'),
-        comp_tauxEndettement_20: getEl('comp_tauxEndettement_20'),
-        comp_tauxEndettement_25: getEl('comp_tauxEndettement_25'),
-        comp_tauxEndettement_diff: getEl('comp_tauxEndettement_diff'),
-        respectMensualite_20: getEl('respectMensualite_20'),
-        respectMensualite_25: getEl('respectMensualite_25'),
-        comp_coutOperationClassicOnly_20: getEl('comp_coutOperationClassicOnly_20'),
-        comp_coutOperationClassicOnly_25: getEl('comp_coutOperationClassicOnly_25'),
-        comp_coutOperationClassicOnly_diff: getEl('comp_coutOperationClassicOnly_diff'),
-        comp_savings_20: getEl('comp_savings_20'),
-        comp_savings_25: getEl('comp_savings_25'),
-        comp_savings_diff: getEl('comp_savings_diff'),
+        scen_classic_mensualite: getEl('scen_classic_mensualite'),
+        comp_mensualite: getEl('comp_mensualite'),
+        comp_resteAVivre: getEl('comp_resteAVivre'),
+        comp_coutCredit: getEl('comp_coutCredit'),
+        comp_coutOperation: getEl('comp_coutOperation'),
+        comp_TAEG: getEl('comp_TAEG'),
+        comp_tauxEndettement: getEl('comp_tauxEndettement'),
+        respectMensualite: getEl('respectMensualite'),
+        comp_coutOperationClassicOnly: getEl('comp_coutOperationClassicOnly'),
+        comp_savings: getEl('comp_savings'),
 
         // TAEG global
-        comp_TAEG_global_20: getEl('comp_TAEG_global_20'),
-        comp_TAEG_global_25: getEl('comp_TAEG_global_25'),
-        comp_TAEG_global_diff: getEl('comp_TAEG_global_diff'),
+        comp_TAEG_global: getEl('comp_TAEG_global'),
+
+        // Optimiseur
+        durationCurveCanvas: getEl('durationCurveCanvas'),
+        optimizerResult: getEl('optimizerResult'),
 
         // Lignes scénario bonifiés
         ptb_scenario_header_row: getEl('ptb_scenario_header_row'),
@@ -205,10 +187,13 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCharges_num: getEl('AutresCharges_num'),
             TEdt_num: getEl('TEdt_num'),
             RAV_num: getEl('RAV_num'),
-            TE_20_num: getEl('TE_20_num'),
-            TA_20_num: getEl('TA_20_num'),
-            TE_25_num: getEl('TE_25_num'),
-            TA_25_num: getEl('TA_25_num'),
+            TE_20_num: null, // legacy — removed in Phase 1
+            TA_20_num: null,
+            TE_25_num: null,
+            TA_25_num: null,
+            duree_num: getEl('duree_num'),
+            TE_num: getEl('TE_num'),
+            TA_num: getEl('TA_num'),
             enablePIB: getEl('enablePIB'),
             enablePTB: getEl('enablePTB'),
             pibBFMRate_num: getEl('pibBFMRate_num'),
@@ -216,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
             pibZone: getEl('pibZone'),
             ptbAgentStatus: getEl('ptbAgentStatus'),
             ptbZone: getEl('ptbZone'),
-            resaleScenarioRef: getEl('resaleScenarioRef'),
+            resaleScenarioRef: null, // removed in Phase 1 — durée unique
             pv_mode: getEl('pv_mode'),
             inflation_mode: getEl('inflation_mode'),
 
@@ -327,6 +312,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const setDisplayEl = (el, display) => { if (el) el.style.display = display; };
 
     const infoMessages = {
+        duree_info: "Durée du prêt classique : entre 10 et 30 ans. Le slider de durée met à jour en temps réel tous les résultats et la courbe durée/coût.",
+        TE_info: "Taux d'intérêt nominal annuel du prêt classique, hors assurance.",
+        TA_info: "Taux annuel de l'assurance emprunteur pour le prêt classique.",
         chargeAgence_info: "Charge Acquéreur : Les frais d'agence sont exclus du calcul des frais de notaire (économie), mais la banque exigera souvent que vous les payiez avec votre apport personnel. Charge Vendeur : L'agence est incluse dans le prix, le notaire taxe le tout (plus cher), mais la banque le finance plus facilement (moins d'apport exigé).",
         Courtier_info: "Frais de courtage : Rémunération du courtier en crédit immobilier pour son service d'intermédiation avec les banques. Ces frais s'ajoutent au coût total.",
         resaleHorizon_info: "Nombre d'années après l'achat auquel vous simulez la revente du bien.",
@@ -639,10 +627,14 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCharges: numFrom(f.AutresCharges_num),
             TEdt: numFrom(f.TEdt_num),
             RAV: numFrom(f.RAV_num),
-            TE_20: numFrom(f.TE_20_num),
-            TA_20: numFrom(f.TA_20_num),
-            TE_25: numFrom(f.TE_25_num),
-            TA_25: numFrom(f.TA_25_num),
+            duree: Math.max(10, Math.min(30, Math.round(numFrom(f.duree_num) || 20))),
+            TE: numFrom(f.TE_num),
+            TA: numFrom(f.TA_num),
+            // Compat. legacy (utilisé dans amort-button handler côté revente)
+            TE_20: numFrom(f.TE_num),
+            TA_20: numFrom(f.TA_num),
+            TE_25: numFrom(f.TE_num),
+            TA_25: numFrom(f.TA_num),
             isPIBEnabled: !!f.enablePIB?.checked,
             pibBFMRate: numFrom(f.pibBFMRate_num),
             isPTBEnabled: !!f.enablePTB?.checked,
@@ -667,7 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
             pvMode: f.pv_mode?.value || 'annual',
             inflationMode: f.inflation_mode?.value || 'annual',
             iraMode: ui?.ira_mode?.value || 'percentage',
-            scenarioDuration: parseInt(f.resaleScenarioRef?.value || 20, 10),
             resale: {
                 horizon: numFrom(f.resaleHorizon_num),
                 plusValueAnnual: numFrom(f.plusValue_num),
@@ -800,83 +791,70 @@ document.addEventListener('DOMContentLoaded', () => {
         return (Math.pow(1 + rate, 12) - 1) * 100; // Conversion en TAEG annuel
     }
 
-    function calculerScenariosClassiques(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails) {
-        const scenarios = { 20: {}, 25: {} };
+    // Phase 1 — calcul pour une durée unique (remplace calculerScenariosClassiques)
+    function calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails) {
         const chargesFixes = state.AutresCredits + state.AutresCharges;
-        
-        const mensualiteMaxTdtGlobale = Math.max(0, (state.S * (state.TEdt / 100)) - chargesFixes);
-        const mensualiteMaxRavGlobale = Math.max(0, state.S - chargesFixes - state.RAV);
+        const duree = state.duree; // entier 10-30
+
+        const mensualiteMaxTdtGlobale  = Math.max(0, (state.S * (state.TEdt / 100)) - chargesFixes);
+        const mensualiteMaxRavGlobale  = Math.max(0, state.S - chargesFixes - state.RAV);
         const mensualiteMaxRetenueGlobale = Math.min(mensualiteMaxTdtGlobale, mensualiteMaxRavGlobale);
 
         const mensualiteMaxPourPretClassique = Math.max(0, mensualiteMaxRetenueGlobale - pib.monthlyPayment - ptb.monthlyPayment);
-        const capEmpruntMax_20 = calculerCapaciteEmprunt(mensualiteMaxPourPretClassique, state.TE_20, state.TA_20, 240);
-        const capEmpruntMax_25 = calculerCapaciteEmprunt(mensualiteMaxPourPretClassique, state.TE_25, state.TA_25, 300);
+        const capEmpruntMax = calculerCapaciteEmprunt(mensualiteMaxPourPretClassique, state.TE, state.TA, duree * 12);
 
-        [20, 25].forEach(duree => {
-            const s = scenarios[duree];
-            s.classic_amount = besoinCreditFinalClassique;
-            s.mensInt = calculerMensualiteCredit(s.classic_amount, duree === 20 ? state.TE_20 : state.TE_25, duree * 12);
-            s.mensAss = (s.classic_amount * ((duree === 20 ? state.TA_20 : state.TA_25) / 100 / 12));
-            s.mensTotaleClassique = s.classic_amount > 0 ? s.mensInt + s.mensAss : 0;
+        const s = {};
+        s.duree = duree;
+        s.classic_amount = besoinCreditFinalClassique;
+        s.mensInt  = calculerMensualiteCredit(s.classic_amount, state.TE, duree * 12);
+        s.mensAss  = s.classic_amount * (state.TA / 100 / 12);
+        s.mensTotaleClassique = s.classic_amount > 0 ? s.mensInt + s.mensAss : 0;
 
-            s.coutCreditGlobal = Math.max(0, (s.mensInt * duree * 12) - s.classic_amount) + (s.mensAss * duree * 12) + pib.totalCost + ptb.totalCost;
-            s.mensTotaleGlobale = s.mensTotaleClassique + pib.monthlyPayment + ptb.monthlyPayment;
-            s.resteAVivre = state.S - (s.mensTotaleGlobale + chargesFixes);
-            s.respect = s.mensTotaleGlobale <= mensualiteMaxRetenueGlobale + 0.01;
+        s.coutCreditGlobal  = Math.max(0, (s.mensInt * duree * 12) - s.classic_amount)
+                            + (s.mensAss * duree * 12)
+                            + pib.totalCost + ptb.totalCost;
+        s.mensTotaleGlobale = s.mensTotaleClassique + pib.monthlyPayment + ptb.monthlyPayment;
+        s.resteAVivre       = state.S - (s.mensTotaleGlobale + chargesFixes);
+        s.respect           = s.mensTotaleGlobale <= mensualiteMaxRetenueGlobale + 0.01;
 
-            const fraisInitiauxPourTAEG = state.FD + garDetails.cout + state.Courtier;
-            s.classic_TAEG = s.classic_amount > 0 ? calculerTAEG(s.classic_amount, s.mensTotaleClassique, duree * 12, fraisInitiauxPourTAEG) : 0;
-            s.tauxEndettement = state.S > 0 ? ((s.mensTotaleGlobale + chargesFixes) / state.S) * 100 : Infinity;
+        const fraisInitiauxPourTAEG = state.FD + garDetails.cout + state.Courtier;
+        s.classic_TAEG   = s.classic_amount > 0 ? calculerTAEG(s.classic_amount, s.mensTotaleClassique, duree * 12, fraisInitiauxPourTAEG) : 0;
+        s.tauxEndettement = state.S > 0 ? ((s.mensTotaleGlobale + chargesFixes) / state.S) * 100 : Infinity;
 
-            // --- DEBUT DU NOUVEAU BLOC POUR LE TAEG GLOBAL ---
-            // 1. On crée un tableau vide pour tous les mois du projet (ex: 240 mois ou 300 mois)
-            let fluxMensuels = new Array(duree * 12).fill(0);
-            
-            // 2. On ajoute les mensualités classiques sur toute la durée
-            for(let i = 0; i < duree * 12; i++) {
-                fluxMensuels[i] += s.mensTotaleClassique;
-            }
-            // 3. On superpose les mensualités du PIB (s'il y en a) sur sa propre durée
-            if(pib.amount > 0) { 
-                for(let i = 0; i < Math.min(pib.duration * 12, duree * 12); i++) {
-                    fluxMensuels[i] += pib.monthlyPayment; 
-                }
-            }
-            // 4. On superpose les mensualités du PTB (s'il y en a) sur sa propre durée
-            if(ptb.amount > 0) { 
-                for(let i = 0; i < Math.min(ptb.duration * 12, duree * 12); i++) {
-                    fluxMensuels[i] += ptb.monthlyPayment; 
-                }
-            }
-            
-            // 5. On calcule le TAEG global avec tous ces flux mélangés
-            const montantEmprunteTotal = s.classic_amount + pib.amount + ptb.amount;
-            s.taegGlobal = montantEmprunteTotal > 0 ? calculerTAEGGlobal(montantEmprunteTotal, fluxMensuels, fraisInitiauxPourTAEG) : 0;
-            // --- FIN DU NOUVEAU BLOC ---
+        // TAEG Global (tous prêts combinés)
+        let fluxMensuels = new Array(duree * 12).fill(0);
+        for (let i = 0; i < duree * 12; i++) fluxMensuels[i] += s.mensTotaleClassique;
+        if (pib.amount > 0) for (let i = 0; i < Math.min(pib.duration * 12, duree * 12); i++) fluxMensuels[i] += pib.monthlyPayment;
+        if (ptb.amount > 0) for (let i = 0; i < Math.min(ptb.duration * 12, duree * 12); i++) fluxMensuels[i] += ptb.monthlyPayment;
+        const montantEmprunteTotal = s.classic_amount + pib.amount + ptb.amount;
+        s.taegGlobal = montantEmprunteTotal > 0 ? calculerTAEGGlobal(montantEmprunteTotal, fluxMensuels, fraisInitiauxPourTAEG) : 0;
 
+        // Coût si 100 % classique (pour calcul économie prêts bonifiés)
+        let coutOpPourClassicOnly = coutTotalOperation;
+        if ((coutTotalOperation - state.A) > 0) {
+            const fraisGarCO = evaluerFraisGarantie(state.typeGarantie, coutTotalOperation - state.A, state.typeBien === 'ancien', state.FG_manual).cout;
+            const ctoBeforeCO = prixFAI + fn_details.montant + state.T + state.FD + state.Courtier + fraisGarCO;
+            const vraiCreditCO = Math.max(0, ctoBeforeCO - state.A);
+            const mensIntCO  = calculerMensualiteCredit(vraiCreditCO, state.TE, duree * 12);
+            const mensAssCO  = vraiCreditCO * (state.TA / 100 / 12);
+            coutOpPourClassicOnly = ctoBeforeCO + Math.max(0, (mensIntCO * duree * 12) - vraiCreditCO) + (mensAssCO * duree * 12);
+        }
+        s.coutOpPourClassicOnly = coutOpPourClassicOnly;
+        s.savings = (pib.amount === 0 && ptb.amount === 0) ? 0 : coutOpPourClassicOnly - (coutTotalOperation + s.coutCreditGlobal);
 
-            // Calcul du coût si on faisait tout en crédit classique (pour voir l'économie)
-            let coutOpPourClassicOnly = coutTotalOperation;
-            if ((coutTotalOperation - state.A) > 0) {
-                let totalCredit = coutTotalOperation - state.A;
-                let fraisGarClassicOnly = evaluerFraisGarantie(state.typeGarantie, totalCredit, state.typeBien === 'ancien', state.FG_manual).cout;
-                let coutTotalOpAvantCreditClassicOnly = prixFAI + fn_details.montant + state.T + state.FD + state.Courtier + fraisGarClassicOnly;
-                let vraiCreditTotal = Math.max(0, coutTotalOpAvantCreditClassicOnly - state.A);
+        return { scenario: s, mensualiteMaxTdtGlobale, mensualiteMaxRavGlobale, mensualiteMaxRetenueGlobale, capEmpruntMax };
+    }
 
-                let mensIntClassicOnly = calculerMensualiteCredit(vraiCreditTotal, duree === 20 ? state.TE_20 : state.TE_25, duree * 12);
-                let mensAssClassicOnly = vraiCreditTotal * ((duree === 20 ? state.TA_20 : state.TA_25) / 100 / 12);
-                let coutCreditTotalClassicOnly = Math.max(0, (mensIntClassicOnly * duree * 12) - vraiCreditTotal) + (mensAssClassicOnly * duree * 12);
-
-                coutOpPourClassicOnly = coutTotalOpAvantCreditClassicOnly + coutCreditTotalClassicOnly;
-            }
-            s.coutOpPourClassicOnly = coutOpPourClassicOnly;
-
-            let savings = coutOpPourClassicOnly - (coutTotalOperation + s.coutCreditGlobal);
-            if (pib.amount === 0 && ptb.amount === 0) savings = 0;
-            s.savings = savings;
-        });
-
-        return { scenarios, mensualiteMaxTdtGlobale, mensualiteMaxRavGlobale, mensualiteMaxRetenueGlobale, capEmpruntMax_20, capEmpruntMax_25 };
+    // Calcule mensualité + coût crédit classique pour n'importe quelle durée (sans toucher au DOM)
+    function calculerPointCourbe(state, besoinCreditFinalClassique, pib, ptb, dureeAns) {
+        const mensInt = calculerMensualiteCredit(besoinCreditFinalClassique, state.TE, dureeAns * 12);
+        const mensAss = besoinCreditFinalClassique * (state.TA / 100 / 12);
+        const mensTotaleClassique = besoinCreditFinalClassique > 0 ? mensInt + mensAss : 0;
+        const mensTotaleGlobale = mensTotaleClassique + pib.monthlyPayment + ptb.monthlyPayment;
+        const coutCreditGlobal = Math.max(0, (mensInt * dureeAns * 12) - besoinCreditFinalClassique)
+                               + (mensAss * dureeAns * 12)
+                               + pib.totalCost + ptb.totalCost;
+        return { mensTotaleGlobale, coutCreditGlobal };
     }
 
     function calculerExigencesApport(state, fn_details, garDetails, FAg_montant) {
@@ -1016,44 +994,33 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.mensualitemax_rav, formatCurrency(scenData.mensualiteMaxRavGlobale) + " €");
         setTextEl(ui.mensualitemax_retenue, formatCurrency(scenData.mensualiteMaxRetenueGlobale) + " €");
 
-        setTextEl(ui.capEmpruntMax_20, formatCurrency(scenData.capEmpruntMax_20) + " €");
-        setTextEl(ui.capEmpruntMax_25, formatCurrency(scenData.capEmpruntMax_25) + " €");
-        setTextEl(ui.current_TE_20_val, formatNumber(state.TE_20, 2));
-        setTextEl(ui.current_TA_20_val, formatNumber(state.TA_20, 2));
-        setTextEl(ui.current_TE_25_val, formatNumber(state.TE_25, 2));
-        setTextEl(ui.current_TA_25_val, formatNumber(state.TA_25, 2));
+        setTextEl(ui.capEmpruntMax, formatCurrency(scenData.capEmpruntMax) + " €");
+        setTextEl(ui.current_duree_val, state.duree);
+        setTextEl(ui.current_TE_val, formatNumber(state.TE, 2));
+        setTextEl(ui.current_TA_val, formatNumber(state.TA, 2));
     };
 
     const updateScenarioValues = (ui, state, scenData, coutTotalOperation) => {
-        [20, 25].forEach(duree => {
-            const s = scenData.scenarios[duree];
-            setTextEl(duree === 20 ? ui.scen_classic_mensualite_20 : ui.scen_classic_mensualite_25, formatCurrency(s.mensTotaleClassique, 2) + " €");
-            setTextEl(duree === 20 ? ui.comp_mensualite_20 : ui.comp_mensualite_25, formatCurrency(s.mensTotaleGlobale, 2) + " €");
-            setTextEl(duree === 20 ? ui.comp_resteAVivre_20 : ui.comp_resteAVivre_25, formatCurrency(s.resteAVivre) + " €");
-            setTextEl(duree === 20 ? ui.comp_coutCredit_20 : ui.comp_coutCredit_25, formatCurrency(s.coutCreditGlobal) + " €");
-            setTextEl(duree === 20 ? ui.comp_TAEG_20 : ui.comp_TAEG_25, `${formatPercentage(s.classic_TAEG, 3)} %`);
-            setTextEl(duree === 20 ? ui.comp_tauxEndettement_20 : ui.comp_tauxEndettement_25, s.tauxEndettement === Infinity ? "N/A" : `${formatPercentage(s.tauxEndettement, 2)} %`);
-            setTextEl(duree === 20 ? ui.comp_coutOperation_20 : ui.comp_coutOperation_25, formatCurrency(coutTotalOperation + s.coutCreditGlobal) + " €");
+        const s = scenData.scenario;
 
-            const cellRespect = duree === 20 ? ui.respectMensualite_20 : ui.respectMensualite_25;
-            if (cellRespect) {
-                cellRespect.textContent = (coutTotalOperation - state.A) <= 0 ? 'N/A' : (s.respect ? '✅ OK' : '❌ NON');
-                cellRespect.className = `status-cell ${(coutTotalOperation - state.A) <= 0 ? '' : (s.respect ? 'ok' : 'nok')}`;
-            }
-            setTextEl(duree === 20 ? ui.comp_coutOperationClassicOnly_20 : ui.comp_coutOperationClassicOnly_25, formatCurrency(s.coutOpPourClassicOnly) + " €");
-            setTextEl(duree === 20 ? ui.comp_savings_20 : ui.comp_savings_25, formatCurrency(s.savings) + " €");
-        });
+        setTextEl(ui.scen_duree_display, s.duree);
+        setTextEl(ui.scen_classic_amount_display, formatCurrency(s.classic_amount) + " €");
+        setTextEl(ui.scen_classic_mensualite, formatCurrency(s.mensTotaleClassique, 2) + " €");
+        setTextEl(ui.comp_mensualite, formatCurrency(s.mensTotaleGlobale, 2) + " €");
+        setTextEl(ui.comp_resteAVivre, formatCurrency(s.resteAVivre) + " €");
+        setTextEl(ui.comp_coutCredit, formatCurrency(s.coutCreditGlobal) + " €");
+        setTextEl(ui.comp_coutOperation, formatCurrency(coutTotalOperation + s.coutCreditGlobal) + " €");
+        setTextEl(ui.comp_TAEG, `${formatPercentage(s.classic_TAEG, 3)} %`);
+        setTextEl(ui.comp_tauxEndettement, s.tauxEndettement === Infinity ? "N/A" : `${formatPercentage(s.tauxEndettement, 2)} %`);
+        setTextEl(ui.comp_coutOperationClassicOnly, formatCurrency(s.coutOpPourClassicOnly) + " €");
+        setTextEl(ui.comp_savings, formatCurrency(s.savings) + " €");
+        setTextEl(ui.comp_TAEG_global, `${formatPercentage(s.taegGlobal, 2)} %`);
 
-        setTextEl(ui.scen_classic_mensualite_diff, formatCurrency(scenData.scenarios[25].mensTotaleClassique - scenData.scenarios[20].mensTotaleClassique, 2) + " €");
-        setTextEl(ui.comp_mensualite_diff, formatCurrency(scenData.scenarios[25].mensTotaleGlobale - scenData.scenarios[20].mensTotaleGlobale, 2) + " €");
-        setTextEl(ui.comp_coutCredit_diff, formatCurrency(scenData.scenarios[25].coutCreditGlobal - scenData.scenarios[20].coutCreditGlobal) + " €");
-        setTextEl(ui.comp_coutOperation_diff, formatCurrency((coutTotalOperation + scenData.scenarios[25].coutCreditGlobal) - (coutTotalOperation + scenData.scenarios[20].coutCreditGlobal)) + " €");
-        setTextEl(ui.comp_tauxEndettement_diff, (scenData.scenarios[20].tauxEndettement === Infinity || scenData.scenarios[25].tauxEndettement === Infinity) ? "N/A" : `${formatPercentage(scenData.scenarios[25].tauxEndettement - scenData.scenarios[20].tauxEndettement, 2)} %`);
-        setTextEl(ui.comp_resteAVivre_diff, formatCurrency(scenData.scenarios[25].resteAVivre - scenData.scenarios[20].resteAVivre, 2) + " €");
-        setTextEl(ui.comp_TAEG_diff, `${formatPercentage(scenData.scenarios[25].classic_TAEG - scenData.scenarios[20].classic_TAEG, 3)} %`);
-        setTextEl(ui.comp_coutOperationClassicOnly_diff, formatCurrency(scenData.scenarios[25].coutOpPourClassicOnly - scenData.scenarios[20].coutOpPourClassicOnly) + " €");
-
-        setTextEl(ui.comp_savings_diff, formatCurrency(scenData.scenarios[25].savings - scenData.scenarios[20].savings) + " €");
+        const cellRespect = ui.respectMensualite;
+        if (cellRespect) {
+            cellRespect.textContent = (coutTotalOperation - state.A) <= 0 ? 'N/A' : (s.respect ? '✅ OK' : '❌ NON');
+            cellRespect.className = `status-cell ${(coutTotalOperation - state.A) <= 0 ? '' : (s.respect ? 'ok' : 'nok')}`;
+        }
     };
 
     const updateApportAnalysis = (ui, state, analyseApport) => {
@@ -1102,17 +1069,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let combineOnlyEls = null;
     const updateTaegGlobalAndCombinedRows = (ui, scenData, pib, ptb) => {
-        if (scenData && scenData.scenarios) {
-            [20, 25].forEach(duree => {
-                const s = scenData.scenarios[duree];
-                if (s && s.taegGlobal !== undefined) setTextEl(duree === 20 ? ui.comp_TAEG_global_20 : ui.comp_TAEG_global_25, `${formatPercentage(s.taegGlobal, 2)} %`);
-            });
-            if (scenData.scenarios[20] && scenData.scenarios[25]) {
-                const taegDiff = (scenData.scenarios[25].taegGlobal || 0) - (scenData.scenarios[20].taegGlobal || 0);
-                setTextEl(ui.comp_TAEG_global_diff, `${formatPercentage(taegDiff, 2)} %`);
-            }
-        }
-
         const hasPTB = ptb && ptb.amount > 0;
         const hasPIB = pib && pib.amount > 0;
         const hasBonifiedLoans = hasPTB || hasPIB;
@@ -1134,9 +1090,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (!combineOnlyEls) combineOnlyEls = Array.from(document.querySelectorAll('.combine-only'));
-        combineOnlyEls.forEach(el => {
-            el.style.display = hasBonifiedLoans ? 'table-row' : 'none';
-        });
+        combineOnlyEls.forEach(el => { el.style.display = hasBonifiedLoans ? 'table-row' : 'none'; });
     };
 
     function mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport) {
@@ -1147,6 +1101,174 @@ document.addEventListener('DOMContentLoaded', () => {
         updateApportAnalysis(ui, state, analyseApport);
         updateIraVisibility(ui, state, uiState);
         updateTaegGlobalAndCombinedRows(ui, scenData, pib, ptb);
+    }
+
+    // === PHASE 1 — Courbe Durée vs Coût + Optimiseur ===
+
+    let durationChart = null; // instance Chart.js réutilisée
+
+    function mettreAJourCourbeDuree(state, besoinCreditFinalClassique, pib, ptb, mensualiteMaxRetenue) {
+        const canvas = ui?.durationCurveCanvas;
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        const labels = [];
+        const dataMensualite = [];
+        const dataCoutCredit = [];
+        const dureeSelectionnee = state.duree;
+
+        for (let d = 10; d <= 30; d++) {
+            labels.push(`${d}a`);
+            const pt = calculerPointCourbe(state, besoinCreditFinalClassique, pib, ptb, d);
+            dataMensualite.push(Math.round(pt.mensTotaleGlobale * 100) / 100);
+            dataCoutCredit.push(Math.round(pt.coutCreditGlobal));
+        }
+
+        // Annotation de la durée sélectionnée (index 0-based depuis 10)
+        const selectedIdx = dureeSelectionnee - 10;
+
+        // Couleurs pour marquer la durée active
+        const pointRadiusMens = labels.map((_, i) => i === selectedIdx ? 7 : 3);
+        const pointRadiusCout = labels.map((_, i) => i === selectedIdx ? 7 : 3);
+        const pointBgMens = labels.map((_, i) => i === selectedIdx ? '#e53935' : '#2196F3');
+        const pointBgCout = labels.map((_, i) => i === selectedIdx ? '#e53935' : '#FF9800');
+
+        if (durationChart) {
+            // Mise à jour légère sans recréer le canvas
+            durationChart.data.labels = labels;
+            durationChart.data.datasets[0].data = dataMensualite;
+            durationChart.data.datasets[0].pointRadius = pointRadiusMens;
+            durationChart.data.datasets[0].pointBackgroundColor = pointBgMens;
+            durationChart.data.datasets[1].data = dataCoutCredit;
+            durationChart.data.datasets[1].pointRadius = pointRadiusCout;
+            durationChart.data.datasets[1].pointBackgroundColor = pointBgCout;
+            // Ligne de mensualité max
+            if (durationChart.data.datasets[2]) {
+                durationChart.data.datasets[2].data = labels.map(() => Math.round(mensualiteMaxRetenue));
+            }
+            durationChart.update('none'); // sans animation pour fluidité slider
+            return;
+        }
+
+        durationChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Mensualité totale (€)',
+                        data: dataMensualite,
+                        borderColor: '#2196F3',
+                        backgroundColor: 'rgba(33,150,243,0.08)',
+                        pointRadius: pointRadiusMens,
+                        pointBackgroundColor: pointBgMens,
+                        tension: 0.3,
+                        yAxisID: 'y',
+                        fill: false
+                    },
+                    {
+                        label: 'Coût total crédits (€)',
+                        data: dataCoutCredit,
+                        borderColor: '#FF9800',
+                        backgroundColor: 'rgba(255,152,0,0.08)',
+                        pointRadius: pointRadiusCout,
+                        pointBackgroundColor: pointBgCout,
+                        tension: 0.3,
+                        yAxisID: 'y2',
+                        fill: false
+                    },
+                    {
+                        label: 'Mensualité max retenue (€)',
+                        data: labels.map(() => Math.round(mensualiteMaxRetenue)),
+                        borderColor: '#F44336',
+                        borderDash: [6, 3],
+                        borderWidth: 1.5,
+                        pointRadius: 0,
+                        yAxisID: 'y',
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 } } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                const v = ctx.parsed.y;
+                                return `${ctx.dataset.label} : ${v.toLocaleString('fr-FR', { maximumFractionDigits: 0 })} €`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { font: { size: 10 } } },
+                    y: {
+                        type: 'linear', position: 'left',
+                        title: { display: true, text: 'Mensualité (€)', font: { size: 10 } },
+                        ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }
+                    },
+                    y2: {
+                        type: 'linear', position: 'right',
+                        title: { display: true, text: 'Coût crédits (€)', font: { size: 10 } },
+                        ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' },
+                        grid: { drawOnChartArea: false }
+                    }
+                }
+            }
+        });
+    }
+
+    function lancerOptimiseur(state, besoinCreditFinalClassique, pib, ptb, mensualiteMaxRetenue) {
+        const mode = getEl('optimizer_mode')?.value || 'mensualite_max';
+        const resultEl = ui?.optimizerResult;
+        if (!resultEl) return;
+
+        let dureeOpt = null;
+        let justification = '';
+
+        if (mode === 'mensualite_max') {
+            // Mode A : mensualité cible saisie par l'utilisateur
+            const target = parseFloat(getEl('optimizer_target')?.value) || mensualiteMaxRetenue;
+            for (let d = 10; d <= 30; d++) {
+                const pt = calculerPointCourbe(state, besoinCreditFinalClassique, pib, ptb, d);
+                if (pt.mensTotaleGlobale <= target + 0.5) {
+                    dureeOpt = d;
+                    const pt2 = calculerPointCourbe(state, besoinCreditFinalClassique, pib, ptb, d);
+                    justification = `Mensualité totale : <strong>${formatCurrency(pt2.mensTotaleGlobale, 0)} €/mois</strong> ≤ cible ${formatCurrency(target, 0)} € — Coût total crédits : <strong>${formatCurrency(pt2.coutCreditGlobal)} €</strong>`;
+                    break;
+                }
+            }
+            if (!dureeOpt) {
+                resultEl.style.display = 'block';
+                resultEl.innerHTML = `❌ Aucune durée entre 10 et 30 ans ne permet d'atteindre la mensualité cible de <strong>${formatCurrency(target, 0)} €</strong>.`;
+                return;
+            }
+        } else {
+            // Mode B : coude de la courbe (dérivée seconde du coût crédit)
+            const points = [];
+            for (let d = 10; d <= 30; d++) {
+                const pt = calculerPointCourbe(state, besoinCreditFinalClassique, pib, ptb, d);
+                points.push({ d, cout: pt.coutCreditGlobal, mens: pt.mensTotaleGlobale });
+            }
+            // Dérivée seconde : on cherche le coude où la réduction du coût ralentit fortement
+            let maxCourbure = -Infinity;
+            let coudIdx = 1;
+            for (let i = 1; i < points.length - 1; i++) {
+                // Approximation de la dérivée seconde (variation de la pente)
+                const d1 = points[i].cout - points[i - 1].cout;
+                const d2 = points[i + 1].cout - points[i].cout;
+                const courbure = Math.abs(d2 - d1);
+                if (courbure > maxCourbure) { maxCourbure = courbure; coudIdx = i; }
+            }
+            dureeOpt = points[coudIdx].d;
+            justification = `Mensualité : <strong>${formatCurrency(points[coudIdx].mens, 0)} €/mois</strong> — Coût crédits : <strong>${formatCurrency(points[coudIdx].cout)} €</strong> (point d'inflexion de la courbe)`;
+        }
+
+        resultEl.style.display = 'block';
+        resultEl.innerHTML = `✅ Durée recommandée : <strong>${dureeOpt} ans</strong> — ${justification}`;
     }
 
     function calculateAllCore() {
@@ -1170,17 +1292,26 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. CALCULS MÉTIER
         let { FAg_montant, prixFAI, fn_details, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
         let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
-        let scenData = calculerScenariosClassiques(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails);
+        let scenData = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails);
         const analyseApport = calculerExigencesApport(state, fn_details, garDetails, FAg_montant);
 
         // 3. MISE À JOUR DE L'INTERFACE
         mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport);
 
         // 4. CALCUL ET AFFICHAGE DE LA REVENTE
-        const resultsForResale = { totalCreditNeeded: coutTotalOperation - state.A, pib, ptb, scenarios: scenData.scenarios, coutTotalOperation };
+        const resultsForResale = { 
+            totalCreditNeeded: coutTotalOperation - state.A, 
+            pib, ptb, 
+            // compatibilité revente : expose scenario courant sous la clé de la durée
+            scenarios: { [state.duree]: scenData.scenario },
+            coutTotalOperation 
+        };
         calculerRevente(ui, uiState, resultsForResale, state.P, state.A, state);
-        
-        // 5. SAUVEGARDE AUTO (throttlée)
+
+        // 5. COURBE DURÉE vs COÛT (Phase 1)
+        mettreAJourCourbeDuree(state, besoinCreditFinalClassique, pib, ptb, scenData.mensualiteMaxRetenueGlobale);
+
+        // 6. SAUVEGARDE AUTO (throttlée)
         scheduleSave(state);
     }
 
@@ -1196,9 +1327,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const iraMode = uiState?.iraMode || 'percentage';
         const fraisRevente = uiState?.resale?.fees || 0;
 
-        const scenarioDuration = uiState?.scenarioDuration || 20;
+        // Phase 1 : on utilise directement state.duree (plus de menu déroulant scénario)
+        const scenarioDuration = state.duree;
         const scenarioRef = results.scenarios[scenarioDuration];
-        const tauxClassiqueUsed = scenarioDuration === 25 ? state.TE_25 : state.TE_20;
+        const tauxClassiqueUsed = state.TE;
 
         setTextEl(ui.resale_horizon_display, horizon);
         setTextEl(ui.resale_scenario_duration_display, scenarioDuration);
@@ -1299,7 +1431,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function startApp() {
         ui = buildUI();
         const inputIds = [
-            'P', 'FAg', 'M', 'FN', 'FD', 'Courtier', 'A', 'TE_20', 'TA_20', 'TE_25', 'TA_25', 'S', 
+            'P', 'FAg', 'M', 'FN', 'FD', 'Courtier', 'A', 'duree', 'TE', 'TA', 'S', 
             'AutresCredits', 'AutresCharges', 'TEdt', 'RAV', 'T', 'FG_manual', 
             'pibRFR', 'pibHouseholdSize', 'pibBFMRate', 'pibDuration', 'pibInsuranceRate', 'ptbInsuranceRate',
             'ptbRFR', 'ptbHouseholdSize', 'ptbAmountWanted', 'ptbDuration', 
@@ -1365,7 +1497,6 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.form.enablePTB,
             ui.form.ptbAgentStatus,
             ui.form.ptbZone,
-            ui.form.resaleScenarioRef,
             ui.form.chargeAgence
         ].forEach(el => {
             if (el) el.addEventListener('change', calculateAll);
@@ -1467,13 +1598,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const bonifRate = (thresholds && state.pibRFR <= (thresholds[Math.min(state.pibHouseholdSize, 5)] || 0)) ? 3 : 2;
                     schedule=generateAmortizationSchedule("PIB",currentPibAmount,Math.max(0, state.pibBFMRate - bonifRate),state.pibDuration,state.pibInsuranceRate); 
                 }
-                else if (loanType==='classic_20'&&currentClassicLoanAmount>0) { 
-                    loanName=`Classique (20a)`; 
-                    schedule=generateAmortizationSchedule("Classique 20a",currentClassicLoanAmount,state.TE_20,20,state.TA_20); 
-                }
-                else if (loanType==='classic_25'&&currentClassicLoanAmount>0) { 
-                    loanName=`Classique (25a)`; 
-                    schedule=generateAmortizationSchedule("Classique 25a",currentClassicLoanAmount,state.TE_25,25,state.TA_25); 
+                else if (loanType==='classic'&&currentClassicLoanAmount>0) { 
+                    loanName=`Classique (${state.duree}a)`; 
+                    schedule=generateAmortizationSchedule(`Classique ${state.duree}a`,currentClassicLoanAmount,state.TE,state.duree,state.TA); 
                 }
 
                 if (schedule && schedule.length > 0) displayAmortizationModal(loanName, schedule);
@@ -1508,6 +1635,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.reload(); // Recharge la page à neuf
             }
         });
+        // Phase 1 — Optimiseur
+        getEl('optimizer_mode')?.addEventListener('change', () => {
+            const mode = getEl('optimizer_mode')?.value;
+            setDisplay('optimizer_target_container', mode === 'mensualite_max' ? 'flex' : 'none');
+            if (ui?.optimizerResult) ui.optimizerResult.style.display = 'none';
+        });
+        getEl('optimizer_run_btn')?.addEventListener('click', () => {
+            const { state } = lireEtatFormulaire(ui);
+            let { FAg_montant, prixFAI, fn_details, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+            let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+            const chargesFixes = state.AutresCredits + state.AutresCharges;
+            const mensualiteMaxRetenue = Math.min(
+                Math.max(0, (state.S * (state.TEdt / 100)) - chargesFixes),
+                Math.max(0, state.S - chargesFixes - state.RAV)
+            );
+            lancerOptimiseur(state, besoinCreditFinalClassique, pib, ptb, mensualiteMaxRetenue);
+        });
+
         chargerEtat(); // On recharge les données avant de lancer le premier calcul
         calculateAll();
     }
