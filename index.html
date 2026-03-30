@@ -120,11 +120,58 @@
                             <input type="range" id="A" min="0" max="1000000" value="80000" step="1000">
                             <input type="number" id="A_num" min="0" max="1000000" value="80000" step="1000">
                         </div>
+                        <!-- 3.1 Emprunteur principal -->
                         <div class="input-item">
                             <label for="S">Salaires nets mensuels (€) : <span class="info-icon" data-info-key="S_info">ⓘ</span></label>
                             <input type="range" id="S" min="1500" max="30000" value="15000" step="100"> 
                             <input type="number" id="S_num" min="1500" max="30000" value="15000" step="100">
                         </div>
+
+                        <!-- 3.1 Co-emprunteur -->
+                        <div class="input-item checkbox-item">
+                            <input type="checkbox" id="coEmprunteur">
+                            <label for="coEmprunteur">Ajouter un co-emprunteur</label>
+                        </div>
+                        <div id="coEmprunteurInputs" style="display:none; padding:.5rem; background:#f0f7ff; border:1px dashed var(--secondary-color); border-radius:var(--border-radius-medium); margin-bottom:.5rem;">
+                            <div class="input-item">
+                                <label for="S2">Revenus nets co-emprunteur (€/mois) :</label>
+                                <input type="range" id="S2" min="0" max="20000" value="3000" step="100">
+                                <input type="number" id="S2_num" min="0" max="20000" value="3000" step="100">
+                            </div>
+                            <div class="input-item">
+                                <label for="AutresCredits2">Autres crédits co-empr. (€) :</label>
+                                <input type="range" id="AutresCredits2" min="0" max="2000" value="0" step="50">
+                                <input type="number" id="AutresCredits2_num" min="0" max="2000" value="0" step="50">
+                            </div>
+                            <div class="input-item">
+                                <label for="AutresCharges2">Autres charges co-empr. (€) :</label>
+                                <input type="range" id="AutresCharges2" min="0" max="3000" value="0" step="50">
+                                <input type="number" id="AutresCharges2_num" min="0" max="3000" value="0" step="50">
+                            </div>
+                        </div>
+
+                        <!-- 3.3 Revenus variables -->
+                        <div class="input-group" style="margin-bottom:.5rem;">
+                            <h4>💸 Revenus Variables</h4>
+                            <div class="input-item">
+                                <label for="revenuVariable">Primes / commissions (€/mois) :</label>
+                                <input type="range" id="revenuVariable" min="0" max="10000" value="0" step="100">
+                                <input type="number" id="revenuVariable_num" min="0" max="10000" value="0" step="100">
+                            </div>
+                            <div class="input-item">
+                                <label for="tauxIntegration">Intégration bancaire :</label>
+                                <select id="tauxIntegration" style="min-width:80px;max-width:100px;">
+                                    <option value="50">50 %</option>
+                                    <option value="70" selected>70 %</option>
+                                    <option value="100">100 %</option>
+                                </select>
+                            </div>
+                            <div class="input-item">
+                                <label>Revenus foyer pris en compte :</label>
+                                <span class="read-only-value" id="revenusEffectifs_display" style="margin-left:auto;"><strong id="revenusEffectifs_val">0</strong> €/mois</span>
+                            </div>
+                        </div>
+
                         <div class="input-item">
                             <label for="AutresCredits">Autres crédits (mensualité) (€) : <span class="info-icon" data-info-key="AutresCredits_info">ⓘ</span></label>
                             <input type="range" id="AutresCredits" min="0" max="2000" value="0" step="50"> 
@@ -144,6 +191,24 @@
                             <label for="RAV">Reste à vivre min. (€) : <span class="info-icon" data-info-key="rav_info">ⓘ</span></label>
                             <input type="range" id="RAV" min="500" max="15000" value="8000" step="50"> 
                             <input type="number" id="RAV_num" min="500" max="15000" value="8000" step="50">
+                        </div>
+
+                        <!-- 3.2 Revenus évolutifs (collapsible) -->
+                        <div class="details-toggle" id="revEvolutifToggle" style="margin-top:.4rem;">Évolution des revenus (projection) ▼</div>
+                        <div id="revEvolutifContainer" class="details-content" style="margin-bottom:.4rem;">
+                            <div class="input-item">
+                                <label for="revenuEvolution">Hausse annuelle revenus (%) :</label>
+                                <input type="range" id="revenuEvolution" min="0" max="5" value="1" step="0.1">
+                                <input type="number" id="revenuEvolution_num" min="0" max="5" value="1" step="0.1">
+                            </div>
+                            <div class="input-item">
+                                <label for="horizonEvolution">Horizon de projection :</label>
+                                <select id="horizonEvolution" style="min-width:80px;max-width:100px;">
+                                    <option value="5">5 ans</option>
+                                    <option value="10" selected>10 ans</option>
+                                    <option value="15">15 ans</option>
+                                </select>
+                            </div>
                         </div>
 
                         <div class="input-group">
@@ -466,6 +531,39 @@
 
             </section>
             <!-- ===== /PHASE 2 ===== -->
+
+            <!-- ===== PHASE 3 ===== -->
+            <section id="phase3-section" class="card">
+                <div style="display:flex; flex-wrap:wrap; gap:1rem;">
+
+                    <!-- 3.1 Profil foyer -->
+                    <div class="result-group" style="flex:1; min-width:280px;">
+                        <h3>👨‍👩‍👧 Profil Emprunteur Foyer</h3>
+                        <table>
+                            <tbody>
+                                <tr><th>Revenus foyer pris en compte</th><td id="p3_revenus_effectifs">0 €/mois</td></tr>
+                                <tr id="p3_row_coempr" style="display:none;"><th>↳ dont co-emprunteur</th><td id="p3_s2_display">0 €/mois</td></tr>
+                                <tr id="p3_row_varrev" style="display:none;"><th>↳ dont revenus variables intégrés</th><td id="p3_revvar_display">0 €/mois</td></tr>
+                                <tr><th>Charges fixes totales</th><td id="p3_charges_effectives">0 €/mois</td></tr>
+                                <tr><th>Mensualité totale crédits</th><td id="p3_mensualite_globale">0 €/mois</td></tr>
+                                <tr class="highlight-row"><th>Taux d'endettement foyer</th><td id="p3_taux_endettement">— %</td></tr>
+                                <tr class="highlight-row"><th>Reste à vivre foyer</th><td id="p3_reste_a_vivre">— €</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- 3.2 Projection revenus -->
+                    <div class="result-group" style="flex:1; min-width:280px;">
+                        <h3>📈 Projection des Revenus</h3>
+                        <p class="section-description">Taux d'endettement et reste à vivre futurs avec une mensualité de crédit fixe et des revenus croissants.</p>
+                        <div id="p3_projection_container">
+                            <p style="color:var(--text-light-color);font-size:.75rem;">Activez la section "Évolution des revenus" dans les paramètres.</p>
+                        </div>
+                    </div>
+
+                </div>
+            </section>
+            <!-- ===== /PHASE 3 ===== -->
 
             <section id="resale-section" class="card two-columns">
                 <div class="input-column">

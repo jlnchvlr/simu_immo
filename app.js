@@ -76,6 +76,20 @@ document.addEventListener('DOMContentLoaded', () => {
         amortChartCanvas: getEl('amortChartCanvas'),
         amortChartContainer: getEl('amortChartContainer'),
 
+        // Phase 3 — Profil foyer & projections
+        revenusEffectifs_val: getEl('revenusEffectifs_val'),
+        coEmprunteurInputs: getEl('coEmprunteurInputs'),
+        p3_revenus_effectifs: getEl('p3_revenus_effectifs'),
+        p3_row_coempr: getEl('p3_row_coempr'),
+        p3_s2_display: getEl('p3_s2_display'),
+        p3_row_varrev: getEl('p3_row_varrev'),
+        p3_revvar_display: getEl('p3_revvar_display'),
+        p3_charges_effectives: getEl('p3_charges_effectives'),
+        p3_mensualite_globale: getEl('p3_mensualite_globale'),
+        p3_taux_endettement: getEl('p3_taux_endettement'),
+        p3_reste_a_vivre: getEl('p3_reste_a_vivre'),
+        p3_projection_container: getEl('p3_projection_container'),
+
         // Lignes scénario bonifiés
         ptb_scenario_header_row: getEl('ptb_scenario_header_row'),
         ptb_scenario_amount_row: getEl('ptb_scenario_amount_row'),
@@ -199,6 +213,15 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCharges_num: getEl('AutresCharges_num'),
             TEdt_num: getEl('TEdt_num'),
             RAV_num: getEl('RAV_num'),
+            // Phase 3
+            coEmprunteur: getEl('coEmprunteur'),
+            S2_num: getEl('S2_num'),
+            AutresCredits2_num: getEl('AutresCredits2_num'),
+            AutresCharges2_num: getEl('AutresCharges2_num'),
+            revenuVariable_num: getEl('revenuVariable_num'),
+            tauxIntegration: getEl('tauxIntegration'),
+            revenuEvolution_num: getEl('revenuEvolution_num'),
+            horizonEvolution: getEl('horizonEvolution'),
             TE_20_num: null, // legacy — removed in Phase 1
             TA_20_num: null,
             TE_25_num: null,
@@ -697,6 +720,15 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCharges: numFrom(f.AutresCharges_num),
             TEdt: numFrom(f.TEdt_num),
             RAV: numFrom(f.RAV_num),
+            // Phase 3 — Co-emprunteur & revenus
+            coEmprunteur: !!f.coEmprunteur?.checked,
+            S2: numFrom(f.S2_num),
+            AutresCredits2: numFrom(f.AutresCredits2_num),
+            AutresCharges2: numFrom(f.AutresCharges2_num),
+            revenuVariable: numFrom(f.revenuVariable_num),
+            tauxIntegration: parseFloat(f.tauxIntegration?.value || 70),
+            revenuEvolution: numFrom(f.revenuEvolution_num),
+            horizonEvolution: parseInt(f.horizonEvolution?.value || 10, 10),
             duree: Math.max(10, Math.min(30, Math.round(numFrom(f.duree_num) || 20))),
             TE: numFrom(f.TE_num),
             TA: numFrom(f.TA_num),
@@ -856,13 +888,45 @@ document.addEventListener('DOMContentLoaded', () => {
         return (Math.pow(1 + rate, 12) - 1) * 100; // Conversion en TAEG annuel
     }
 
-    // Phase 1 — calcul pour une durée unique (remplace calculerScenariosClassiques)
-    function calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails) {
-        const chargesFixes = state.AutresCredits + state.AutresCharges;
-        const duree = state.duree; // entier 10-30
+    // === PHASE 3 — Co-emprunteur & Revenus évolutifs ===
 
-        const mensualiteMaxTdtGlobale  = Math.max(0, (state.S * (state.TEdt / 100)) - chargesFixes);
-        const mensualiteMaxRavGlobale  = Math.max(0, state.S - chargesFixes - state.RAV);
+    // 3.1 + 3.3 — Calcule les revenus et charges effectifs du foyer (pur, zéro DOM)
+    function calculerProfilEmprunteur(state) {
+        const revVarIntegre = state.revenuVariable * (state.tauxIntegration / 100);
+        const revenusEmprunteur1 = state.S + revVarIntegre;
+        const revenusCoEmpr = state.coEmprunteur ? state.S2 : 0;
+        const revenusEffectifs = revenusEmprunteur1 + revenusCoEmpr;
+
+        const chargesEmprunteur1 = state.AutresCredits + state.AutresCharges;
+        const chargesCoEmpr = state.coEmprunteur ? state.AutresCredits2 + state.AutresCharges2 : 0;
+        const chargesEffectives = chargesEmprunteur1 + chargesCoEmpr;
+
+        return { revenusEffectifs, chargesEffectives, revVarIntegre, revenusCoEmpr };
+    }
+
+    // 3.2 — Projection revenus sur N années (mensualité fixe, revenus croissants)
+    function calculerProjectionRevenus(state, profil, mensTotaleGlobale) {
+        const horizons = [5, 10, 15].filter(h => h <= state.horizonEvolution + 0.5 || h === 5);
+        // On affiche toujours les 3 horizons (5, 10, 15) si l'horizon choisi le permet
+        const horiz = [5, 10, 15];
+        return horiz.map(h => {
+            const revenuProjecte = profil.revenusEffectifs * Math.pow(1 + state.revenuEvolution / 100, h);
+            const chargesProj = profil.chargesEffectives; // charges supposées stables
+            const tauxEndettProj = revenuProjecte > 0 ? ((mensTotaleGlobale + chargesProj) / revenuProjecte) * 100 : Infinity;
+            const resteAVivreProj = revenuProjecte - mensTotaleGlobale - chargesProj;
+            return { horizon: h, revenuProjecte, tauxEndettProj, resteAVivreProj };
+        });
+    }
+
+    // Phase 1 — calcul pour une durée unique (remplace calculerScenariosClassiques)
+    function calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails, profil) {
+        // Phase 3 : utilise les revenus/charges effectifs du foyer si fournis
+        const revenusEffectifs = profil?.revenusEffectifs ?? state.S;
+        const chargesFixes     = profil?.chargesEffectives ?? (state.AutresCredits + state.AutresCharges);
+        const duree = state.duree;
+
+        const mensualiteMaxTdtGlobale  = Math.max(0, (revenusEffectifs * (state.TEdt / 100)) - chargesFixes);
+        const mensualiteMaxRavGlobale  = Math.max(0, revenusEffectifs - chargesFixes - state.RAV);
         const mensualiteMaxRetenueGlobale = Math.min(mensualiteMaxTdtGlobale, mensualiteMaxRavGlobale);
 
         const mensualiteMaxPourPretClassique = Math.max(0, mensualiteMaxRetenueGlobale - pib.monthlyPayment - ptb.monthlyPayment);
@@ -879,12 +943,12 @@ document.addEventListener('DOMContentLoaded', () => {
                             + (s.mensAss * duree * 12)
                             + pib.totalCost + ptb.totalCost;
         s.mensTotaleGlobale = s.mensTotaleClassique + pib.monthlyPayment + ptb.monthlyPayment;
-        s.resteAVivre       = state.S - (s.mensTotaleGlobale + chargesFixes);
+        s.resteAVivre       = revenusEffectifs - (s.mensTotaleGlobale + chargesFixes);
         s.respect           = s.mensTotaleGlobale <= mensualiteMaxRetenueGlobale + 0.01;
 
         const fraisInitiauxPourTAEG = state.FD + garDetails.cout + state.Courtier;
         s.classic_TAEG   = s.classic_amount > 0 ? calculerTAEG(s.classic_amount, s.mensTotaleClassique, duree * 12, fraisInitiauxPourTAEG) : 0;
-        s.tauxEndettement = state.S > 0 ? ((s.mensTotaleGlobale + chargesFixes) / state.S) * 100 : Infinity;
+        s.tauxEndettement = revenusEffectifs > 0 ? ((s.mensTotaleGlobale + chargesFixes) / revenusEffectifs) * 100 : Infinity;
 
         // TAEG Global (tous prêts combinés)
         let fluxMensuels = new Array(duree * 12).fill(0);
@@ -1184,7 +1248,61 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    function mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport) {
+    // Phase 3 — render profil foyer + projection
+    const renderProfilEmprunteur = (ui, state, profil, scenData) => {
+        const s = scenData.scenario;
+        const { revenusEffectifs, chargesEffectives, revVarIntegre, revenusCoEmpr } = profil;
+
+        // Display inline dans la section inputs
+        setTextEl(ui.revenusEffectifs_val, formatCurrency(revenusEffectifs, 0));
+
+        // Section résultats Phase 3
+        setTextEl(ui.p3_revenus_effectifs, formatCurrency(revenusEffectifs, 0) + ' €/mois');
+        setTextEl(ui.p3_charges_effectives, formatCurrency(chargesEffectives, 0) + ' €/mois');
+        setTextEl(ui.p3_mensualite_globale, formatCurrency(s.mensTotaleGlobale, 0) + ' €/mois');
+
+        const tdTxt = s.tauxEndettement === Infinity ? 'N/A' : formatPercentage(s.tauxEndettement, 2) + ' %';
+        const ravColor = s.resteAVivre < 0 ? 'var(--danger-color)' : 'var(--primary-color)';
+        const tdColor  = s.tauxEndettement > state.TEdt ? 'var(--danger-color)' : 'var(--primary-color)';
+        if (ui.p3_taux_endettement) { ui.p3_taux_endettement.textContent = tdTxt; ui.p3_taux_endettement.style.color = tdColor; }
+        if (ui.p3_reste_a_vivre)    { ui.p3_reste_a_vivre.textContent    = formatCurrency(s.resteAVivre, 0) + ' €'; ui.p3_reste_a_vivre.style.color = ravColor; }
+
+        // Lignes co-emprunteur / revenus variables
+        setDisplayEl(ui.p3_row_coempr, state.coEmprunteur ? 'table-row' : 'none');
+        if (state.coEmprunteur) setTextEl(ui.p3_s2_display, formatCurrency(revenusCoEmpr, 0) + ' €/mois');
+
+        const hasRevVar = revVarIntegre > 0;
+        setDisplayEl(ui.p3_row_varrev, hasRevVar ? 'table-row' : 'none');
+        if (hasRevVar) setTextEl(ui.p3_revvar_display, formatCurrency(revVarIntegre, 0) + ' €/mois');
+
+        // Projection
+        const container = ui.p3_projection_container;
+        if (!container) return;
+        if (state.revenuEvolution === 0 && state.horizonEvolution) {
+            container.innerHTML = '<p style="font-size:.75rem;color:var(--text-light-color);">Saisissez un taux de hausse annuelle > 0 % pour voir la projection.</p>';
+            return;
+        }
+        const projections = calculerProjectionRevenus(state, profil, s.mensTotaleGlobale);
+        const colH = state.horizonEvolution;
+        const rows = projections.map(({ horizon, revenuProjecte, tauxEndettProj, resteAVivreProj }) => {
+            const isTarget = horizon === colH;
+            const cls = isTarget ? ' class="highlight-row"' : '';
+            const tdColor2 = tauxEndettProj > state.TEdt ? 'var(--danger-color)' : 'var(--primary-color)';
+            const ravC2    = resteAVivreProj < 0 ? 'var(--danger-color)' : 'var(--primary-color)';
+            return `<tr${cls}>
+                <td>+${horizon} ans</td>
+                <td>${formatCurrency(revenuProjecte, 0)} €/mois</td>
+                <td style="color:${tdColor2}">${tauxEndettProj === Infinity ? 'N/A' : formatPercentage(tauxEndettProj, 2) + ' %'}</td>
+                <td style="color:${ravC2}">${formatCurrency(resteAVivreProj, 0)} €</td>
+            </tr>`;
+        }).join('');
+        container.innerHTML = `<div style="overflow-x:auto"><table>
+            <thead><tr><th>Horizon</th><th>Revenus projetés</th><th>Taux endettement</th><th>Reste à vivre</th></tr></thead>
+            <tbody>${rows}</tbody>
+        </table></div>`;
+    };
+
+    function mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport, profil) {
         renderFraisNotaire(ui, fn_display);
         updateBonifiedSections(ui, state, pib, ptb);
         updateOperationSummary(ui, state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique);
@@ -1193,6 +1311,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateApportAnalysis(ui, state, analyseApport);
         updateIraVisibility(ui, state, uiState);
         updateTaegGlobalAndCombinedRows(ui, scenData, pib, ptb);
+        if (profil) renderProfilEmprunteur(ui, state, profil, scenData);
     }
 
     // === PHASE 2 — Sensibilité taux / Apport optimal / Graphique amortissement ===
@@ -1624,11 +1743,12 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. CALCULS MÉTIER
         let { FAg_montant, prixFAI, baseNotaireBrute, fn_details, fn_display, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
         let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
-        let scenData = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails);
+        const profil = calculerProfilEmprunteur(state);                                                    // Phase 3
+        let scenData = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails, profil);
         const analyseApport = calculerExigencesApport(state, fn_details, garDetails, FAg_montant);
 
         // 3. MISE À JOUR DE L'INTERFACE
-        mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport);
+        mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport, profil);
 
         // 4. CALCUL ET AFFICHAGE DE LA REVENTE
         const resultsForResale = { 
@@ -1790,7 +1910,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'pibRFR', 'pibHouseholdSize', 'pibBFMRate', 'pibDuration', 'pibInsuranceRate', 'ptbInsuranceRate',
             'ptbRFR', 'ptbHouseholdSize', 'ptbAmountWanted', 'ptbDuration', 
             'resaleHorizon', 'plusValue', 'inflation', 'resaleFees', 
-            'resalePriceManual', 'inflationCumulative', 'ira_manual', 'ira_classic', 'ira_pib', 'ira_ptb'
+            'resalePriceManual', 'inflationCumulative', 'ira_manual', 'ira_classic', 'ira_pib', 'ira_ptb',
+            // Phase 3
+            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'revenuEvolution'
         ];
 
         inputIds.forEach(id => {
@@ -1851,7 +1973,10 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.form.enablePTB,
             ui.form.ptbAgentStatus,
             ui.form.ptbZone,
-            ui.form.chargeAgence
+            ui.form.chargeAgence,
+            // Phase 3
+            ui.form.tauxIntegration,
+            ui.form.horizonEvolution,
         ].forEach(el => {
             if (el) el.addEventListener('change', calculateAll);
         });
@@ -2013,12 +2138,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const { state } = lireEtatFormulaire(ui);
             let { FAg_montant, prixFAI, fn_details, fn_display, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
             let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
-            const chargesFixes = state.AutresCredits + state.AutresCharges;
-            const mensualiteMaxRetenue = Math.min(
-                Math.max(0, (state.S * (state.TEdt / 100)) - chargesFixes),
-                Math.max(0, state.S - chargesFixes - state.RAV)
-            );
-            lancerOptimiseur(state, besoinCreditFinalClassique, pib, ptb, mensualiteMaxRetenue);
+            const profil3 = calculerProfilEmprunteur(state);
+            const { mensualiteMaxRetenueGlobale } = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails, profil3);
+            lancerOptimiseur(state, besoinCreditFinalClassique, pib, ptb, mensualiteMaxRetenueGlobale);
         });
 
         // Phase 2.2 — Slider apport_alt (mise à jour info + marqueur sans recalcul global)
@@ -2060,6 +2182,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (bT) { bT.style.backgroundColor = 'var(--secondary-color)'; bT.style.color = '#fff'; }
             if (bC) { bC.style.backgroundColor = ''; bC.style.color = ''; }
         });
+
+        // Phase 3 — Toggle co-emprunteur
+        ui.form.coEmprunteur?.addEventListener('change', e => {
+            setDisplayEl(ui.coEmprunteurInputs, e.target.checked ? 'block' : 'none');
+            calculateAll();
+        });
+
+        // Phase 3 — Toggle révolution revenus (détails dépliables)
+        setupDetailsToggle('revEvolutifToggle', 'revEvolutifContainer', 'Évolution des revenus (projection) ▼', 'Évolution des revenus (projection) ▲');
 
         chargerEtat(); // On recharge les données avant de lancer le premier calcul
         calculateAll();
