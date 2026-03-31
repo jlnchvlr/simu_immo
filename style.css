@@ -362,11 +362,98 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
 .tab-pane { display: none; }
 .tab-pane.active { display: block; }
 
-/* === TAB 2 — Solveur : Matrice LTV === */
-.ltv-matrix-table { width: 100%; border-collapse: collapse; margin-top: .4rem; font-size: .75rem; }
-.ltv-matrix-table th { background: var(--secondary-color); color: #fff; padding: 5px 8px; font-weight: 600; text-transform: uppercase; font-size: .65rem; }
-.ltv-matrix-table td { padding: 4px 6px; border: 1px solid var(--border-color); }
-.ltv-matrix-table input { width: 80px; padding: 3px 5px; border: 1px solid var(--input-border-color); border-radius: var(--border-radius-small); font-size: .75rem; text-align: right; }
+/* === TAB 2 — Solveur : Règles bancaires === */
+.regles-bancaires-section {
+    background: #f4f6f8;
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-medium);
+    padding: .7rem .9rem;
+    margin-top: .8rem;
+}
+.regles-bancaires-title {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0 0 .6rem 0;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+}
+.regles-bancaires-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .5rem;
+}
+.regle-item {
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+}
+.regle-item label {
+    font-size: .68rem;
+    color: var(--text-light-color);
+    font-weight: 500;
+}
+.regle-item input {
+    width: 100%;
+    padding: 4px 6px;
+    border: 1px solid var(--input-border-color);
+    border-radius: var(--border-radius-small);
+    font-size: .78rem;
+    text-align: right;
+    background: #fff;
+    box-sizing: border-box;
+}
+/* Tooltip solveur */
+.solver-tooltip-anchor {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.solver-info-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--secondary-color);
+    color: #fff;
+    font-size: .65rem;
+    font-weight: 700;
+    cursor: default;
+    flex-shrink: 0;
+}
+.solver-tooltip-popup {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 240px;
+    background: #333;
+    color: #fff;
+    font-size: .72rem;
+    font-weight: 400;
+    line-height: 1.5;
+    padding: 8px 10px;
+    border-radius: var(--border-radius-small);
+    box-shadow: 0 3px 10px rgba(0,0,0,.25);
+    z-index: 100;
+    pointer-events: none;
+    white-space: normal;
+}
+.solver-tooltip-popup::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #333;
+}
+.solver-tooltip-anchor:hover .solver-tooltip-popup { display: block; }
+
 .solver-verdict-box {
     background: linear-gradient(135deg, #e8f5e9, #e3f2fd);
     border: 1px solid var(--primary-color); border-radius: var(--border-radius-medium);

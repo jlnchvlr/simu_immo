@@ -1516,10 +1516,6 @@ document.addEventListener('DOMContentLoaded', () => {
             apportChart._currentApport = currentApport;
             apportChart._ltv90 = apportLTV90;
             apportChart._ltv80 = apportLTV80;
-            apportChart.options.scales.y.min  = Math.floor(Math.min(...dataMens) * 0.95);
-            apportChart.options.scales.y.max  = Math.ceil(Math.max(...dataMens) * 1.05);
-            apportChart.options.scales.y2.min = Math.floor(Math.min(...dataCout) * 0.95);
-            apportChart.options.scales.y2.max = Math.ceil(Math.max(...dataCout) * 1.05);
             apportChart.update('none');
             return;
         }
@@ -1531,7 +1527,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels,
                 datasets: [
                     { label: 'Mensualité totale (€/mois)', data: dataMens, borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,0.07)', tension: 0.3, pointRadius: 0, yAxisID: 'y',  fill: false },
-                    { label: 'Coût total crédits (€)',     data: dataCout, borderColor: '#FF9800', backgroundColor: 'rgba(255,152,0,0.07)',   tension: 0.3, pointRadius: 0, yAxisID: 'y2', fill: false }
+                    { type: 'bar', label: 'Coût total crédits (€)', data: dataCout, borderColor: '#FF9800', backgroundColor: 'rgba(255,152,0,0.5)', borderRadius: 4, yAxisID: 'y2' }
                 ]
             },
             options: {
@@ -1547,8 +1543,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 scales: {
                     x:  { ticks: { font: { size: 9 }, maxTicksLimit: 8, callback: (_, i) => i < labels.length ? (labels[i] / 1000).toFixed(0) + ' k€' : '' } },
-                    y:  { position: 'left',  min: Math.floor(Math.min(...dataMens) * 0.95), max: Math.ceil(Math.max(...dataMens) * 1.05), title: { display: true, text: 'Mensualité (€/mois)',  font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' } },
-                    y2: { position: 'right', min: Math.floor(Math.min(...dataCout) * 0.95), max: Math.ceil(Math.max(...dataCout) * 1.05), title: { display: true, text: 'Coût crédits (€)',     font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }, grid: { drawOnChartArea: false } }
+                    y:  { position: 'left',  beginAtZero: true, title: { display: true, text: 'Mensualité (€/mois)',  font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' } },
+                    y2: { position: 'right', beginAtZero: true, title: { display: true, text: 'Coût crédits (€)',     font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }, grid: { drawOnChartArea: false } }
                 }
             }
         });
@@ -1647,9 +1643,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Couleurs pour marquer la durée active
         const pointRadiusMens = labels.map((_, i) => i === selectedIdx ? 7 : 3);
-        const pointRadiusCout = labels.map((_, i) => i === selectedIdx ? 7 : 3);
         const pointBgMens = labels.map((_, i) => i === selectedIdx ? '#e53935' : '#2196F3');
-        const pointBgCout = labels.map((_, i) => i === selectedIdx ? '#e53935' : '#FF9800');
 
         if (durationChart) {
             // Mise à jour légère sans recréer le canvas
@@ -1658,8 +1652,6 @@ document.addEventListener('DOMContentLoaded', () => {
             durationChart.data.datasets[0].pointRadius = pointRadiusMens;
             durationChart.data.datasets[0].pointBackgroundColor = pointBgMens;
             durationChart.data.datasets[1].data = dataCoutCredit;
-            durationChart.data.datasets[1].pointRadius = pointRadiusCout;
-            durationChart.data.datasets[1].pointBackgroundColor = pointBgCout;
             // Ligne de mensualité max
             if (durationChart.data.datasets[2]) {
                 durationChart.data.datasets[2].data = labels.map(() => Math.round(mensualiteMaxRetenue));
@@ -1685,15 +1677,13 @@ document.addEventListener('DOMContentLoaded', () => {
                         fill: false
                     },
                     {
+                        type: 'bar',
                         label: 'Coût total crédits (€)',
                         data: dataCoutCredit,
                         borderColor: '#FF9800',
-                        backgroundColor: 'rgba(255,152,0,0.08)',
-                        pointRadius: pointRadiusCout,
-                        pointBackgroundColor: pointBgCout,
-                        tension: 0.3,
-                        yAxisID: 'y2',
-                        fill: false
+                        backgroundColor: 'rgba(255,152,0,0.5)',
+                        borderRadius: 4,
+                        yAxisID: 'y2'
                     },
                     {
                         label: 'Mensualité max retenue (€)',
@@ -1726,11 +1716,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     x: { ticks: { font: { size: 10 } } },
                     y: {
                         type: 'linear', position: 'left',
+                        beginAtZero: true,
                         title: { display: true, text: 'Mensualité (€)', font: { size: 10 } },
                         ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }
                     },
                     y2: {
                         type: 'linear', position: 'right',
+                        beginAtZero: true,
                         title: { display: true, text: 'Coût crédits (€)', font: { size: 10 } },
                         ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' },
                         grid: { drawOnChartArea: false }
@@ -2366,16 +2358,15 @@ document.addEventListener('DOMContentLoaded', () => {
             mensualiteMax: parseFloat(getEl('solver_mensualiteMax_num')?.value || 1500),
             tauxEpargne: parseFloat(getEl('solver_tauxEpargne_num')?.value || 3),
             horizonRevente: parseInt(getEl('solver_horizonRevente_num')?.value || 10, 10),
-            matriceTaux: [
-                { ltvMax: parseFloat(getEl('ltv_row0_ltv')?.value || 80),  taux: parseFloat(getEl('ltv_row0_taux')?.value || 3.50) },
-                { ltvMax: parseFloat(getEl('ltv_row1_ltv')?.value || 90),  taux: parseFloat(getEl('ltv_row1_taux')?.value || 3.80) },
-                { ltvMax: parseFloat(getEl('ltv_row2_ltv')?.value || 110), taux: parseFloat(getEl('ltv_row2_taux')?.value || 4.10) }
-            ]
+            tauxBase: parseFloat(getEl('taux_base')?.value || 3.50),
+            malusFaibleApport: parseFloat(getEl('malus_faible_apport')?.value || 0.10),
+            bonusBonApport: parseFloat(getEl('bonus_bon_apport')?.value || -0.15),
+            bonusExcellentApport: parseFloat(getEl('bonus_excellent_apport')?.value || -0.25)
         };
     }
 
-    function calculerOptimisationApport(state, solverState, coutTotalOperation, prixFAI, pib, ptb) {
-        const { apportMin, mensualiteMax, tauxEpargne, horizonRevente, matriceTaux } = solverState;
+    function calculerOptimisationApport(state, solverState, coutTotalOperation, pib, ptb) {
+        const { apportMin, mensualiteMax, tauxEpargne, horizonRevente, tauxBase, malusFaibleApport, bonusBonApport, bonusExcellentApport } = solverState;
         const apportMax  = (solverState.apportMax > apportMin) ? solverState.apportMax : state.A;
         const bonified   = pib.amount + ptb.amount;
         const horizonMois = horizonRevente * 12;
@@ -2392,11 +2383,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 continue;
             }
 
-            // Taux depuis la matrice LTV
-            const ltv = prixFAI > 0 ? (capital / prixFAI) * 100 : 0;
-            let tauxNominal = matriceTaux[matriceTaux.length - 1].taux;
-            for (const row of [...matriceTaux].sort((a, b) => a.ltvMax - b.ltvMax)) {
-                if (ltv <= row.ltvMax) { tauxNominal = row.taux; break; }
+            // Taux dynamique basé sur le % d'apport
+            const pctApport = coutTotalOperation > 0 ? (apport / coutTotalOperation) * 100 : 0;
+            let tauxNominal;
+            if (pctApport < 10) {
+                tauxNominal = tauxBase + malusFaibleApport;
+            } else if (pctApport >= 30) {
+                tauxNominal = tauxBase + bonusExcellentApport;
+            } else if (pctApport >= 20) {
+                tauxNominal = tauxBase + bonusBonApport;
+            } else {
+                tauxNominal = tauxBase;
             }
 
             // Durée minimale pour respecter la mensualité max
@@ -2453,9 +2450,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function runSolver() {
         if (!_p2Cache) return;
-        const { state, coutTotalOperation, prixFAI, pib, ptb } = _p2Cache;
+        const { state, coutTotalOperation, pib, ptb } = _p2Cache;
         const solverState = lireEtatSolver();
-        const result = calculerOptimisationApport(state, solverState, coutTotalOperation, prixFAI, pib, ptb);
+        const result = calculerOptimisationApport(state, solverState, coutTotalOperation, pib, ptb);
         renderSolver(result, solverState);
     }
 

@@ -834,25 +834,34 @@
                             <button id="solver_sync_horizon" type="button" style="font-size:.7rem;padding:3px 8px;white-space:nowrap;" title="Copier l'horizon depuis Tab 1">⟳ Tab 1</button>
                         </div>
 
-                        <h4>📊 Matrice Taux / % d'apport</h4>
-                        <p class="section-description">Associez chaque palier de financement (% du prix du bien couvert par le prêt) au taux nominal estimé du marché.</p>
-                        <table class="ltv-matrix-table">
-                            <thead><tr><th>% financement ≤</th><th>Taux nominal (%)</th></tr></thead>
-                            <tbody>
-                                <tr>
-                                    <td><input type="number" id="ltv_row0_ltv" value="80" min="1" max="110" step="1"></td>
-                                    <td><input type="number" id="ltv_row0_taux" value="3.50" min="0" max="20" step="0.05"></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="number" id="ltv_row1_ltv" value="90" min="1" max="110" step="1"></td>
-                                    <td><input type="number" id="ltv_row1_taux" value="3.80" min="0" max="20" step="0.05"></td>
-                                </tr>
-                                <tr>
-                                    <td><input type="number" id="ltv_row2_ltv" value="110" min="1" max="120" step="1"></td>
-                                    <td><input type="number" id="ltv_row2_taux" value="4.10" min="0" max="20" step="0.05"></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                        <div class="input-item">
+                            <label for="taux_base">Taux moyen actuel du marché sur 20 ans (%) :</label>
+                            <input type="number" id="taux_base" value="3.50" min="0.1" max="20" step="0.05" style="max-width:90px;">
+                        </div>
+
+                        <div class="regles-bancaires-section">
+                            <h4 class="regles-bancaires-title">
+                                🏦 Règles bancaires (Ajustements automatiques)
+                                <span class="solver-tooltip-anchor">
+                                    <span class="solver-info-badge">?</span>
+                                    <span class="solver-tooltip-popup">L'algorithme simulera le comportement d'une banque en appliquant automatiquement ces malus ou bonus au taux de base en fonction du pourcentage d'apport testé dans chaque scénario.</span>
+                                </span>
+                            </h4>
+                            <div class="regles-bancaires-grid">
+                                <div class="regle-item">
+                                    <label for="malus_faible_apport">Malus apport &lt; 10% (%)</label>
+                                    <input type="number" id="malus_faible_apport" value="0.10" min="0" max="5" step="0.05">
+                                </div>
+                                <div class="regle-item">
+                                    <label for="bonus_bon_apport">Bonus apport &gt; 20% (%)</label>
+                                    <input type="number" id="bonus_bon_apport" value="-0.15" min="-5" max="0" step="0.05">
+                                </div>
+                                <div class="regle-item">
+                                    <label for="bonus_excellent_apport">Bonus apport &gt; 30% (%)</label>
+                                    <input type="number" id="bonus_excellent_apport" value="-0.25" min="-5" max="0" step="0.05">
+                                </div>
+                            </div>
+                        </div>
 
                         <button id="btn-run-solver" class="btn-scenario" style="margin-top:.8rem;width:100%;">🔍 Calculer le scénario optimal</button>
                     </div>
