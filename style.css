@@ -19,6 +19,12 @@ body {
 }
 .card.two-columns { display: flex; flex-wrap: wrap; gap: 1.5rem; }
 .input-column, .result-column { flex: 1; min-width: 45%; }
+/* BFM rate header — centré, discret, spanning toute la largeur */
+.bfm-header { width: 100%; display: flex; flex-direction: column; align-items: center; gap: .3rem; padding-bottom: .6rem; border-bottom: 1px dashed var(--border-color); margin-bottom: .2rem; }
+.bfm-header label { font-size: .8rem; color: var(--text-light-color); }
+.bfm-inputs { display: flex; align-items: center; gap: .5rem; }
+.bfm-inputs input[type="range"] { width: 140px; }
+.bfm-inputs input[type="number"] { width: 70px; }
 .input-group, .result-group {
     margin-bottom: 1.2rem; padding: .8rem; border: 1px solid var(--border-color);
     border-radius: var(--border-radius-medium); background-color: #fdfdfd;

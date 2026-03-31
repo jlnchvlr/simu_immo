@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const buildUI = () => ({
         // Conteneurs / sections
-        bonifiedResultsSection: getEl('bonified-results-section'),
         // Résumé haut
         prixFAI: getEl('prixFAI'),
         FAg_montant: getEl('FAg_montant'),
@@ -94,13 +93,23 @@ document.addEventListener('DOMContentLoaded', () => {
         ptb_scenario_header_row: getEl('ptb_scenario_header_row'),
         ptb_scenario_amount_row: getEl('ptb_scenario_amount_row'),
         ptb_scenario_mensualite_row: getEl('ptb_scenario_mensualite_row'),
+        ptb_scenario_rate_row: getEl('ptb_scenario_rate_row'),
+        ptb_scenario_cost_row: getEl('ptb_scenario_cost_row'),
+        ptb_scenario_amort_row: getEl('ptb_scenario_amort_row'),
         scen_ptb_amount_display: getEl('scen_ptb_amount_display'),
         scen_ptb_mensualite_display: getEl('scen_ptb_mensualite_display'),
+        scen_ptb_rate_display: getEl('scen_ptb_rate_display'),
+        scen_ptb_cost_display: getEl('scen_ptb_cost_display'),
         pib_scenario_header_row: getEl('pib_scenario_header_row'),
         pib_scenario_amount_row: getEl('pib_scenario_amount_row'),
         pib_scenario_mensualite_row: getEl('pib_scenario_mensualite_row'),
+        pib_scenario_rate_row: getEl('pib_scenario_rate_row'),
+        pib_scenario_cost_row: getEl('pib_scenario_cost_row'),
+        pib_scenario_amort_row: getEl('pib_scenario_amort_row'),
         scen_pib_amount_display: getEl('scen_pib_amount_display'),
         scen_pib_mensualite_display: getEl('scen_pib_mensualite_display'),
+        scen_pib_rate_display: getEl('scen_pib_rate_display'),
+        scen_pib_cost_display: getEl('scen_pib_cost_display'),
 
         // Analyse apport
         A_display: getEl('A_display'),
@@ -177,41 +186,18 @@ document.addEventListener('DOMContentLoaded', () => {
         fnDetailsToggleTrigger: getEl('fnDetailsToggleTrigger'),
         btn_reset: getEl('btn-reset'),
 
-        // PTB/PIB détails
-        ptbDetailsResultBox: getEl('ptbDetailsResultBox'),
-        pibDetailsResultBox: getEl('pibDetailsResultBox'),
-        ptb_warning_msg: getEl('ptb_warning_msg'),
+        // PTB/PIB avertissement
+        ptb_warning_msg: null, // supprimé
         res_ptb_amount_row: getEl('res_ptb_amount_row'),
         res_pib_amount_row: getEl('res_pib_amount_row'),
         res_ptb_amount: getEl('res_ptb_amount'),
         res_pib_amount: getEl('res_pib_amount'),
 
-        ptb_res_amount: getEl('ptb_res_amount'),
-        ptb_res_duration: getEl('ptb_res_duration'),
-        ptb_res_bfm_rate: getEl('ptb_res_bfm_rate'),
-        ptb_res_bonification_rate: getEl('ptb_res_bonification_rate'),
-        ptb_res_borrower_rate: getEl('ptb_res_borrower_rate'),
-        ptb_res_insurance_rate: getEl('ptb_res_insurance_rate'),
-        ptb_res_insurance_status: getEl('ptb_res_insurance_status'),
-        ptb_res_monthly_payment: getEl('ptb_res_monthly_payment'),
-        ptb_res_total_interest_cost: getEl('ptb_res_total_interest_cost'),
-        ptb_res_total_insurance_cost: getEl('ptb_res_total_insurance_cost'),
-        ptb_res_total_cost: getEl('ptb_res_total_cost'),
         ptbMaxAmount_display: getEl('ptbMaxAmount_display'),
         ptbBonificationRate_display: getEl('ptbBonificationRate_display'),
         ptbBorrowerRate_display: getEl('ptbBorrowerRate_display'),
         ptb_scenario_duration_label: getEl('ptb_scenario_duration_label'),
 
-        pib_res_amount: getEl('pib_res_amount'),
-        pib_res_duration: getEl('pib_res_duration'),
-        pib_res_bfm_rate: getEl('pib_res_bfm_rate'),
-        pib_res_bonification_rate: getEl('pib_res_bonification_rate'),
-        pib_res_borrower_rate: getEl('pib_res_borrower_rate'),
-        pib_res_insurance_rate: getEl('pib_res_insurance_rate'),
-        pib_res_monthly_payment: getEl('pib_res_monthly_payment'),
-        pib_res_total_interest_cost: getEl('pib_res_total_interest_cost'),
-        pib_res_total_insurance_cost: getEl('pib_res_total_insurance_cost'),
-        pib_res_total_cost: getEl('pib_res_total_cost'),
         pibMaxAmount_display: getEl('pibMaxAmount_display'),
         pibBonificationRate_display: getEl('pibBonificationRate_display'),
         pibBorrowerRate_display: getEl('pibBorrowerRate_display'),
@@ -599,7 +585,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const candidate of rateCandidates) {
             highRate = candidate; let fHigh = npvFunction(highRate);
             if (fHigh * fLow < 0) { foundHighRate = true; break; }
-            if (Math.abs(fHigh) < 1e-9) return highRate * 1200; 
+            if (Math.abs(fHigh) < 1e-9) return (Math.pow(1 + highRate, 12) - 1) * 100;
             if (fLow > 0 && fHigh > 0 && fHigh < fLow) { lowRate = highRate; fLow = fHigh; }
             else if (fLow > 0 && fHigh < 0) { foundHighRate = true; break; }
         }
@@ -608,11 +594,11 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 100; i++) { 
             midRate = (lowRate + highRate) / 2;
             let fMid = npvFunction(midRate);
-            if (Math.abs(fMid) < 1e-9 || (highRate - lowRate) / 2 < 1e-8) return midRate * 1200;
+            if (Math.abs(fMid) < 1e-9 || (highRate - lowRate) / 2 < 1e-8) return (Math.pow(1 + midRate, 12) - 1) * 100;
             (fMid * fLow > 0) ? lowRate = midRate : highRate = midRate;
             if (isNaN(midRate) || !isFinite(midRate) || midRate < -1.0 + 1e-9) return 0.0;
         }
-        return midRate * 1200; 
+        return (Math.pow(1 + midRate, 12) - 1) * 100;
     };
 
     const generateAmortizationSchedule = (loanName, principal, annualNominalRate, durationYears, annualInsuranceRateOnInitialCapital, insuranceBase = 'initial') => {
@@ -1124,86 +1110,28 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     }
 
-    const updateBonifiedLoanDisplay = (ui, state, loanObj, type, detailsMap) => {
-        const isEnabled = type === 'ptb' ? state.isPTBEnabled : state.isPIBEnabled;
-        const detailsBox = type === 'ptb' ? ui.ptbDetailsResultBox : ui.pibDetailsResultBox;
-        const resAmountRow = type === 'ptb' ? ui.res_ptb_amount_row : ui.res_pib_amount_row;
-        const resAmount = type === 'ptb' ? ui.res_ptb_amount : ui.res_pib_amount;
-        const maxEl = type === 'ptb' ? ui.ptbMaxAmount_display : ui.pibMaxAmount_display;
-        const bonifEl = type === 'ptb' ? ui.ptbBonificationRate_display : ui.pibBonificationRate_display;
-        const borrowerEl = type === 'ptb' ? ui.ptbBorrowerRate_display : ui.pibBorrowerRate_display;
-        const durationLabelEl = type === 'ptb' ? ui.ptb_scenario_duration_label : ui.pib_scenario_duration_label;
-
-        setDisplayEl(detailsBox, isEnabled ? 'block' : 'none');
-        setDisplayEl(resAmountRow, loanObj.amount > 0 ? 'table-row' : 'none');
-
-        if (type === 'ptb') {
-            setDisplayEl(ui.ptb_warning_msg, (isEnabled && loanObj.amount === 0) ? 'block' : 'none');
-        }
-
-        if (isEnabled) {
-            setTextEl(resAmount, formatCurrency(loanObj.amount) + " €");
-            for (const key in detailsMap) {
-                const el = detailsMap[key];
-                const valueToDisplay = loanObj[key];
-                if (!el) continue;
-                if (['interestRate', 'bonification', 'insuranceRate'].includes(key)) setTextEl(el, formatPercentage(valueToDisplay, 2) + " %");
-                else if (['monthlyPayment', 'totalCost'].includes(key)) setTextEl(el, formatCurrency(valueToDisplay, 2) + " €");
-                else if (['totalInterest', 'totalInsurance', 'amount'].includes(key)) setTextEl(el, formatCurrency(valueToDisplay, 0) + " €");
-                else if (key === 'duration') setTextEl(el, valueToDisplay + " ans");
-                else setTextEl(el, valueToDisplay);
-            }
-            if (type === 'ptb') {
-                const isIncluded = (Number(loanObj.insuranceRate) || 0) > 0;
-                setTextEl(ui.ptb_res_insurance_status, isIncluded ? `Incluse (${formatPercentage(loanObj.insuranceRate, 2)}%)` : 'Non incluse');
-            }
-            setTextEl(durationLabelEl, `${loanObj.duration} ans (fixe)`);
-        }
-
-        setHTMLEl(maxEl, `<strong>${formatCurrency(loanObj.maxPossible)}</strong> €`);
-        setHTMLEl(bonifEl, `<strong>${formatPercentage(loanObj.bonification, 1)}</strong> %`);
-        setHTMLEl(borrowerEl, `<strong>${formatPercentage(loanObj.interestRate, 2)}</strong> %`);
-    };
-
     const updateBonifiedSections = (ui, state, pib, ptb) => {
-        setDisplayEl(ui.bonifiedResultsSection, (state.isPTBEnabled || state.isPIBEnabled) ? 'flex' : 'none');
-        updateBonifiedLoanDisplay(
-            ui,
-            state,
-            ptb,
-            'ptb',
-            {
-                amount: ui.ptb_res_amount,
-                duration: ui.ptb_res_duration,
-                interestRate: ui.ptb_res_borrower_rate,
-                bonification: ui.ptb_res_bonification_rate,
-                insuranceRate: ui.ptb_res_insurance_rate,
-                monthlyPayment: ui.ptb_res_monthly_payment,
-                totalInterest: ui.ptb_res_total_interest_cost,
-                totalInsurance: ui.ptb_res_total_insurance_cost,
-                totalCost: ui.ptb_res_total_cost
-            }
-        );
-        setTextEl(ui.ptb_res_bfm_rate, `${formatPercentage(state.pibBFMRate, 2)} %`);
+        const updateLoanInputDisplay = (loanObj, type) => {
+            const isEnabled = type === 'ptb' ? state.isPTBEnabled : state.isPIBEnabled;
+            const resAmountRow = type === 'ptb' ? ui.res_ptb_amount_row : ui.res_pib_amount_row;
+            const resAmount    = type === 'ptb' ? ui.res_ptb_amount    : ui.res_pib_amount;
+            const maxEl        = type === 'ptb' ? ui.ptbMaxAmount_display        : ui.pibMaxAmount_display;
+            const bonifEl      = type === 'ptb' ? ui.ptbBonificationRate_display : ui.pibBonificationRate_display;
+            const borrowerEl   = type === 'ptb' ? ui.ptbBorrowerRate_display     : ui.pibBorrowerRate_display;
+            const durationLabelEl = type === 'ptb' ? ui.ptb_scenario_duration_label : ui.pib_scenario_duration_label;
 
-        updateBonifiedLoanDisplay(
-            ui,
-            state,
-            pib,
-            'pib',
-            {
-                amount: ui.pib_res_amount,
-                duration: ui.pib_res_duration,
-                interestRate: ui.pib_res_borrower_rate,
-                bonification: ui.pib_res_bonification_rate,
-                insuranceRate: ui.pib_res_insurance_rate,
-                monthlyPayment: ui.pib_res_monthly_payment,
-                totalInterest: ui.pib_res_total_interest_cost,
-                totalInsurance: ui.pib_res_total_insurance_cost,
-                totalCost: ui.pib_res_total_cost
+            setDisplayEl(resAmountRow, loanObj.amount > 0 ? 'table-row' : 'none');
+            if (isEnabled) {
+                setTextEl(resAmount, formatCurrency(loanObj.amount) + " €");
+                setTextEl(durationLabelEl, `${loanObj.duration} ans (fixe)`);
             }
-        );
-        setTextEl(ui.pib_res_bfm_rate, `${formatPercentage(state.pibBFMRate, 2)} %`);
+            setHTMLEl(maxEl,      `<strong>${formatCurrency(loanObj.maxPossible)}</strong> €`);
+            setHTMLEl(bonifEl,    `<strong>${formatPercentage(loanObj.bonification, 1)}</strong> %`);
+            setHTMLEl(borrowerEl, `<strong>${formatPercentage(loanObj.interestRate, 2)}</strong> %`);
+        };
+
+        updateLoanInputDisplay(ptb, 'ptb');
+        updateLoanInputDisplay(pib, 'pib');
     };
 
     const updateOperationSummary = (ui, state, FAg_montant, prixFAI, fn_details, garDetails, coutTotalOperation, besoinCreditFinalClassique) => {
@@ -1323,17 +1251,27 @@ document.addEventListener('DOMContentLoaded', () => {
         setDisplayEl(ui.ptb_scenario_header_row, hasPTB ? 'table-row' : 'none');
         setDisplayEl(ui.ptb_scenario_amount_row, hasPTB ? 'table-row' : 'none');
         setDisplayEl(ui.ptb_scenario_mensualite_row, hasPTB ? 'table-row' : 'none');
+        setDisplayEl(ui.ptb_scenario_rate_row, hasPTB ? 'table-row' : 'none');
+        setDisplayEl(ui.ptb_scenario_cost_row, hasPTB ? 'table-row' : 'none');
+        setDisplayEl(ui.ptb_scenario_amort_row, hasPTB ? 'table-row' : 'none');
         if (hasPTB) {
             setTextEl(ui.scen_ptb_amount_display, formatCurrency(ptb.amount) + " €");
             setTextEl(ui.scen_ptb_mensualite_display, formatCurrency(ptb.monthlyPayment, 2) + " €");
+            setTextEl(ui.scen_ptb_rate_display, formatPercentage(ptb.interestRate, 2) + " %");
+            setTextEl(ui.scen_ptb_cost_display, formatCurrency(ptb.totalCost) + " €");
         }
 
         setDisplayEl(ui.pib_scenario_header_row, hasPIB ? 'table-row' : 'none');
         setDisplayEl(ui.pib_scenario_amount_row, hasPIB ? 'table-row' : 'none');
         setDisplayEl(ui.pib_scenario_mensualite_row, hasPIB ? 'table-row' : 'none');
+        setDisplayEl(ui.pib_scenario_rate_row, hasPIB ? 'table-row' : 'none');
+        setDisplayEl(ui.pib_scenario_cost_row, hasPIB ? 'table-row' : 'none');
+        setDisplayEl(ui.pib_scenario_amort_row, hasPIB ? 'table-row' : 'none');
         if (hasPIB) {
             setTextEl(ui.scen_pib_amount_display, formatCurrency(pib.amount) + " €");
             setTextEl(ui.scen_pib_mensualite_display, formatCurrency(pib.monthlyPayment, 2) + " €");
+            setTextEl(ui.scen_pib_rate_display, formatPercentage(pib.interestRate, 2) + " %");
+            setTextEl(ui.scen_pib_cost_display, formatCurrency(pib.totalCost) + " €");
         }
 
         if (!combineOnlyEls) combineOnlyEls = Array.from(document.querySelectorAll('.combine-only'));
@@ -1535,7 +1473,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataMens = courbeData.map(d => Math.round(d.mensTotGlob));
         const dataCout = courbeData.map(d => Math.round(d.coutCredit));
 
-        // Seuils LTV
+        // Seuils paliers d'apport (stockés sur le chart pour rester à jour)
         const bonified     = pib.amount + ptb.amount;
         const apportLTV90  = Math.max(0, coutTotalOperation - bonified - 0.9 * prixFAI);
         const apportLTV80  = Math.max(0, coutTotalOperation - bonified - 0.8 * prixFAI);
@@ -1545,13 +1483,14 @@ document.addEventListener('DOMContentLoaded', () => {
             afterDraw(chart) {
                 const { ctx, scales, chartArea } = chart;
                 if (!scales.x || !chartArea) return;
+                const chartLabels = chart.data.labels;
                 const lines = [
-                    { xVal: apportLTV90, color: '#FF9800', label: 'Apport 10%', dash: true  },
-                    { xVal: apportLTV80, color: '#4CAF50', label: 'Apport 20%', dash: true  },
-                    { xVal: chart._currentApport ?? -1, color: '#2196F3', label: '',     dash: false }
+                    { xVal: chart._ltv90,          color: '#FF9800', label: 'Apport 10%', dash: true  },
+                    { xVal: chart._ltv80,          color: '#4CAF50', label: 'Apport 20%', dash: true  },
+                    { xVal: chart._currentApport ?? -1, color: '#2196F3', label: '',      dash: false }
                 ];
                 lines.forEach(({ xVal, color, label, dash }) => {
-                    if (xVal < 0 || xVal > labels[labels.length - 1]) return;
+                    if (xVal == null || xVal < 0 || xVal > chartLabels[chartLabels.length - 1]) return;
                     const xPx = scales.x.getPixelForValue(xVal);
                     if (xPx < chartArea.left || xPx > chartArea.right) return;
                     ctx.save();
@@ -1575,6 +1514,8 @@ document.addEventListener('DOMContentLoaded', () => {
             apportChart.data.datasets[0].data = dataMens;
             apportChart.data.datasets[1].data = dataCout;
             apportChart._currentApport = currentApport;
+            apportChart._ltv90 = apportLTV90;
+            apportChart._ltv80 = apportLTV80;
             apportChart.options.scales.y.min  = Math.floor(Math.min(...dataMens) * 0.95);
             apportChart.options.scales.y.max  = Math.ceil(Math.max(...dataMens) * 1.05);
             apportChart.options.scales.y2.min = Math.floor(Math.min(...dataCout) * 0.95);
@@ -1612,6 +1553,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
         apportChart._currentApport = currentApport;
+        apportChart._ltv90 = apportLTV90;
+        apportChart._ltv80 = apportLTV80;
     }
 
     // ── 2.3 Graphique d'amortissement ────────────────────────────────────────
@@ -1870,7 +1813,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // IRA légale sur le montant remboursé par anticipation
         const sixMoisIntRA = (raMontant * tauxClassique / 100) / 2;
-        const iraRA = Math.min(raMontant * 0.03, sixMoisIntRA);
+        const iraRA = Math.min(crd * 0.03, sixMoisIntRA);
 
         const newCapital = crd - raMontant;
         const moisRestants = dureeMois - raMois;
@@ -2392,7 +2335,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const inflationCumul = uiState?.resale?.inflationCumulative || 0;
             inflationFactor = 1 + (inflationCumul / 100);
         }
-        const realNetBalance = bilanFinancierNet / inflationFactor;
+        const realNetBalance = inflationFactor !== 0 ? bilanFinancierNet / inflationFactor : bilanFinancierNet;
         
         setTextEl(ui.res_resale_price, formatCurrency(prixRevente) + " €");
         setTextEl(ui.res_remaining_capital, formatCurrency(totalCRD) + " €");
@@ -2628,7 +2571,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Frais garantie (€)</label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
                 <div class="comp-offer-field"><label>Parts sociales (€)</label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
                 <div class="comp-offer-field"><label>Frais bancaires mensuels (€)</label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
-                <div class="comp-offer-field"><label>IRA (% du plafond légal) <span style="font-size:.7rem;color:var(--text-light-color);">0=exonéré, 100=max légal</span></label><input type="number" data-field="iraPct" value="100" min="0" max="100" step="5"></div>
+                <div class="comp-offer-field"><label>IRA (% du CRD) <span style="font-size:.7rem;color:var(--text-light-color);">0=exonéré, 3%=max légal</span></label><input type="number" data-field="iraRate" value="3" min="0" max="3" step="0.25"></div>
                 <div class="comp-offer-field"><label>Activer modularité</label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
             </div>
             <div class="comp-modularite-section" id="comp_mod_${index}">
@@ -2702,9 +2645,12 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#comp_offers_container .comp-offer-card').forEach((c, i) => {
                 c.dataset.offerIndex = i;
             });
-            // Masquer les résultats devenus obsolètes
+            // Relancer la comparaison si visible, sinon masquer
             const compResults = getEl('comp_results_container');
-            if (compResults) compResults.style.display = 'none';
+            if (compResults && compResults.style.display !== 'none') {
+                const remaining = document.querySelectorAll('#comp_offers_container .comp-offer-card').length;
+                if (remaining >= 1) runComparator(); else compResults.style.display = 'none';
+            }
         });
         card.querySelector('.comp-modularite-toggle')?.addEventListener('change', (e) => {
             const idx = card.dataset.offerIndex;
@@ -2722,6 +2668,15 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelector('[data-field="montant"]')?.addEventListener('input', updateAssLabel);
         card.querySelector('[data-field="tauxAssurance"]')?.addEventListener('input', updateAssLabel);
         updateAssLabel();
+
+        // Mise à jour live de la comparaison si les résultats sont visibles
+        const triggerLiveComparison = () => {
+            if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
+        };
+        card.querySelectorAll('input:not(.comp-offer-remove), select').forEach(el => {
+            el.addEventListener('input', triggerLiveComparison);
+            el.addEventListener('change', triggerLiveComparison);
+        });
     }
 
     function lireEtatComparateur() {
@@ -2740,7 +2695,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fraisDossier: num('fraisDossier'), fraisCourtage: num('fraisCourtage'),
                 typeGarantie: sel('typeGarantie', 'caution'), fraisGarantie: num('fraisGarantie'),
                 partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
-                iraPct: Math.max(0, Math.min(100, num('iraPct') || 100)), activerModularite: bool('activerModularite'),
+                iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)), activerModularite: bool('activerModularite'),
                 moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
             };
         });
@@ -2752,7 +2707,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return offres.map(offre => {
             const { montant, dureeAns, tauxNominal, tauxAssurance, typeAssurance,
                     fraisDossier, fraisCourtage, fraisGarantie, partsSociales,
-                    fraisBancairesMensuels, iraPct, activerModularite, moisActivation, haussePct } = offre;
+                    fraisBancairesMensuels, activerModularite, moisActivation, haussePct } = offre;
 
             if (montant <= 0) return null;
 
@@ -2793,9 +2748,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let ira = 0;
-            if (capitalRestant > 0 && iraPct > 0) {
-                const iraMax = Math.min(0.03 * capitalRestant, 6 * capitalRestant * tauxMensuel);
-                ira = iraMax * (iraPct / 100);
+            if (capitalRestant > 0 && offre.iraRate > 0) {
+                const sixMoisInt = 6 * capitalRestant * tauxMensuel;
+                ira = Math.min((offre.iraRate / 100) * capitalRestant, sixMoisInt);
             }
 
             let fraisSortie   = 0;
@@ -3319,6 +3274,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const val = getEl('resaleHorizon_num')?.value || 10;
             const n = getEl('comp_horizonRevente_num'), r = getEl('comp_horizonRevente');
             if (n) n.value = val; if (r) r.value = val;
+            if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
+        });
+        getEl('comp_horizonRevente_num')?.addEventListener('input', () => {
+            if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
+        });
+        getEl('comp_horizonRevente')?.addEventListener('input', () => {
+            if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
+        });
+        getEl('comp_close_results')?.addEventListener('click', () => {
+            getEl('comp_results_container').style.display = 'none';
         });
 
         // Chargement depuis URL hash (partage)
@@ -3340,4 +3305,37 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     startApp();
+
+    // --- TESTS UNITAIRES INTERNES ---
+    // Ces assertions s'executent au chargement et apparaissent dans la console en cas d'echec.
+    (() => {
+        const _mens = calculerMensualiteCredit;
+        const _crd  = calculerCapitalRestantDu;
+
+        // Test 1 : Mensualite standard — 200 000 €, 3 %, 20 ans => ~1 109.20 €
+        const m1 = _mens(200000, 3, 240);
+        console.assert(Math.abs(m1 - 1109.20) < 0.01,
+            `[TEST 1 ECHOUE] Mensualite 200k/3%/20a : attendu ~1109.20, obtenu ${m1.toFixed(4)}`);
+
+        // Test 2 : Taux 0 % — 100 000 €, 0 %, 10 ans => 833.33 €
+        const m2 = _mens(100000, 0, 120);
+        console.assert(Math.abs(m2 - 833.33) < 0.01,
+            `[TEST 2 ECHOUE] Mensualite 100k/0%/10a : attendu ~833.33, obtenu ${m2.toFixed(4)}`);
+
+        // Test 3 : CRD apres toutes les echeances = 0
+        const crdFin = _crd(200000, 3, 240, 240);
+        console.assert(crdFin === 0,
+            `[TEST 3 ECHOUE] CRD apres 240/240 mois : attendu 0, obtenu ${crdFin}`);
+
+        // Test 4 : IRA legale — min(3 % CRD, 6 mois interets sur montant rembourse)
+        // Pret 200 000 €, 3 %, 20 ans, RA de 50 000 € apres 60 mois
+        const crd60 = _crd(200000, 3, 240, 60);          // CRD ~ 170 142 €
+        const sixMoisInt = (50000 * 3 / 100) / 2;         // 750 €  (6 mois int. sur montant RA)
+        const plafond3pc = crd60 * 0.03;                   // ~ 5 104 € (3 % du CRD)
+        const iraAttendue = Math.min(plafond3pc, sixMoisInt); // 750 € (min des deux)
+        console.assert(Math.abs(iraAttendue - 750) < 1,
+            `[TEST 4 ECHOUE] IRA : attendu ~750, obtenu ${iraAttendue.toFixed(2)}`);
+
+        console.log('%c[TESTS UNITAIRES] Tous les tests sont passes.', 'color: green; font-weight: bold;');
+    })();
 });

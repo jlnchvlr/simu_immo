@@ -249,10 +249,12 @@
                 </div>
             </section>
             <section id="bonified-loans-section" class="card two-columns">
-                <div class="input-item">
+                <div class="bfm-header">
                     <label for="pibBFMRate">Taux BFM commun (%) : <span class="info-icon" data-info-key="pibBFMRate_info">ⓘ</span></label>
-                    <input type="range" id="pibBFMRate" min="0.5" max="7" value="3.74" step="0.01">
-                    <input type="number" id="pibBFMRate_num" min="0.5" max="7" value="3.74" step="0.01">
+                    <div class="bfm-inputs">
+                        <input type="range" id="pibBFMRate" min="0.5" max="7" value="3.74" step="0.01">
+                        <input type="number" id="pibBFMRate_num" min="0.5" max="7" value="3.74" step="0.01">
+                    </div>
                 </div>
                 <div class="input-column">
                     <div class="input-group">
@@ -341,49 +343,6 @@
                     </div>
                 </div>
             </section>
-<section id="bonified-results-section" class="card two-columns" style="display: none;">
-                <div class="result-column">
-                    <div id="ptbDetailsResultBox" class="result-group" style="display:none; height: 100%; box-sizing: border-box;">
-                        <h4>⚙️ Détails PTB <button class="amort-button" data-loan-type="ptb">Échéancier</button></h4>
-                        
-                        <p id="ptb_warning_msg" style="display:none; color:var(--danger-color); font-weight:600; font-size:0.75rem; background-color:#ffebee; padding:6px; border-radius:4px; margin-top:0;">
-                            ⚠️ Attention : Pour calculer le PTB, vous devez indiquer un "Montant total travaux" > 0 € dans la 1ère section, et demander au moins 7 500 €.
-                        </p>
-
-                        <table class="ptb-details-table">
-                            <tr><td>Montant PTB</td><td id="ptb_res_amount">0 €</td></tr>
-                            <tr><td>Durée</td><td id="ptb_res_duration">0 ans</td></tr>
-                            <tr><td>Taux Nominal BFM</td><td id="ptb_res_bfm_rate">0.00 %</td></tr>
-                            <tr><td>Bonification DGAC</td><td id="ptb_res_bonification_rate">0.00 %</td></tr>
-                            <tr><td>Taux Emprunteur</td><td id="ptb_res_borrower_rate">0.00 %</td></tr>
-                            <tr><td>Taux Assurance PTB</td><td id="ptb_res_insurance_rate">0.00 %</td></tr>
-                            <tr><td>Assurance PTB</td><td id="ptb_res_insurance_status">Non incluse</td></tr>
-                            <tr><td>Mensualité PTB</td><td id="ptb_res_monthly_payment">0 €</td></tr>
-                            <tr><td>Coût Intérêts PTB</td><td id="ptb_res_total_interest_cost">0 €</td></tr>
-                            <tr><td>Coût Assurance PTB</td><td id="ptb_res_total_insurance_cost">0 €</td></tr>
-                            <tr class="highlight-row"><td>Coût Total PTB</td><td id="ptb_res_total_cost">0 €</td></tr>
-                        </table>
-                    </div>
-                </div>
-                
-                <div class="result-column">
-                    <div id="pibDetailsResultBox" class="result-group" style="display:none; height: 100%; box-sizing: border-box;">
-                        <h4>⭐ Détails PIB <button class="amort-button" data-loan-type="pib">Échéancier</button></h4>
-                        <table class="pib-details-table">
-                            <tr><td>Montant PIB</td><td id="pib_res_amount">0 €</td></tr>
-                            <tr><td>Durée</td><td id="pib_res_duration">0 ans</td></tr>
-                            <tr><td>Taux Nominal BFM</td><td id="pib_res_bfm_rate">0.00 %</td></tr>
-                            <tr><td>Bonification DGAC</td><td id="pib_res_bonification_rate">0.00 %</td></tr>
-                            <tr><td>Taux Emprunteur</td><td id="pib_res_borrower_rate">0.00 %</td></tr>
-                            <tr><td>Taux Assurance PIB</td><td id="pib_res_insurance_rate">0.00 %</td></tr>
-                            <tr><td>Mensualité PIB</td><td id="pib_res_monthly_payment">0 €</td></tr>
-                            <tr><td>Coût Intérêts PIB</td><td id="pib_res_total_interest_cost">0 €</td></tr>
-                            <tr><td>Coût Assurance PIB</td><td id="pib_res_total_insurance_cost">0 €</td></tr>
-                            <tr class="highlight-row"><td>Coût Total PIB</td><td id="pib_res_total_cost">0 €</td></tr>
-                        </table>
-                    </div>
-                </div>
-            </section>
             <section id="results-section" class="card">
                 <div class="result-column">
                     <div class="result-group">
@@ -443,13 +402,19 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr class="loan-section-title" id="ptb_scenario_header_row" style="display:none;"><td colspan="2">PTB - <span id="ptb_scenario_duration_label"></span></td></tr>
-                                <tr class="sub-loan-details" id="ptb_scenario_amount_row" style="display:none;"><td>Montant PTB</td><td id="scen_ptb_amount_display">0 €</td></tr>
-                                <tr class="sub-loan-details" id="ptb_scenario_mensualite_row" style="display:none;"><td>Mensualité PTB</td><td id="scen_ptb_mensualite_display">0 €</td></tr>
+                                <tr class="loan-section-title" id="ptb_scenario_header_row" style="display:none;"><td colspan="2">🛠️ PTB — <span id="ptb_scenario_duration_label"></span> ans</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_amount_row" style="display:none;"><td>Montant PTB</td><td id="scen_ptb_amount_display">—</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_mensualite_row" style="display:none;"><td>Mensualité PTB (int. + ass.)</td><td id="scen_ptb_mensualite_display">—</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_rate_row" style="display:none;"><td>Taux emprunteur PTB</td><td id="scen_ptb_rate_display">—</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_cost_row" style="display:none;"><td>Coût total PTB (int. + ass.)</td><td id="scen_ptb_cost_display">—</td></tr>
+                                <tr class="sub-loan-details" id="ptb_scenario_amort_row" style="display:none;"><td>Tableau d'amortissement</td><td class="amort-button-cell"><button class="amort-button" data-loan-type="ptb">Voir l'échéancier</button></td></tr>
 
-                                <tr class="loan-section-title" id="pib_scenario_header_row" style="display:none;"><td colspan="2">PIB - <span id="pib_scenario_duration_label"></span></td></tr>
-                                <tr class="sub-loan-details" id="pib_scenario_amount_row" style="display:none;"><td>Montant PIB</td><td id="scen_pib_amount_display">0 €</td></tr>
-                                <tr class="sub-loan-details" id="pib_scenario_mensualite_row" style="display:none;"><td>Mensualité PIB</td><td id="scen_pib_mensualite_display">0 €</td></tr>
+                                <tr class="loan-section-title" id="pib_scenario_header_row" style="display:none;"><td colspan="2">💸 PIB — <span id="pib_scenario_duration_label"></span> ans</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_amount_row" style="display:none;"><td>Montant PIB</td><td id="scen_pib_amount_display">—</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_mensualite_row" style="display:none;"><td>Mensualité PIB (int. + ass.)</td><td id="scen_pib_mensualite_display">—</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_rate_row" style="display:none;"><td>Taux emprunteur PIB</td><td id="scen_pib_rate_display">—</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_cost_row" style="display:none;"><td>Coût total PIB (int. + ass.)</td><td id="scen_pib_cost_display">—</td></tr>
+                                <tr class="sub-loan-details" id="pib_scenario_amort_row" style="display:none;"><td>Tableau d'amortissement</td><td class="amort-button-cell"><button class="amort-button" data-loan-type="pib">Voir l'échéancier</button></td></tr>
 
                                 <tr class="loan-section-title"><td colspan="2">Prêt Classique</td></tr>
                                 <tr class="sub-loan-details"><td>Montant Prêt Classique</td><td id="scen_classic_amount_display">0 €</td></tr>
@@ -924,7 +889,10 @@
                 <button id="btn-run-comparator" class="btn-scenario" style="width:100%; margin-bottom:1rem;">⚖️ Comparer les offres</button>
 
                 <div id="comp_results_container" style="display:none;">
-                    <h4>📊 Résultats sur <span id="comp_horizon_label">10</span> ans</h4>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+                        <h4 style="margin:0;">📊 Résultats sur <span id="comp_horizon_label">10</span> ans</h4>
+                        <button id="comp_close_results" type="button" style="font-size:.75rem;padding:2px 8px;background:none;border:1px solid var(--border-color);border-radius:4px;cursor:pointer;">✕ Fermer</button>
+                    </div>
                     <div style="overflow-x:auto; margin-bottom:1rem;">
                         <table id="comp_pricing_table" class="pricing-table"></table>
                     </div>
