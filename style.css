@@ -510,3 +510,26 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
 .pricing-winner-cell { background: var(--primary-color) !important; color: #fff !important; font-weight: 900 !important; font-size: .85rem !important; }
 
 .disabled-section { opacity: 0.45; pointer-events: none; }
+
+/* Bandeau alertes validation */
+.validation-alerts {
+    background: #fff3f3;
+    border: 1px solid var(--danger-color, #e53935);
+    border-radius: 8px;
+    padding: .6rem 1rem;
+    margin-bottom: .8rem;
+}
+.validation-alerts ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.validation-alerts li {
+    color: var(--danger-color, #e53935);
+    font-weight: 600;
+    font-size: .85rem;
+    padding: .15rem 0;
+}
+.validation-alerts li::before {
+    content: "\26A0\FE0F ";
+}

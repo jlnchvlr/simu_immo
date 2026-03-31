@@ -497,16 +497,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === 2. FONCTIONS DE CALCUL MATHÉMATIQUE ===
 
+    const toMonthlyRate = (annualPercent) => annualPercent / 1200;
+
+    const calculerIRA = (crd, tauxAnnuel) => {
+        if (crd <= 0 || tauxAnnuel <= 0) return 0;
+        const sixMoisInt = (crd * tauxAnnuel / 100) / 2;
+        return Math.min(crd * 0.03, sixMoisInt);
+    };
+
     const calculerMensualiteCredit = (capital, tauxAnnuelNominal, dureeMois) => {
         if (capital <= 0 || dureeMois <= 0) return 0;
-        const tauxMensuelNominal = tauxAnnuelNominal / 100 / 12;
-        return tauxAnnuelNominal === 0 ? capital / dureeMois : (capital * tauxMensuelNominal) / (1 - Math.pow(1 + tauxMensuelNominal, -dureeMois));
+        const taux = Math.max(0, tauxAnnuelNominal);
+        const tauxMensuelNominal = toMonthlyRate(taux);
+        return taux === 0 ? capital / dureeMois : (capital * tauxMensuelNominal) / (1 - Math.pow(1 + tauxMensuelNominal, -dureeMois));
     };
     
     const calculerCapaciteEmprunt = (mensualiteMax, tauxNominal, tauxAssurance, dureeMoisLoan) => {
         if (mensualiteMax <= 0 || dureeMoisLoan <= 0) return 0;
-        const tauxMensuelNominal = tauxNominal / 100 / 12;
-        const tauxMensuelAssurance = tauxAssurance / 100 / 12;
+        const tauxMensuelNominal = toMonthlyRate(tauxNominal);
+        const tauxMensuelAssurance = toMonthlyRate(tauxAssurance);
         let mensualitePourUnEuroDeCapital_nominal = (tauxMensuelNominal === 0) ? (1 / dureeMoisLoan) : tauxMensuelNominal / (1 - Math.pow(1 + tauxMensuelNominal, -dureeMoisLoan));
         const mensualiteTotalePourUnEuro = mensualitePourUnEuroDeCapital_nominal + tauxMensuelAssurance;
         return mensualiteTotalePourUnEuro > 0 ? mensualiteMax / mensualiteTotalePourUnEuro : 0;
@@ -515,14 +524,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const calculerCapitalRestantDu = (capital, tauxAnnuel, dureeMoisTotale, moisPayes) => {
         if (moisPayes >= dureeMoisTotale) return 0;
         if (capital <= 0) return 0;
-        const tauxMensuel = tauxAnnuel / 100 / 12;
+        const tauxMensuel = toMonthlyRate(tauxAnnuel);
         if (tauxMensuel === 0) return capital - (capital / dureeMoisTotale) * moisPayes;
         return capital * (Math.pow(1 + tauxMensuel, dureeMoisTotale) - Math.pow(1 + tauxMensuel, moisPayes)) / (Math.pow(1 + tauxMensuel, dureeMoisTotale) - 1);
     };
 
     function calculerEmolumentsNotaire(base) {
-        if (base <= 0) return 0;
+        if (!base || base <= 0 || !isFinite(base)) return 0;
         const t = CONFIG.EMOLUMENTS_NOTAIRE.find(t => base <= t.seuil);
+        if (!t) return 0;
         const prev = CONFIG.EMOLUMENTS_NOTAIRE[CONFIG.EMOLUMENTS_NOTAIRE.indexOf(t) - 1];
         const seuil = prev?.seuil ?? 0;
         return (t.fixe) + (base - seuil) * t.taux;
@@ -533,8 +543,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (typeGarantie === 'manual_guarantee') return { cout: valeurManuelle || 0, description: "Garantie manuelle." };
 
         const calculerEmolumentsGarantie = b => {
-            if (b <= 0) return 0;
+            if (!b || b <= 0 || !isFinite(b)) return 0;
             const t = CONFIG.GARANTIE_EMOL_TRANCHES.find(t => b <= t.seuil);
+            if (!t) return 0;
             const prev = CONFIG.GARANTIE_EMOL_TRANCHES[CONFIG.GARANTIE_EMOL_TRANCHES.indexOf(t) - 1];
             return t.fixe + (b - (prev?.seuil ?? 0)) * t.taux;
         };
@@ -604,7 +615,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const generateAmortizationSchedule = (loanName, principal, annualNominalRate, durationYears, annualInsuranceRateOnInitialCapital, insuranceBase = 'initial') => {
         const schedule = [];
         if (principal <= 0 || durationYears <= 0) return schedule;
-        const monthlyNominalRate = annualNominalRate / 100 / 12;
+        const monthlyNominalRate = toMonthlyRate(annualNominalRate);
         const numberOfMonths = durationYears * 12;
         const monthlyPaymentPrincipalInterest = calculerMensualiteCredit(principal, annualNominalRate, numberOfMonths);
         const fixedMonthlyInsurance = insuranceBase === 'initial' ? (principal * (annualInsuranceRateOnInitialCapital / 100)) / 12 : 0;
@@ -745,24 +756,10 @@ document.addEventListener('DOMContentLoaded', () => {
         thead.appendChild(headRow);
 
         const tbody = document.createElement('tbody');
-        schedule.forEach(r => {
-            const tr = document.createElement('tr');
-            const cells = [
-                String(r.month),
-                `${formatCurrency(r.paymentWithoutInsurance, 2)}€`,
-                `${formatCurrency(r.interest, 2)}€`,
-                `${formatCurrency(r.principalRepaid, 2)}€`,
-                `${formatCurrency(r.insurance, 2)}€`,
-                `${formatCurrency(r.totalPayment, 2)}€`,
-                `${formatCurrency(r.remainingBalance, 2)}€`
-            ];
-            cells.forEach(v => {
-                const td = document.createElement('td');
-                td.textContent = v;
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
-        });
+        const rowsHtml = schedule.map(r =>
+            `<tr><td>${r.month}</td><td>${formatCurrency(r.paymentWithoutInsurance, 2)}\u20AC</td><td>${formatCurrency(r.interest, 2)}\u20AC</td><td>${formatCurrency(r.principalRepaid, 2)}\u20AC</td><td>${formatCurrency(r.insurance, 2)}\u20AC</td><td>${formatCurrency(r.totalPayment, 2)}\u20AC</td><td>${formatCurrency(r.remainingBalance, 2)}\u20AC</td></tr>`
+        ).join('');
+        tbody.innerHTML = rowsHtml;
 
         table.appendChild(thead);
         table.appendChild(tbody);
@@ -788,7 +785,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // === 4. LOGIQUE D'APPLICATION Principale ===
 
-    const numFrom = (el) => (el ? (parseFloat(el.value) || 0) : 0);
+    const numFrom = (el) => {
+        if (!el) return 0;
+        const cleaned = el.value.replace(/[\s\u00A0]/g, '').replace(',', '.');
+        return parseFloat(cleaned) || 0;
+    };
 
     function lireEtatFormulaire(ui) {
         const f = ui?.form || {};
@@ -820,8 +821,8 @@ document.addEventListener('DOMContentLoaded', () => {
             revenuEvolution: numFrom(f.revenuEvolution_num),
             horizonEvolution: parseInt(f.horizonEvolution?.value || 10, 10),
             duree: Math.max(10, Math.min(30, Math.round(numFrom(f.duree_num) || 20))),
-            TE: numFrom(f.TE_num),
-            TA: numFrom(f.TA_num),
+            TE: Math.max(0, numFrom(f.TE_num)),
+            TA: Math.max(0, numFrom(f.TA_num)),
             typeAssuranceClassique: getEl('typeAssuranceClassique')?.value || 'initial',
             isPIBEnabled: !!f.enablePIB?.checked,
             pibBFMRate: numFrom(f.pibBFMRate_num),
@@ -1809,7 +1810,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const newCapital = crd - raMontant;
         const moisRestants = dureeMois - raMois;
-        const tauxMensuel = tauxClassique / 100 / 12;
+        const tauxMensuel = toMonthlyRate(tauxClassique);
         const mensualite = calculerMensualiteCredit(classicAmount, tauxClassique, dureeMois);
 
         // Intérêts restants sans RA (sur moisRestants avec capital=crd)
@@ -1957,12 +1958,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const patrimoineProprietaire = valeurBien - totalCRD - fraisAcquisitionPurs;
 
-            // Locataire: loyer indexé + épargne mensuelle placée
+            // Locataire: loyer indexé + épargne mensuelle placée (capitalisation mensuelle)
             const loyerAnnee = loyer * Math.pow(1 + indexationLoyer, annee - 1);
             const chargesMensuellesLoc = loyerAnnee + chargesLocataire;
             const economieMensuelle = Math.max(0, coutReelMensuel - chargesMensuellesLoc);
-            // Compound annuel: placement du patrimoine existant + épargne annuelle
-            patrimoineLocataire = patrimoineLocataire * (1 + tauxPlacement) + economieMensuelle * 12;
+            const tauxMensuelPlacement = tauxPlacement / 12;
+            for (let m = 0; m < 12; m++) {
+                patrimoineLocataire = patrimoineLocataire * (1 + tauxMensuelPlacement) + economieMensuelle;
+            }
 
             yearlyData.push({ annee, patrimoineProprietaire, patrimoineLocataire, valeurBien, totalCRD });
         }
@@ -1979,7 +1982,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderAchatVsLocation(ui, avlData) {
-        if (!avlData) return;
+        if (!avlData) {
+            if (avlChart) { avlChart.destroy(); avlChart = null; }
+            return;
+        }
 
         const fmt = v => formatCurrency(v) + ' €';
 
@@ -2150,6 +2156,25 @@ document.addEventListener('DOMContentLoaded', () => {
         return false;
     }
 
+    function validerCoherence(state, coutTotalOperation) {
+        const alerts = [];
+        if (coutTotalOperation !== undefined && state.A > coutTotalOperation) alerts.push("Votre apport couvre la totalit\u00e9 de l'op\u00e9ration. Aucun cr\u00e9dit n\u00e9cessaire.");
+        if (state.TE < 0) alerts.push("Le taux d'int\u00e9r\u00eat ne peut pas \u00eatre n\u00e9gatif.");
+        if (state.isPTBEnabled && state.ptbDuration > state.duree) alerts.push("La dur\u00e9e du PTB d\u00e9passe celle du pr\u00eat classique.");
+        if (state.isPIBEnabled && state.pibDuration > state.duree) alerts.push("La dur\u00e9e du PIB d\u00e9passe celle du pr\u00eat classique.");
+        if (state.RAV > state.S) alerts.push("Le reste \u00e0 vivre d\u00e9passe vos revenus nets.");
+        const container = getEl('validation-alerts');
+        const list = getEl('validation-list');
+        if (container && list) {
+            if (alerts.length > 0) {
+                list.innerHTML = alerts.map(a => `<li>${a}</li>`).join('');
+                container.style.display = 'block';
+            } else {
+                container.style.display = 'none';
+            }
+        }
+    }
+
     function calculateAllCore() {
         // 1. LECTURE DES DONNÉES
         const { state, uiState } = lireEtatFormulaire(ui);
@@ -2171,6 +2196,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // 2. CALCULS MÉTIER
         let { FAg_montant, prixFAI, baseNotaireBrute, fn_details, fn_display, coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
         let { pib, ptb, garDetails, coutTotalOperation, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+        validerCoherence(state, coutTotalOperation);
         const profil = calculerProfilEmprunteur(state);                                                    // Phase 3
         let scenData = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, coutTotalOperation, prixFAI, fn_details, garDetails, profil);
         const analyseApport = calculerExigencesApport(state, fn_details, garDetails, FAg_montant);
@@ -2179,8 +2205,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mettreAJourInterface(ui, state, uiState, FAg_montant, prixFAI, fn_details, fn_display, garDetails, coutTotalOperation, besoinCreditFinalClassique, pib, ptb, scenData, analyseApport, profil);
 
         // 4. CALCUL ET AFFICHAGE DE LA REVENTE
-        const resultsForResale = { 
-            totalCreditNeeded: coutTotalOperation - state.A, 
+        const totalCreditNeeded = Math.max(0, coutTotalOperation - state.A);
+        const resultsForResale = {
+            totalCreditNeeded,
             pib, ptb, 
             // compatibilité revente : expose scenario courant sous la clé de la durée
             scenarios: { [state.duree]: scenData.scenario },
@@ -2274,21 +2301,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Calcul Pénalités IRA Multiples
         let ira_fees = 0;
         if (iraMode === 'percentage') {
-            const ira_classic_pc = uiState?.ira?.classicPc || 0;
-            const ira_pib_pc = uiState?.ira?.pibPc || 0;
-            const ira_ptb_pc = uiState?.ira?.ptbPc || 0;
+            const ira_classic_pc = Math.min(3, Math.max(0, uiState?.ira?.classicPc || 0));
+            const ira_pib_pc = Math.min(3, Math.max(0, uiState?.ira?.pibPc || 0));
+            const ira_ptb_pc = Math.min(3, Math.max(0, uiState?.ira?.ptbPc || 0));
 
-            const sixMoisIntClassic = (crd_classic * (tauxClassiqueUsed/100)) / 2;
-            const maxIraClassic = Math.min(crd_classic * 0.03, sixMoisIntClassic);
-            const ira_classic_fees = maxIraClassic * (ira_classic_pc / 3);
-
-            const sixMoisIntPib = (crd_pib * (results.pib.interestRate/100)) / 2;
-            const maxIraPib = Math.min(crd_pib * 0.03, sixMoisIntPib);
-            const ira_pib_fees = maxIraPib * (ira_pib_pc / 3);
-
-            const sixMoisIntPtb = (crd_ptb * (results.ptb.interestRate/100)) / 2;
-            const maxIraPtb = Math.min(crd_ptb * 0.03, sixMoisIntPtb);
-            const ira_ptb_fees = maxIraPtb * (ira_ptb_pc / 3);
+            const ira_classic_fees = calculerIRA(crd_classic, tauxClassiqueUsed) * (ira_classic_pc / 3);
+            const ira_pib_fees = calculerIRA(crd_pib, results.pib.interestRate) * (ira_pib_pc / 3);
+            const ira_ptb_fees = calculerIRA(crd_ptb, results.ptb.interestRate) * (ira_ptb_pc / 3);
 
             setTextEl(ui.ira_classic_amount, formatCurrency(ira_classic_fees) + " €");
             setTextEl(ui.ira_pib_amount, formatCurrency(ira_pib_fees) + " €");
