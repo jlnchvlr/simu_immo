@@ -131,6 +131,32 @@ document.addEventListener('DOMContentLoaded', () => {
         ira_pib_container: getEl('ira_pib_container'),
         ira_ptb_container: getEl('ira_ptb_container'),
 
+        // Phase 4 — Remboursement Anticipé
+        ra_info_box: getEl('ra_info_box'),
+        ra_mois_display: getEl('ra_mois_display'),
+        ra_crd_display: getEl('ra_crd_display'),
+        ra_ira_display: getEl('ra_ira_display'),
+        ra_net_invested: getEl('ra_net_invested'),
+        ra_table_container: getEl('ra_table_container'),
+
+        // Phase 5 — Achat vs Location
+        avlChartCanvas: getEl('avlChartCanvas'),
+        avl_crossover_box: getEl('avl_crossover_box'),
+        avl_crossover_msg: getEl('avl_crossover_msg'),
+        avl_mensualite: getEl('avl_mensualite'),
+        avl_tf: getEl('avl_tf'),
+        avl_copro: getEl('avl_copro'),
+        avl_travaux: getEl('avl_travaux'),
+        avl_assurance_hab: getEl('avl_assurance_hab'),
+        avl_autres_charges: getEl('avl_autres_charges'),
+        avl_cout_total: getEl('avl_cout_total'),
+        avl_vs_loyer: getEl('avl_vs_loyer'),
+
+        // Phase 6 — Scénarios
+        p6_scenario_list: getEl('p6_scenario_list'),
+        p6_compare_btn: getEl('p6_compare_btn'),
+        p6_compare_container: getEl('p6_compare_container'),
+
         // Revente - containers (toggle)
         pv_annual_container: getEl('pv_annual_container'),
         pv_manual_container: getEl('pv_manual_container'),
@@ -263,7 +289,22 @@ document.addEventListener('DOMContentLoaded', () => {
             ira_manual_num: getEl('ira_manual_num'),
             ira_classic_num: getEl('ira_classic_num'),
             ira_pib_num: getEl('ira_pib_num'),
-            ira_ptb_num: getEl('ira_ptb_num')
+            ira_ptb_num: getEl('ira_ptb_num'),
+
+            // Phase 4 — RA
+            raMois_num: getEl('raMois_num'),
+            raMontant_num: getEl('raMontant_num'),
+
+            // Phase 5 — Achat vs Location
+            loyer_num: getEl('loyer_num'),
+            indexationLoyer_num: getEl('indexationLoyer_num'),
+            tauxPlacement_num: getEl('tauxPlacement_num'),
+            chargesLocataire_num: getEl('chargesLocataire_num'),
+            taxeFonciere_num: getEl('taxeFonciere_num'),
+            chargesCopro_num: getEl('chargesCopro_num'),
+            provisionTravaux_num: getEl('provisionTravaux_num'),
+            assuranceHabitation_num: getEl('assuranceHabitation_num'),
+            autresChargesLogement_num: getEl('autresChargesLogement_num')
         }
     });
 
@@ -774,6 +815,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 classicPc: numFrom(f.ira_classic_num),
                 pibPc: numFrom(f.ira_pib_num),
                 ptbPc: numFrom(f.ira_ptb_num)
+            },
+            ra: {
+                mois: Math.max(1, Math.round(numFrom(f.raMois_num) || 60)),
+                montant: numFrom(f.raMontant_num)
+            },
+            avl: {
+                loyer: numFrom(f.loyer_num),
+                indexationLoyer: numFrom(f.indexationLoyer_num),
+                tauxPlacement: numFrom(f.tauxPlacement_num),
+                chargesLocataire: numFrom(f.chargesLocataire_num),
+                taxeFonciere: numFrom(f.taxeFonciere_num),
+                chargesCopro: numFrom(f.chargesCopro_num),
+                provisionTravaux: numFrom(f.provisionTravaux_num),
+                assuranceHabitation: numFrom(f.assuranceHabitation_num),
+                autresChargesLogement: numFrom(f.autresChargesLogement_num)
             }
         };
 
@@ -1722,6 +1778,366 @@ document.addEventListener('DOMContentLoaded', () => {
         resultEl.innerHTML = `✅ Durée recommandée : <strong>${dureeOpt} ans</strong> — ${justification}`;
     }
 
+    // === PHASE 4 — Remboursement Anticipé Partiel ===
+
+    function calculerRemboursementAnticipe(state, classicAmount, uiState) {
+        const raMois = uiState.ra.mois;
+        const raMontant = uiState.ra.montant;
+        const tauxClassique = state.TE;
+        const dureeMois = state.duree * 12;
+
+        if (classicAmount <= 0 || raMontant <= 0 || raMois >= dureeMois) return null;
+
+        const crd = calculerCapitalRestantDu(classicAmount, tauxClassique, dureeMois, raMois);
+        if (crd <= 0 || raMontant >= crd) return null;
+
+        // IRA légale sur le montant remboursé par anticipation
+        const sixMoisIntRA = (raMontant * tauxClassique / 100) / 2;
+        const iraRA = Math.min(raMontant * 0.03, sixMoisIntRA);
+
+        const newCapital = crd - raMontant;
+        const moisRestants = dureeMois - raMois;
+        const tauxMensuel = tauxClassique / 100 / 12;
+        const mensualite = calculerMensualiteCredit(classicAmount, tauxClassique, dureeMois);
+
+        // Intérêts restants sans RA (sur moisRestants avec capital=crd)
+        const interetsRestantsSansRA = mensualite * moisRestants - crd;
+
+        // Stratégie A : même mensualité, durée raccourcie
+        let moisRestantsA = moisRestants;
+        if (tauxMensuel > 0 && mensualite > newCapital * tauxMensuel) {
+            moisRestantsA = Math.ceil(-Math.log(1 - newCapital * tauxMensuel / mensualite) / Math.log(1 + tauxMensuel));
+        } else if (tauxMensuel === 0) {
+            moisRestantsA = Math.ceil(newCapital / mensualite);
+        }
+        moisRestantsA = Math.min(moisRestantsA, moisRestants);
+        const interetsRestantsA = mensualite * moisRestantsA - newCapital;
+        const economieNetteA = (interetsRestantsSansRA - interetsRestantsA) - iraRA;
+
+        // Stratégie B : même durée, mensualité réduite
+        const nouvelleMensualiteB = calculerMensualiteCredit(newCapital, tauxClassique, moisRestants);
+        const interetsRestantsB = nouvelleMensualiteB * moisRestants - newCapital;
+        const economieMensuelleB = mensualite - nouvelleMensualiteB;
+        const economieNetteB = (interetsRestantsSansRA - interetsRestantsB) - iraRA;
+        const breakEvenB = economieMensuelleB > 0 ? Math.ceil(iraRA / economieMensuelleB) : null;
+
+        return {
+            crd, iraRA, newCapital, moisRestants, mensualite, raMois,
+            sanRA: { moisRestants, interetsRestants: interetsRestantsSansRA, mensualite },
+            stratA: {
+                moisRestants: moisRestantsA,
+                moisGagnes: moisRestants - moisRestantsA,
+                interetsRestants: Math.max(0, interetsRestantsA),
+                economieNette: economieNetteA,
+                mensualite
+            },
+            stratB: {
+                moisRestants,
+                interetsRestants: Math.max(0, interetsRestantsB),
+                economieNette: economieNetteB,
+                mensualite: nouvelleMensualiteB,
+                economieMensuelle: economieMensuelleB,
+                breakEven: breakEvenB
+            }
+        };
+    }
+
+    function renderRemboursementAnticipe(ui, raData) {
+        const container = ui.ra_table_container;
+        const infoBox = ui.ra_info_box;
+        if (!container) return;
+
+        if (!raData) {
+            setHTMLEl(container, '<p style="color:var(--text-light-color);font-size:.75rem;">Configurez un montant de prêt classique non nul pour activer cette analyse.</p>');
+            if (infoBox) infoBox.style.display = 'none';
+            return;
+        }
+
+        // Mise à jour info box
+        if (infoBox) infoBox.style.display = 'block';
+        setTextEl(ui.ra_mois_display, raData.raMois);
+        setTextEl(ui.ra_crd_display, formatCurrency(raData.crd));
+        setTextEl(ui.ra_ira_display, formatCurrency(raData.iraRA));
+        setTextEl(ui.ra_net_invested, formatCurrency(raData.newCapital + raData.iraRA));
+
+        const fmt = v => formatCurrency(v) + ' €';
+        const fmtMois = m => {
+            const a = Math.floor(m / 12), mo = m % 12;
+            return a > 0 ? `${a}a ${mo > 0 ? mo + 'm' : ''}`.trim() : `${mo}m`;
+        };
+        const colorEco = v => `<span style="color:${v >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};font-weight:700">${v >= 0 ? '+' : ''}${fmt(v)}</span>`;
+
+        const html = `
+        <table>
+            <thead>
+                <tr>
+                    <th>Indicateur</th>
+                    <th>Sans RA</th>
+                    <th class="ra-strat-a">Strat. A — Réduire durée</th>
+                    <th class="ra-strat-b">Strat. B — Réduire mensualité</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Mensualité restante</td><td>${fmt(raData.sanRA.mensualite)}</td><td class="ra-strat-a">${fmt(raData.stratA.mensualite)}</td><td class="ra-strat-b">${fmt(raData.stratB.mensualite)}</td></tr>
+                <tr><td>Durée restante</td><td>${fmtMois(raData.sanRA.moisRestants)}</td><td class="ra-strat-a">${fmtMois(raData.stratA.moisRestants)} <small>(−${raData.stratA.moisGagnes}m)</small></td><td class="ra-strat-b">${fmtMois(raData.stratB.moisRestants)}</td></tr>
+                <tr><td>Intérêts restants</td><td>${fmt(raData.sanRA.interetsRestants)}</td><td class="ra-strat-a">${fmt(raData.stratA.interetsRestants)}</td><td class="ra-strat-b">${fmt(raData.stratB.interetsRestants)}</td></tr>
+                <tr class="ra-section-head"><td colspan="4">IRA : ${fmt(raData.iraRA)}</td></tr>
+                <tr><td>Économie nette (après IRA)</td><td>—</td><td class="ra-strat-a">${colorEco(raData.stratA.economieNette)}</td><td class="ra-strat-b">${colorEco(raData.stratB.economieNette)}</td></tr>
+                <tr><td>Break-even (mois)</td><td>—</td><td class="ra-strat-a">immédiat (durée réduite)</td><td class="ra-strat-b">${raData.stratB.breakEven != null ? raData.stratB.breakEven + ' mois' : '—'}</td></tr>
+            </tbody>
+        </table>`;
+        setHTMLEl(container, html);
+    }
+
+    // === PHASE 5 — Achat vs Location & Budgétiseur ===
+
+    let avlChart = null;
+
+    function calculerAchatVsLocation(state, uiState, mensualiteTotale, prixFAI, coutTotalOperation, pib, ptb, scenData) {
+        const horizon = uiState.resale.horizon || 0;
+        const avl = uiState.avl;
+        if (!avl || horizon <= 0 || mensualiteTotale <= 0) return null;
+
+        const loyer = avl.loyer || 0;
+        const indexationLoyer = (avl.indexationLoyer || 0) / 100;
+        const tauxPlacement = (avl.tauxPlacement || 0) / 100;
+        const chargesLocataire = avl.chargesLocataire || 0;
+        const taxeFonciere = avl.taxeFonciere || 0;
+        const chargesCopro = avl.chargesCopro || 0;
+        const provisionTravaux = avl.provisionTravaux || 0;
+        const assuranceHabitation = avl.assuranceHabitation || 0;
+        const autresChargesLogement = avl.autresChargesLogement || 0;
+
+        // Coût réel mensuel de possession
+        const coutReelMensuel = mensualiteTotale
+            + taxeFonciere / 12
+            + chargesCopro
+            + (provisionTravaux * prixFAI / 1200)
+            + assuranceHabitation
+            + autresChargesLogement;
+
+        // Frais d'acquisition purs (notaire + garantie + dossier + courtier, hors bien et travaux)
+        const fraisAcquisitionPurs = coutTotalOperation - prixFAI - (state.T || 0);
+
+        const pvMode = uiState.pvMode || 'annual';
+        const apport = state.A;
+
+        // Locataire: apport placé initialement au tauxPlacement
+        let patrimoineLocataire = apport;
+
+        const yearlyData = [];
+        for (let annee = 1; annee <= horizon; annee++) {
+            // Propriétaire: valeur bien - CRD - frais d'acquisition irrécupérables
+            let valeurBien;
+            if (pvMode === 'annual') {
+                valeurBien = prixFAI * Math.pow(1 + (uiState.resale.plusValueAnnual || 0) / 100, annee);
+            } else {
+                valeurBien = uiState.resale.resalePriceManual || prixFAI;
+            }
+            const moisPayes = annee * 12;
+            const crd_classic = scenData.scenario.classic_amount > 0
+                ? calculerCapitalRestantDu(scenData.scenario.classic_amount, state.TE, state.duree * 12, moisPayes) : 0;
+            const crd_pib = pib.amount > 0
+                ? calculerCapitalRestantDu(pib.amount, pib.interestRate, pib.duration * 12, moisPayes) : 0;
+            const crd_ptb = ptb.amount > 0
+                ? calculerCapitalRestantDu(ptb.amount, ptb.interestRate, ptb.duration * 12, moisPayes) : 0;
+            const totalCRD = crd_classic + crd_pib + crd_ptb;
+
+            const patrimoineProprietaire = valeurBien - totalCRD - fraisAcquisitionPurs;
+
+            // Locataire: loyer indexé + épargne mensuelle placée
+            const loyerAnnee = loyer * Math.pow(1 + indexationLoyer, annee - 1);
+            const chargesMensuellesLoc = loyerAnnee + chargesLocataire;
+            const economieMensuelle = Math.max(0, coutReelMensuel - chargesMensuellesLoc);
+            // Compound annuel: placement du patrimoine existant + épargne annuelle
+            patrimoineLocataire = patrimoineLocataire * (1 + tauxPlacement) + economieMensuelle * 12;
+
+            yearlyData.push({ annee, patrimoineProprietaire, patrimoineLocataire, valeurBien, totalCRD });
+        }
+
+        // Point de croisement
+        let crossoverAnnee = null;
+        for (const d of yearlyData) {
+            if (d.patrimoineProprietaire >= d.patrimoineLocataire) { crossoverAnnee = d.annee; break; }
+        }
+
+        return { yearlyData, crossoverAnnee, coutReelMensuel, mensualiteTotale,
+            taxeFonciere, chargesCopro, provisionTravaux, assuranceHabitation,
+            autresChargesLogement, prixFAI, loyer, chargesLocataire };
+    }
+
+    function renderAchatVsLocation(ui, avlData) {
+        if (!avlData) return;
+
+        const fmt = v => formatCurrency(v) + ' €';
+
+        // Coût réel mensuel
+        setTextEl(ui.avl_mensualite, fmt(avlData.mensualiteTotale));
+        setTextEl(ui.avl_tf, fmt(avlData.taxeFonciere / 12));
+        setTextEl(ui.avl_copro, fmt(avlData.chargesCopro));
+        setTextEl(ui.avl_travaux, fmt(avlData.provisionTravaux * avlData.prixFAI / 1200));
+        setTextEl(ui.avl_assurance_hab, fmt(avlData.assuranceHabitation));
+        setTextEl(ui.avl_autres_charges, fmt(avlData.autresChargesLogement));
+        setTextEl(ui.avl_cout_total, fmt(avlData.coutReelMensuel));
+        const diffLoyer = avlData.coutReelMensuel - (avlData.loyer + avlData.chargesLocataire);
+        const signe = diffLoyer >= 0 ? '+' : '';
+        if (ui.avl_vs_loyer) {
+            ui.avl_vs_loyer.textContent = `${fmt(avlData.loyer + avlData.chargesLocataire)} (${signe}${fmt(diffLoyer)})`;
+            ui.avl_vs_loyer.style.color = diffLoyer > 0 ? 'var(--danger-color)' : 'var(--primary-color)';
+        }
+
+        // Crossover
+        const box = ui.avl_crossover_box;
+        if (box) {
+            box.style.display = 'block';
+            if (avlData.crossoverAnnee != null) {
+                setTextEl(ui.avl_crossover_msg, `✅ Acheter devient plus rentable après ${avlData.crossoverAnnee} an${avlData.crossoverAnnee > 1 ? 's' : ''} (patrimoine propriétaire > locataire)`);
+                box.style.borderLeftColor = 'var(--primary-color)';
+                box.style.background = '#e8f5e9';
+            } else {
+                setTextEl(ui.avl_crossover_msg, `⚠️ Sur l'horizon simulé, la location reste plus avantageuse patrimonialement`);
+                box.style.borderLeftColor = 'var(--danger-color)';
+                box.style.background = '#fff3f3';
+            }
+        }
+
+        // Chart
+        const canvas = ui.avlChartCanvas;
+        if (!canvas) return;
+        const labels = avlData.yearlyData.map(d => `An ${d.annee}`);
+        const dataProprio = avlData.yearlyData.map(d => Math.round(d.patrimoineProprietaire));
+        const dataLoc = avlData.yearlyData.map(d => Math.round(d.patrimoineLocataire));
+
+        if (avlChart) {
+            avlChart.data.labels = labels;
+            avlChart.data.datasets[0].data = dataProprio;
+            avlChart.data.datasets[1].data = dataLoc;
+            avlChart.update('active');
+        } else {
+            avlChart = new Chart(canvas.getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels,
+                    datasets: [
+                        { label: 'Propriétaire', data: dataProprio, borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3 },
+                        { label: 'Locataire (épargne)', data: dataLoc, borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, borderDash: [5,3] }
+                    ]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    animation: { duration: 300, easing: 'easeInOutQuart' },
+                    plugins: {
+                        legend: { labels: { font: { size: 11 } } },
+                        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)} €` } }
+                    },
+                    scales: {
+                        y: { ticks: { font: { size: 10 }, callback: v => formatCurrency(v) + ' €' } },
+                        x: { ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+    }
+
+    // === PHASE 6 — Multi-scénarios & Partage ===
+
+    const SCENARIOS_KEY = 'simuImmoDGAC_scenarios';
+
+    function getScenarios() {
+        try { return JSON.parse(localStorage.getItem(SCENARIOS_KEY) || '[]'); } catch(e) { return []; }
+    }
+
+    function sauvegarderScenario(name, state) {
+        const scenarios = getScenarios();
+        const id = 'sc_' + Date.now();
+        const date = new Date().toISOString().slice(0, 7);
+        scenarios.push({ id, name, date, state });
+        localStorage.setItem(SCENARIOS_KEY, JSON.stringify(scenarios));
+        return id;
+    }
+
+    function supprimerScenario(id) {
+        localStorage.setItem(SCENARIOS_KEY, JSON.stringify(getScenarios().filter(s => s.id !== id)));
+    }
+
+    function renderScenarioList(ui) {
+        const scenarios = getScenarios();
+        const container = ui.p6_scenario_list;
+        if (!container) return;
+        const compareBtn = ui.p6_compare_btn;
+        if (compareBtn) compareBtn.style.display = scenarios.length >= 2 ? 'inline-block' : 'none';
+        if (scenarios.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-light-color);font-size:.75rem;">Aucun scénario sauvegardé. Cliquez sur "Sauvegarder" pour conserver la simulation courante.</p>';
+            return;
+        }
+        let html = '<div class="p6-scenario-list">';
+        scenarios.forEach(sc => {
+            html += `<div class="p6-scenario-item">
+                <span class="p6-scenario-name">${sc.name}</span>
+                <span class="p6-scenario-date">${sc.date}</span>
+                <div class="p6-scenario-actions">
+                    <button class="btn-scenario btn-small btn-load-sc" data-id="${sc.id}">Charger</button>
+                    <button class="btn-scenario btn-small btn-del-sc" data-id="${sc.id}" style="background:var(--danger-color);color:#fff;">Supprimer</button>
+                </div>
+            </div>`;
+        });
+        html += '</div>';
+        container.innerHTML = html;
+    }
+
+    function renderComparaisonScenarios(ui) {
+        const scenarios = getScenarios();
+        const container = ui.p6_compare_container;
+        if (!container || scenarios.length === 0) return;
+        const selected = scenarios.slice(0, 4);
+        const kpis = [
+            { label: 'Prix FAI (€)',         fn: s => formatCurrency((s.P || 0) * (1 + (s.FAg || 0) / 100)) + ' €' },
+            { label: 'Apport (€)',            fn: s => formatCurrency(s.A || 0) + ' €' },
+            { label: 'Durée (ans)',           fn: s => (s.duree || '—') },
+            { label: 'Taux nominal (%)',      fn: s => s.TE != null ? s.TE.toFixed(2) + ' %' : '—' },
+            { label: 'Taux assurance (%)',    fn: s => s.TA != null ? s.TA.toFixed(2) + ' %' : '—' },
+            { label: 'Revenus foyer (€/mois)',fn: s => formatCurrency(s.S || 0) + ' €' },
+            { label: 'Co-emprunteur',         fn: s => s.coEmprunteur ? 'Oui' : 'Non' },
+            { label: 'Travaux (€)',           fn: s => formatCurrency(s.T || 0) + ' €' },
+            { label: 'Bien',                  fn: s => s.typeBien === 'neuf' ? 'Neuf' : 'Ancien' },
+        ];
+        let html = `<table class="p6-compare-table"><thead><tr><th>Indicateur</th>`;
+        selected.forEach(sc => { html += `<th>${sc.name}<br><small style="font-weight:400">${sc.date}</small></th>`; });
+        html += `</tr></thead><tbody>`;
+        kpis.forEach(kpi => {
+            html += `<tr><td>${kpi.label}</td>`;
+            selected.forEach(sc => { html += `<td>${kpi.fn(sc.state || {})}</td>`; });
+            html += `</tr>`;
+        });
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+        document.getElementById('scenarioCompareModal')?.classList.add('visible');
+    }
+
+    function chargerDepuisURL() {
+        const hash = window.location.hash;
+        if (!hash || hash.length < 2) return false;
+        try {
+            const decoded = JSON.parse(decodeURIComponent(atob(hash.slice(1))));
+            if (decoded && typeof decoded === 'object') {
+                for (const [key, value] of Object.entries(decoded)) {
+                    const numEl = getEl(`${key}_num`), sliderEl = getEl(key);
+                    if (numEl && sliderEl) {
+                        numEl.value = value; sliderEl.value = value;
+                        const min = parseFloat(sliderEl.min), max = parseFloat(sliderEl.max);
+                        const val = Math.max(min, Math.min(value, max));
+                        sliderEl.style.setProperty('--val', `${max === min ? 0 : ((val - min) / (max - min)) * 100}%`);
+                    } else {
+                        const el = getEl(key);
+                        if (el) { if (el.type === 'checkbox') el.checked = value; else el.value = value; }
+                    }
+                }
+                return true;
+            }
+        } catch(e) { console.warn('Impossible de charger depuis URL:', e); }
+        return false;
+    }
+
     function calculateAllCore() {
         // 1. LECTURE DES DONNÉES
         const { state, uiState } = lireEtatFormulaire(ui);
@@ -1785,7 +2201,27 @@ document.addEventListener('DOMContentLoaded', () => {
         _p2Cache = { state, coutTotalOperation, prixFAI, pib, ptb, courbeApport };
         mettreAJourInfoApportAlt(parseFloat(getEl('apport_alt')?.value || state.A), courbeApport);
 
-        // 7. SAUVEGARDE AUTO (throttlée)
+        // 7. PHASE 4 — Remboursement Anticipé Partiel
+        const raData = calculerRemboursementAnticipe(state, scenData.scenario.classic_amount, uiState);
+        renderRemboursementAnticipe(ui, raData);
+        // Sync max du slider raMois avec la durée courante
+        const raMoisSlider = getEl('raMois'), raMoisNum = getEl('raMois_num');
+        if (raMoisSlider && raMoisNum) {
+            const maxMois = Math.max(12, state.duree * 12 - 1);
+            raMoisSlider.max = maxMois; raMoisNum.max = maxMois;
+            if (parseInt(raMoisSlider.value) > maxMois) { raMoisSlider.value = maxMois; raMoisNum.value = maxMois; }
+            const mVal = parseFloat(raMoisSlider.value), mMax = parseFloat(raMoisSlider.max);
+            raMoisSlider.style.setProperty('--val', `${mMax > 0 ? (mVal / mMax) * 100 : 0}%`);
+        }
+
+        // 8. PHASE 5 — Achat vs Location
+        const avlData = calculerAchatVsLocation(state, uiState, scenData.scenario.mensTotaleClassique + (pib.amount > 0 ? pib.monthlyPayment : 0) + (ptb.amount > 0 ? ptb.monthlyPayment : 0), prixFAI, coutTotalOperation, pib, ptb, scenData);
+        renderAchatVsLocation(ui, avlData);
+
+        // 9. PHASE 6 — Liste des scénarios sauvegardés
+        renderScenarioList(ui);
+
+        // 10. SAUVEGARDE AUTO (throttlée)
         scheduleSave(state);
     }
 
@@ -1912,7 +2348,12 @@ document.addEventListener('DOMContentLoaded', () => {
             'resaleHorizon', 'plusValue', 'inflation', 'resaleFees', 
             'resalePriceManual', 'inflationCumulative', 'ira_manual', 'ira_classic', 'ira_pib', 'ira_ptb',
             // Phase 3
-            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'revenuEvolution'
+            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'revenuEvolution',
+            // Phase 4
+            'raMois', 'raMontant',
+            // Phase 5
+            'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
+            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement'
         ];
 
         inputIds.forEach(id => {
@@ -2192,7 +2633,73 @@ document.addEventListener('DOMContentLoaded', () => {
         // Phase 3 — Toggle révolution revenus (détails dépliables)
         setupDetailsToggle('revEvolutifToggle', 'revEvolutifContainer', 'Évolution des revenus (projection) ▼', 'Évolution des revenus (projection) ▲');
 
+        // Phase 6 — Sauvegarder scénario
+        getEl('p6_save_btn')?.addEventListener('click', () => {
+            const name = prompt('Nom du scénario :', 'Scénario ' + (getScenarios().length + 1));
+            if (!name) return;
+            const { state } = lireEtatFormulaire(ui);
+            sauvegarderScenario(name.trim(), state);
+            renderScenarioList(ui);
+        });
+
+        // Phase 6 — Comparer scénarios
+        getEl('p6_compare_btn')?.addEventListener('click', () => renderComparaisonScenarios(ui));
+
+        // Phase 6 — Actions sur la liste (délégation d'événement)
+        getEl('p6_scenario_list')?.addEventListener('click', e => {
+            const id = e.target.dataset.id;
+            if (!id) return;
+            if (e.target.classList.contains('btn-load-sc')) {
+                const sc = getScenarios().find(s => s.id === id);
+                if (!sc?.state) return;
+                for (const [key, value] of Object.entries(sc.state)) {
+                    const numEl = getEl(`${key}_num`), sliderEl = getEl(key);
+                    if (numEl && sliderEl) {
+                        numEl.value = value; sliderEl.value = value;
+                        const min = parseFloat(sliderEl.min), max = parseFloat(sliderEl.max);
+                        const val = Math.max(min, Math.min(value, max));
+                        sliderEl.style.setProperty('--val', `${max === min ? 0 : ((val - min) / (max - min)) * 100}%`);
+                    } else {
+                        const el = getEl(key);
+                        if (el) { if (el.type === 'checkbox') el.checked = value; else el.value = value; }
+                    }
+                }
+                if (ui?.form?.enablePIB && sc.state.isPIBEnabled !== undefined) ui.form.enablePIB.checked = sc.state.isPIBEnabled;
+                if (ui?.form?.enablePTB && sc.state.isPTBEnabled !== undefined) ui.form.enablePTB.checked = sc.state.isPTBEnabled;
+                calculateAll();
+            }
+            if (e.target.classList.contains('btn-del-sc')) {
+                if (!confirm('Supprimer ce scénario ?')) return;
+                supprimerScenario(id);
+                renderScenarioList(ui);
+            }
+        });
+
+        // Phase 6 — Fermeture modal comparaison
+        getEl('closeScenarioCompareModal')?.addEventListener('click', () => {
+            getEl('scenarioCompareModal')?.classList.remove('visible');
+        });
+        getEl('scenarioCompareModal')?.addEventListener('click', e => {
+            if (e.target.id === 'scenarioCompareModal') e.target.classList.remove('visible');
+        });
+
+        // Phase 6 — Partage URL
+        getEl('p6_share_btn')?.addEventListener('click', () => {
+            const { state } = lireEtatFormulaire(ui);
+            try {
+                const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+                const url = window.location.origin + window.location.pathname + '#' + encoded;
+                navigator.clipboard.writeText(url).then(() => {
+                    const fb = getEl('p6_share_feedback');
+                    if (fb) { fb.style.display = 'inline'; setTimeout(() => { fb.style.display = 'none'; }, 2500); }
+                }).catch(() => prompt('Copiez ce lien :', url));
+            } catch(e) { console.warn('Erreur partage URL:', e); }
+        });
+
+        // Chargement depuis URL hash (partage)
+        const loadedFromURL = chargerDepuisURL();
         chargerEtat(); // On recharge les données avant de lancer le premier calcul
+        if (loadedFromURL) { window.history.replaceState(null, '', window.location.pathname); }
         calculateAll();
     }
 

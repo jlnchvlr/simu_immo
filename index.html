@@ -565,6 +565,40 @@
             </section>
             <!-- ===== /PHASE 3 ===== -->
 
+            <!-- ===== PHASE 4: Remboursement Anticipé Partiel ===== -->
+            <section id="ra-section" class="card two-columns">
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>⏩ Remboursement Anticipé Partiel (RA)</h3>
+                        <p class="section-description">Simulez l'impact d'un remboursement anticipé partiel sur votre prêt classique. L'IRA est calculée selon les plafonds légaux saisis dans la section Revente.</p>
+                        <div class="input-item">
+                            <label for="raMois">Mois du remboursement (n°) :</label>
+                            <input type="range" id="raMois" min="1" max="360" value="60" step="1">
+                            <input type="number" id="raMois_num" min="1" max="360" value="60" step="1">
+                        </div>
+                        <div class="input-item">
+                            <label for="raMontant">Montant du RA (€) :</label>
+                            <input type="range" id="raMontant" min="0" max="200000" value="20000" step="1000">
+                            <input type="number" id="raMontant_num" min="0" max="200000" value="20000" step="1000">
+                        </div>
+                        <div id="ra_info_box" style="background:#f0f8ff; padding:8px; border-radius:4px; font-size:.75rem; color:var(--text-light-color); margin-top:4px; display:none;">
+                            <p style="margin:2px 0;">CRD au mois <strong id="ra_mois_display">60</strong> : <strong id="ra_crd_display">—</strong> €</p>
+                            <p style="margin:2px 0;">IRA estimée : <strong id="ra_ira_display" style="color:var(--danger-color)">—</strong> €</p>
+                            <p style="margin:2px 0;">Montant net investi (RA + IRA) : <strong id="ra_net_invested">—</strong> €</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="result-column">
+                    <div class="result-group">
+                        <h3>⏩ Comparaison Stratégies Post-RA</h3>
+                        <div id="ra_table_container">
+                            <p style="color:var(--text-light-color);font-size:.75rem;">Configurez un montant de prêt classique non nul pour activer cette analyse.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- ===== /PHASE 4 ===== -->
+
             <section id="resale-section" class="card two-columns">
                 <div class="input-column">
                     <div class="input-group">
@@ -685,6 +719,106 @@
                     </div>
                 </div>
             </section>
+
+            <!-- ===== PHASE 5: Achat vs Location & Budgétiseur ===== -->
+            <section id="avl-section" class="card two-columns">
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>🏠 Comparaison Achat / Location</h3>
+                        <p class="section-description">Comparez l'évolution de votre patrimoine vs un locataire sur l'horizon configuré dans "Paramètres de Revente".</p>
+                        <h4>Paramètres Location</h4>
+                        <div class="input-item">
+                            <label for="loyer">Loyer mensuel équivalent (€) :</label>
+                            <input type="range" id="loyer" min="0" max="5000" value="1200" step="50">
+                            <input type="number" id="loyer_num" min="0" max="5000" value="1200" step="50">
+                        </div>
+                        <div class="input-item">
+                            <label for="indexationLoyer">Indexation annuelle loyer (%) :</label>
+                            <input type="range" id="indexationLoyer" min="0" max="5" value="1.5" step="0.1">
+                            <input type="number" id="indexationLoyer_num" min="0" max="5" value="1.5" step="0.1">
+                        </div>
+                        <div class="input-item">
+                            <label for="tauxPlacement">Rendement épargne alternative (%) :</label>
+                            <input type="range" id="tauxPlacement" min="0" max="10" value="4" step="0.1">
+                            <input type="number" id="tauxPlacement_num" min="0" max="10" value="4" step="0.1">
+                        </div>
+                        <div class="input-item">
+                            <label for="chargesLocataire">Charges locataire (€/mois) :</label>
+                            <input type="range" id="chargesLocataire" min="0" max="500" value="50" step="10">
+                            <input type="number" id="chargesLocataire_num" min="0" max="500" value="50" step="10">
+                        </div>
+                        <h4>Coût réel de possession</h4>
+                        <div class="input-item">
+                            <label for="taxeFonciere">Taxe foncière (€/an) :</label>
+                            <input type="range" id="taxeFonciere" min="0" max="5000" value="1500" step="50">
+                            <input type="number" id="taxeFonciere_num" min="0" max="5000" value="1500" step="50">
+                        </div>
+                        <div class="input-item">
+                            <label for="chargesCopro">Charges copropriété (€/mois) :</label>
+                            <input type="range" id="chargesCopro" min="0" max="1000" value="200" step="10">
+                            <input type="number" id="chargesCopro_num" min="0" max="1000" value="200" step="10">
+                        </div>
+                        <div class="input-item">
+                            <label for="provisionTravaux">Provision travaux (% du prix/an) :</label>
+                            <input type="range" id="provisionTravaux" min="0" max="3" value="1" step="0.1">
+                            <input type="number" id="provisionTravaux_num" min="0" max="3" value="1" step="0.1">
+                        </div>
+                        <div class="input-item">
+                            <label for="assuranceHabitation">Assurance habitation (€/mois) :</label>
+                            <input type="range" id="assuranceHabitation" min="0" max="200" value="30" step="5">
+                            <input type="number" id="assuranceHabitation_num" min="0" max="200" value="30" step="5">
+                        </div>
+                        <div class="input-item">
+                            <label for="autresChargesLogement">Autres charges logement (€/mois) :</label>
+                            <input type="range" id="autresChargesLogement" min="0" max="500" value="0" step="10">
+                            <input type="number" id="autresChargesLogement_num" min="0" max="500" value="0" step="10">
+                        </div>
+                    </div>
+                </div>
+                <div class="result-column">
+                    <div class="result-group">
+                        <h3>📊 Évolution du Patrimoine</h3>
+                        <div id="avl_crossover_box" style="background:#e8f5e9; padding:8px; border-radius:4px; font-size:.8rem; margin-bottom:.6rem; display:none;">
+                            <strong id="avl_crossover_msg">—</strong>
+                        </div>
+                        <div style="position:relative; height:240px; margin-bottom:.6rem;">
+                            <canvas id="avlChartCanvas"></canvas>
+                        </div>
+                        <div class="result-group" style="margin-top:.6rem;">
+                            <h4>💰 Coût Réel Mensuel de Possession</h4>
+                            <table id="avl_cout_table">
+                                <tbody>
+                                    <tr><td>Mensualité crédit totale</td><td id="avl_mensualite">—</td></tr>
+                                    <tr><td>Taxe foncière (/12)</td><td id="avl_tf">—</td></tr>
+                                    <tr><td>Charges copropriété</td><td id="avl_copro">—</td></tr>
+                                    <tr><td>Provision travaux</td><td id="avl_travaux">—</td></tr>
+                                    <tr><td>Assurance habitation</td><td id="avl_assurance_hab">—</td></tr>
+                                    <tr><td>Autres charges logement</td><td id="avl_autres_charges">—</td></tr>
+                                    <tr class="strong-highlight"><th>Total coût réel mensuel</th><td id="avl_cout_total">—</td></tr>
+                                    <tr><td>vs. Loyer (+ charges locataire)</td><td id="avl_vs_loyer">—</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <!-- ===== /PHASE 5 ===== -->
+
+            <!-- ===== PHASE 6: Multi-scénarios & Partage ===== -->
+            <section id="p6-section" class="card">
+                <div class="input-group">
+                    <h3>📁 Scénarios & Partage</h3>
+                    <div style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:.8rem;">
+                        <button id="p6_save_btn" class="btn-scenario">💾 Sauvegarder ce scénario</button>
+                        <button id="p6_compare_btn" class="btn-scenario" style="background:var(--secondary-color);color:#fff;display:none;">⚖️ Comparer les scénarios</button>
+                        <button id="p6_share_btn" class="btn-scenario">🔗 Copier le lien</button>
+                        <span id="p6_share_feedback" style="font-size:.75rem;color:var(--primary-color);display:none;">✓ Lien copié !</span>
+                    </div>
+                    <div id="p6_scenario_list"></div>
+                </div>
+            </section>
+            <!-- ===== /PHASE 6 ===== -->
+
         </div>
     </main>
 
@@ -706,6 +840,15 @@
             <div id="amortizationTableContainer" style="display:none;"></div>
         </div>
     </div>
+    <!-- Modal Comparaison Scénarios (Phase 6) -->
+    <div id="scenarioCompareModal" class="modal-overlay">
+        <div class="modal-content" style="max-width:1000px;">
+            <button id="closeScenarioCompareModal" class="modal-close-button">&times;</button>
+            <h3 class="modal-title">⚖️ Comparaison des Scénarios</h3>
+            <div id="p6_compare_container"></div>
+        </div>
+    </div>
+
     <div id="info-tooltip" class="info-tooltip-popup"></div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
