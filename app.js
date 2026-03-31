@@ -3302,6 +3302,35 @@ document.addEventListener('DOMContentLoaded', () => {
             getEl('comp_results_container').style.display = 'none';
         });
 
+        // === EXPORT PDF — Dossier Bancaire ===
+        getEl('btn_export_pdf')?.addEventListener('click', () => {
+            const zone = getEl('zone_a_exporter');
+            if (!zone) { alert('Zone d\'export introuvable.'); return; }
+
+            const btn = getEl('btn_export_pdf');
+            const originalText = btn.textContent;
+            btn.textContent = '⏳ Génération du PDF…';
+            btn.disabled = true;
+
+            const options = {
+                margin:      10,
+                filename:    'mon_dossier_bancaire.pdf',
+                image:       { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true, logging: false },
+                jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            html2pdf().set(options).from(zone).save().then(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                console.error('Erreur export PDF:', err);
+                btn.textContent = originalText;
+                btn.disabled = false;
+                alert('Une erreur est survenue lors de la génération du PDF.');
+            });
+        });
+
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();
         chargerEtat(); // On recharge les données avant de lancer le premier calcul

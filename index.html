@@ -6,6 +6,8 @@
     <title>Simulateur Achat Immobilier V6.4</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- html2pdf.js — export PDF dossier bancaire -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <main class="container">
@@ -347,6 +349,13 @@
                     </div>
                 </div>
             </section>
+            <!-- Bouton export PDF — visible uniquement quand des résultats sont présents -->
+            <div style="display:flex; justify-content:flex-end; margin-bottom:.6rem;">
+                <button id="btn_export_pdf" class="btn-export-pdf">📄 Exporter mon Dossier Bancaire (PDF)</button>
+            </div>
+
+            <!-- Zone encadrée pour l'export PDF (résumé + scénarios + graphiques) -->
+            <div id="zone_a_exporter">
             <section id="results-section" class="card">
                 <div class="result-column">
                     <div class="result-group">
@@ -506,6 +515,7 @@
 
             </section>
             <!-- ===== /PHASE 2 ===== -->
+            </div><!-- /zone_a_exporter -->
 
             <!-- ===== PHASE 3 ===== -->
             <section id="phase3-section" class="card">

@@ -533,3 +533,61 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
 .validation-alerts li::before {
     content: "\26A0\FE0F ";
 }
+
+/* === EXPORT PDF — Bouton Dossier Bancaire === */
+.btn-export-pdf {
+    background: linear-gradient(135deg, #1565c0, #0d47a1);
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: var(--border-radius-medium);
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    font-size: .85rem;
+    font-weight: 700;
+    letter-spacing: .3px;
+    box-shadow: 0 3px 8px rgba(13, 71, 161, .35);
+    transition: background .2s, transform .1s, box-shadow .2s;
+}
+.btn-export-pdf:hover {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+    box-shadow: 0 5px 14px rgba(13, 71, 161, .45);
+    transform: translateY(-1px);
+}
+.btn-export-pdf:active  { transform: scale(0.98); }
+.btn-export-pdf:disabled {
+    opacity: .65;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* === MEDIA PRINT — Rendu propre pour html2pdf === */
+@media print {
+    /* Cache les éléments interactifs qui n'appartiennent pas au dossier */
+    .btn-export-pdf,
+    .btn-reset,
+    .tabs-nav,
+    .amort-button,
+    .details-toggle,
+    #btn-reset,
+    #btn_export_pdf,
+    .modal-overlay { display: none !important; }
+
+    /* Évite les coupures de page au milieu des blocs importants */
+    .card,
+    .result-group,
+    .input-group,
+    #sensitivityTableContainer,
+    #apportAltInfoContainer { page-break-inside: avoid; }
+
+    /* Les canvas Chart.js gardent une taille raisonnable */
+    canvas {
+        max-width: 100% !important;
+        height: auto !important;
+        max-height: 260px !important;
+    }
+
+    /* Assure l'impression en blanc pur */
+    body { background: #fff !important; }
+    .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+}
