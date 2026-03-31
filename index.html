@@ -32,8 +32,8 @@
                         </div>
                         <div class="input-item">
                             <label for="FAg">Frais d'agence (en %) : <span class="info-icon" data-info-key="FAg_info">ⓘ</span></label>
-                            <input type="range" id="FAg" min="0" max="10" value="5" step="0.1">
-                            <input type="number" id="FAg_num" min="0" max="10" value="5" step="0.1">
+                            <input type="range" id="FAg" min="0" max="10" value="5" step="0.01">
+                            <input type="number" id="FAg_num" min="0" max="10" value="5" step="0.0001">
                             <span class="calculated-value"><strong id="FAg_montant">0</strong> €</span>
                         </div>
                         <div class="input-item">
@@ -235,6 +235,13 @@
                                 <input type="range" id="TA" min="0.05" max="1.5" value="0.3" step="0.01">
                                 <input type="number" id="TA_num" min="0.05" max="1.5" value="0.3" step="0.01">
                             </div>
+                            <div class="input-item">
+                                <label for="typeAssuranceClassique">Base calcul assurance :</label>
+                                <select id="typeAssuranceClassique">
+                                    <option value="initial" selected>Capital initial (CIO)</option>
+                                    <option value="crd">Capital restant dû (CRD)</option>
+                                </select>
+                            </div>
                         </div>
 
                         
@@ -242,19 +249,10 @@
                 </div>
             </section>
             <section id="bonified-loans-section" class="card two-columns">
-                <div style="width: 100%; display: flex; justify-content: center; padding-bottom: 1.5rem; border-bottom: 1px dashed var(--border-color); margin-bottom: 0.5rem;">
-                    <div class="input-item" style="background-color: #e8f5e9; padding: 12px 25px; border-radius: 50px; border: 2px solid var(--primary-color); box-shadow: var(--shadow-medium); justify-content: center; flex-wrap: wrap; gap: 15px; margin: 0;">
-                        
-                        <label for="pibBFMRate" style="font-size: 1.05rem; font-weight: 700; color: var(--primary-color); margin: 0;">
-                            🏦 Taux de base BFM (Commun) : <span class="info-icon" data-info-key="pibBFMRate_info">ⓘ</span>
-                        </label>
-                        
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <input type="range" id="pibBFMRate" min="0.5" max="7" value="3.74" step="0.01" style="width: 180px; height: 8px;">
-                            <input type="number" id="pibBFMRate_num" min="0.5" max="7" value="3.74" step="0.01" style="font-size: 1.1rem; font-weight: bold; width: 80px; text-align: center; color: var(--primary-color); border-color: var(--primary-color);">
-                        </div>
-
-                    </div>
+                <div class="input-item">
+                    <label for="pibBFMRate">Taux BFM commun (%) : <span class="info-icon" data-info-key="pibBFMRate_info">ⓘ</span></label>
+                    <input type="range" id="pibBFMRate" min="0.5" max="7" value="3.74" step="0.01">
+                    <input type="number" id="pibBFMRate_num" min="0.5" max="7" value="3.74" step="0.01">
                 </div>
                 <div class="input-column">
                     <div class="input-group">
@@ -263,7 +261,7 @@
                             <input type="checkbox" id="enablePTB">
                             <label for="enablePTB">Inclure un PTB ?</label>
                         </div>
-                        <div id="ptbInputsContainer" style="display: none;">
+                        <div id="ptbInputsContainer">
                             <div class="input-item">
                                 <label for="ptbAgentStatus">Statut agent : <span class="info-icon" data-info-key="ptbAgentStatus_info">ⓘ</span></label>
                                 <select id="ptbAgentStatus"> <option value="actif">Actif</option> <option value="retraite">Retraité</option> </select>
@@ -311,7 +309,7 @@
                             <input type="checkbox" id="enablePIB">
                             <label for="enablePIB">Inclure un PIB ?</label>
                         </div>
-                        <div id="pibInputsContainer" style="display: none;">
+                        <div id="pibInputsContainer">
                             <div class="input-item">
                                 <label for="pibZone">Zone du bien : <span class="info-icon" data-info-key="pibZone_info">ⓘ</span></label>
                                 <select id="pibZone"> <option value="A">A/A bis/Reims/Corse</option> <option value="B1B2">B1/B2</option> <option value="C">C</option> </select>
@@ -456,6 +454,7 @@
                                 <tr class="loan-section-title"><td colspan="2">Prêt Classique</td></tr>
                                 <tr class="sub-loan-details"><td>Montant Prêt Classique</td><td id="scen_classic_amount_display">0 €</td></tr>
                                 <tr class="sub-loan-details"><td>Mensualité Prêt Classique</td><td id="scen_classic_mensualite">0 €</td></tr>
+                                <tr class="sub-loan-details" style="font-size:.8rem;color:var(--text-light-color);"><td>↳ dont assurance</td><td id="scen_classic_assurance_detail">0 €/mois</td></tr>
                                 <tr class="sub-loan-details"><td>TAEG Prêt Classique (Banque)</td><td id="comp_TAEG">0 %</td></tr>
                                 <tr class="sub-loan-details"><td>Tableau d'amortissement</td>
                                     <td class="amort-button-cell"><button class="amort-button" data-loan-type="classic">Voir l'échéancier</button></td>
@@ -522,7 +521,7 @@
                 <!-- 2.2 Impact de l'apport -->
                 <div class="result-group" style="margin-top:1rem;">
                     <h3>💰 Impact de l'Apport sur le Financement</h3>
-                    <p class="section-description">Déplacez le slider pour voir comment votre mensualité et votre coût crédit évoluent. Les lignes LTV 80% et 90% marquent les seuils clés de négociation bancaire.</p>
+                    <p class="section-description">Déplacez le slider pour voir comment votre mensualité et votre coût crédit évoluent. Les lignes "apport 10%" et "apport 20%" marquent les seuils clés de négociation bancaire.</p>
                     <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:.7rem;">
                         <label for="apport_alt" style="font-size:.8rem; color:var(--text-light-color); flex-shrink:0;">Apport simulé (€) :</label>
                         <input type="range" id="apport_alt" min="0" max="1000000" value="80000" step="1000"
@@ -661,8 +660,15 @@
                         </div>
                         
                         <div id="ira_percentage_container" style="display:flex; flex-direction:column; width:100%;">
+                            <div style="background:#fff8e1; border:1px solid #ffe082; border-radius:6px; padding:8px 10px; margin-bottom:8px; font-size:.75rem; color:#5d4037;">
+                                ℹ️ <strong>Comment sont calculées les IRA ?</strong><br>
+                                Les Indemnités de Remboursement Anticipé (IRA) s'appliquent si vous remboursez votre prêt avant terme (ex : revente du bien). Elles sont plafonnées par la loi à la plus faible des deux valeurs :<br>
+                                • <strong>3 % du capital restant dû (CRD)</strong> au moment du remboursement<br>
+                                • <strong>6 mois d'intérêts</strong> sur le capital remboursé au taux du prêt<br>
+                                Le curseur ci-dessous détermine quelle fraction (0-3%) de ce plafond légal votre banque appliquera réellement (0% = exonération totale, négociable à la signature).
+                            </div>
                             <div class="input-item">
-                                <label style="width:100%" for="ira_classic">IRA Prêt Classique (%) : <span class="info-icon" data-info-key="ira_info">ⓘ</span> 
+                                <label style="width:100%" for="ira_classic">IRA Prêt Classique (%) : <span class="info-icon" data-info-key="ira_info">ⓘ</span>
                                     <span id="ira_classic_amount" class="read-only-value inline-value" style="color:var(--danger-color); font-weight:bold; font-size:0.8rem;">0 €</span>
                                 </label>
                                 <input type="range" id="ira_classic" min="0" max="3" value="3" step="0.1">
@@ -834,12 +840,17 @@
                 <div class="input-column">
                     <div class="input-group">
                         <h3>🎯 Paramètres du Solveur</h3>
-                        <p class="section-description">Trouvez la combinaison optimale apport/durée pour minimiser votre coût réel tout en préservant votre épargne. L'apport max est celui renseigné dans "Mon Projet".</p>
+                        <p class="section-description">Trouvez la combinaison optimale apport/durée pour minimiser votre coût réel tout en préservant votre épargne.</p>
 
                         <div class="input-item">
                             <label for="solver_apportMin_num">Apport minimum (€) :</label>
                             <input type="range" id="solver_apportMin" min="0" max="500000" value="10000" step="1000">
                             <input type="number" id="solver_apportMin_num" min="0" max="500000" value="10000" step="1000">
+                        </div>
+                        <div class="input-item">
+                            <label for="solver_apportMax_num">Apport maximum (€) <span style="font-size:.75rem;color:var(--text-light-color);">(0 = apport Tab 1)</span> :</label>
+                            <input type="range" id="solver_apportMax" min="0" max="500000" value="0" step="1000">
+                            <input type="number" id="solver_apportMax_num" min="0" max="500000" value="0" step="1000">
                         </div>
                         <div class="input-item">
                             <label for="solver_mensualiteMax_num">Mensualité max cible (€) :</label>
@@ -855,12 +866,13 @@
                             <label for="solver_horizonRevente_num">Horizon de revente (ans) :</label>
                             <input type="range" id="solver_horizonRevente" min="1" max="30" value="10" step="1">
                             <input type="number" id="solver_horizonRevente_num" min="1" max="30" value="10" step="1">
+                            <button id="solver_sync_horizon" type="button" style="font-size:.7rem;padding:3px 8px;white-space:nowrap;" title="Copier l'horizon depuis Tab 1">⟳ Tab 1</button>
                         </div>
 
-                        <h4>📊 Matrice Taux / LTV</h4>
-                        <p class="section-description">Associez chaque palier de LTV (Loan-to-Value) au taux nominal estimé du marché.</p>
+                        <h4>📊 Matrice Taux / % d'apport</h4>
+                        <p class="section-description">Associez chaque palier de financement (% du prix du bien couvert par le prêt) au taux nominal estimé du marché.</p>
                         <table class="ltv-matrix-table">
-                            <thead><tr><th>LTV ≤ (%)</th><th>Taux nominal (%)</th></tr></thead>
+                            <thead><tr><th>% financement ≤</th><th>Taux nominal (%)</th></tr></thead>
                             <tbody>
                                 <tr>
                                     <td><input type="number" id="ltv_row0_ltv" value="80" min="1" max="110" step="1"></td>
@@ -904,6 +916,7 @@
                     <label for="comp_horizonRevente_num">Horizon de revente (ans) :</label>
                     <input type="range" id="comp_horizonRevente" min="1" max="30" value="10" step="1">
                     <input type="number" id="comp_horizonRevente_num" min="1" max="30" value="10" step="1">
+                    <button id="comp_sync_horizon" type="button" style="font-size:.7rem;padding:3px 8px;white-space:nowrap;" title="Copier l'horizon depuis Tab 1">⟳ Tab 1</button>
                 </div>
 
                 <div id="comp_offers_container"></div>

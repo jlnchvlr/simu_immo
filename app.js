@@ -248,10 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
             tauxIntegration: getEl('tauxIntegration'),
             revenuEvolution_num: getEl('revenuEvolution_num'),
             horizonEvolution: getEl('horizonEvolution'),
-            TE_20_num: null, // legacy — removed in Phase 1
-            TA_20_num: null,
-            TE_25_num: null,
-            TA_25_num: null,
             duree_num: getEl('duree_num'),
             TE_num: getEl('TE_num'),
             TA_num: getEl('TA_num'),
@@ -318,8 +314,46 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
     const sauvegarderEtat = (state) => {
-        // On sauvegarde l'objet state sous forme de texte dans le navigateur
-        localStorage.setItem('simuImmoDGAC_sauvegarde', JSON.stringify(state));
+        // Solveur : lire les inputs
+        const _solver = {
+            apportMin:    parseFloat(getEl('solver_apportMin_num')?.value  || 10000),
+            apportMax:    parseFloat(getEl('solver_apportMax_num')?.value  || 0),
+            mensualiteMax:parseFloat(getEl('solver_mensualiteMax_num')?.value || 1500),
+            tauxEpargne:  parseFloat(getEl('solver_tauxEpargne_num')?.value  || 3),
+            horizonRevente: parseInt(getEl('solver_horizonRevente_num')?.value || 10, 10),
+            ltv: [0,1,2].map(i => ({
+                ltv:  parseFloat(getEl(`ltv_row${i}_ltv`)?.value  || 0),
+                taux: parseFloat(getEl(`ltv_row${i}_taux`)?.value || 0)
+            }))
+        };
+        // Comparateur : lire l'horizon + les offres
+        let _comparateur = null;
+        try {
+            const compCards = document.querySelectorAll('#comp_offers_container .comp-offer-card');
+            if (compCards.length > 0) {
+                _comparateur = {
+                    horizonRevente: parseInt(getEl('comp_horizonRevente_num')?.value || 10, 10),
+                    offres: Array.from(compCards).map(card => {
+                        const get  = f => card.querySelector(`[data-field="${f}"]`);
+                        const num  = f => parseFloat(get(f)?.value || 0);
+                        const bool = f => get(f)?.checked || false;
+                        const sel  = (f, d) => get(f)?.value || d;
+                        return {
+                            nom: get('nom')?.value || 'Banque',
+                            montant: num('montant'), dureeAns: parseInt(get('dureeAns')?.value || 20, 10),
+                            tauxNominal: num('tauxNominal'), tauxAssurance: num('tauxAssurance'),
+                            typeAssurance: sel('typeAssurance', 'initial'),
+                            fraisDossier: num('fraisDossier'), fraisCourtage: num('fraisCourtage'),
+                            typeGarantie: sel('typeGarantie', 'caution'), fraisGarantie: num('fraisGarantie'),
+                            partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
+                            iraPct: num('iraPct'), activerModularite: bool('activerModularite'),
+                            moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
+                        };
+                    })
+                };
+            }
+        } catch(_) {}
+        localStorage.setItem('simuImmoDGAC_sauvegarde', JSON.stringify({ ...state, _solver, _comparateur }));
     };
 
     // Évite de spammer localStorage pendant le drag (I/O sync potentiellement coûteux)
@@ -337,12 +371,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const chargerEtat = () => {
         const sauvegarde = localStorage.getItem('simuImmoDGAC_sauvegarde');
         if (!sauvegarde) return; // S'il n'y a pas de sauvegarde, on ne fait rien
-        
+
         try {
             const savedState = JSON.parse(sauvegarde);
-            
-            // On réinjecte les valeurs dans chaque champ
+
+            // On réinjecte les valeurs dans chaque champ (on ignore les clés internes _solver/_comparateur)
             for (const [key, value] of Object.entries(savedState)) {
+                if (key.startsWith('_')) continue; // clés internes
                 // Pour les champs numériques (sliders liés)
                 const numEl = getEl(`${key}_num`);
                 const sliderEl = getEl(key);
@@ -353,7 +388,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const min = parseFloat(sliderEl.min), max = parseFloat(sliderEl.max);
                     let val = Math.max(min, Math.min(value, max));
                     sliderEl.style.setProperty('--val', `${max === min ? 0 : ((val - min) / (max - min)) * 100}%`);
-                } 
+                }
                 // Pour les listes déroulantes (select) ou autres inputs simples
                 else {
                     const el = getEl(key);
@@ -363,10 +398,35 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 }
             }
-            
+
             // On gère les cases à cocher spécifiques pour PTB et PIB qui ont des IDs différents du state
             if (ui?.form?.enablePIB && savedState.isPIBEnabled !== undefined) ui.form.enablePIB.checked = savedState.isPIBEnabled;
             if (ui?.form?.enablePTB && savedState.isPTBEnabled !== undefined) ui.form.enablePTB.checked = savedState.isPTBEnabled;
+
+            // Restaurer le solveur
+            const sv = savedState._solver;
+            if (sv) {
+                const setSliderNum = (id, val) => {
+                    const n = getEl(`${id}_num`), r = getEl(id);
+                    if (n) n.value = val;
+                    if (r) { r.value = val; const min = parseFloat(r.min), max = parseFloat(r.max); const v = Math.max(min, Math.min(val, max)); r.style.setProperty('--val', `${max===min?0:((v-min)/(max-min))*100}%`); }
+                };
+                setSliderNum('solver_apportMin',    sv.apportMin);
+                setSliderNum('solver_apportMax',    sv.apportMax);
+                setSliderNum('solver_mensualiteMax', sv.mensualiteMax);
+                setSliderNum('solver_tauxEpargne',  sv.tauxEpargne);
+                setSliderNum('solver_horizonRevente', sv.horizonRevente);
+                if (sv.ltv) sv.ltv.forEach((row, i) => {
+                    const lEl = getEl(`ltv_row${i}_ltv`), tEl = getEl(`ltv_row${i}_taux`);
+                    if (lEl) lEl.value = row.ltv;
+                    if (tEl) tEl.value = row.taux;
+                });
+            }
+
+            // Restaurer le comparateur (les cartes seront reconstruites à l'ouverture de l'onglet)
+            if (savedState._comparateur) {
+                window._savedComparateur = savedState._comparateur;
+            }
 
         } catch (e) {
             console.warn("Erreur lors du chargement de la sauvegarde", e);
@@ -401,7 +461,7 @@ document.addEventListener('DOMContentLoaded', () => {
         res_real_balance_info: "Le bilan financier net ajusté pour tenir compte de l'inflation. Il représente le gain ou la perte en pouvoir d'achat par rapport à aujourd'hui.",
         bilan_patrimonial_info: "Gain ou perte sur la valeur du bien (Prix de revente - Coût d'achat global - Frais de revente et IRA). Ne déduit PAS ce que le crédit vous a coûté en intérêts et assurances.",
         bilan_financier_info: "Le véritable résultat net de toute l'opération sur votre compte en banque. C'est le Bilan Patrimonial auquel on soustrait l'ensemble des intérêts et assurances payés à la banque.",
-        P_info: "Prix net vendeur : Le prix affiché par le propriétaire ou l'agence, hors frais supplémentaires.", FAg_info: "Frais d'agence : Pourcentage du prix net vendeur que l'agence immobilière perçoit pour ses services. Ils sont généralement inclus dans le prix final 'Frais d'Agence Inclus' (FAI).", M_info: "Prix du mobilier : Le prix du mobilier éventuellement inclus dans la vente. Ce montant peut être déduit de l'assiette de calcul des frais de notaire sur l'ancien, réduisant ainsi leur coût.", typeBien_info: "Type de bien : 'Ancien' pour les biens existants (frais de notaire plus élevés). 'Neuf' pour les constructions neuves ou VEFA (Vente en l'État Futur d'Achèvement) où les frais de notaire sont réduits.", FN_mode_info: "Calcul Frais Notaire : 'Automatique' utilise un barème notarial estimatif. 'Manuel' vous permet de saisir un montant précis si vous l'avez déjà obtenu.", FN_info: "Frais de notaire : Incluent les taxes (droits de mutation), les émoluments du notaire et les débours. Leur montant dépend du prix du bien et de son type (ancien/neuf).", typeGarantie_info: "Type de garantie du prêt classique : La garantie est une sûreté prise par la banque en cas de non-remboursement du prêt classique. Le PIB/PTB ne requiert pas de garantie spécifique selon la documentation DGAC.", FG_manual_info: "Coût garantie manuel : Si vous avez une estimation précise ou un type de garantie non standard pour le prêt classique, entrez son coût ici.", FD_info: "Frais de dossier bancaire pour le prêt classique : Somme facturée par la banque pour l'étude et la mise en place de votre dossier de prêt immobilier classique. Le PIB/PTB n'a pas de frais de dossier.", T_info: "Montant total des travaux : Coût estimé des rénovations ou aménagements que vous prévoyez de réaliser après l'acquisition. Ce montant s'ajoute au coût total de l'opération et peut être partiellement financé par un PTB.", A_info: "Apport personnel : Somme d'argent dont vous disposez et que vous êtes prêt à investir dans l'opération. Il réduit le montant du crédit à demander.", TE_20_info: "Taux d'intérêt nominal du prêt classique sur 20 ans, hors assurance.", TA_20_info: "Taux annuel de l'assurance emprunteur pour le prêt classique sur 20 ans.", TE_25_info: "Taux d'intérêt nominal du prêt classique sur 25 ans, hors assurance.", TA_25_info: "Taux annuel de l'assurance emprunteur pour le prêt classique sur 25 ans.", S_info: "Salaires nets mensuels du foyer : Le total des revenus nets de votre foyer par mois, avant impôt sur le revenu mais après prélèvements sociaux.", AutresCredits_info: "Autres crédits en cours : La somme des mensualités de vos autres crédits (crédit auto, crédit consommation, etc.) qui s'ajoutent à votre charge d'endettement.", AutresCharges_info: "Autres charges mensuelles fixes : Entrez ici le total de vos autres charges mensuelles récurrentes qui ne sont pas des crédits (par exemple, un loyer si vous en payez encore un, pensions alimentaires versées, etc.). Ces charges réduisent votre capacité d'emprunt.", tedt_info: "Taux d'endettement maximal : Pourcentage de vos revenus nets que les banques acceptent généralement comme mensualités de crédits (tous crédits confondus, y compris le nouveau prêt immobilier) et charges fixes. Souvent plafonné à 35%.", rav_info: "Reste à vivre minimal : Somme minimale que la banque estime nécessaire pour vos dépenses courantes après paiement de toutes les mensualités (crédits, nouveau prêt) et charges fixes. Varie selon la composition du foyer et la localisation.", res_credit_info: "Crédit Total Nécessaire = Coût Total de l'Opération (incluant frais de garantie et dossier du prêt classique) - Apport Personnel. Ce montant sera réparti entre le PTB, PIB (si applicable) et le prêt classique.", res_fg_info: "Montant estimé des frais de garantie pour le prêt classique.", res_cto_info: "Coût Total de l'Opération = Prix FAI + Frais de Notaire + Frais de Garantie (prêt classique) + Frais de Dossier (prêt classique) + Frais de Courtier + Coût des Travaux. C'est le montant total à financer avant apport.", pibZone_info: "Zone géographique du bien (A/A bis, B1/B2, C) selon l'arrêté du 1er août 2014. Détermine le montant maximum du PIB et les plafonds de ressources pour la bonification de 3%.", pibRFR_info: "Revenu Fiscal de Référence de votre foyer pour l'année N-2 (ex: avis d'impôt 2024 sur revenus 2023 pour une demande en 2025). Sert à déterminer l'éligibilité à la bonification de 3%.", pibHouseholdSize_info: "Nombre de personnes composant le foyer fiscal (figurant sur l'avis d'imposition). Utilisé pour les plafonds de ressources de la bonification de 3%.", pibBFMRate_info: "Taux d'intérêt nominal proposé par la Banque Française Mutualiste (BFM) avant la bonification de la DGAC. Par défaut 3,74% (valable du 01/01/2025 au 30/06/2025). Ce taux est révisé semestriellement et s'applique au PIB et au PTB.", pibDuration_info: "Durée de remboursement du PIB, entre 3 et 12 ans.", pibInsuranceRate_info: "Taux annuel de l'assurance emprunteur pour le PIB (obligatoire). Saisissez le taux proposé par votre assureur (BFM ou autre). La DGAC ne spécifie pas de taux pour l'assurance groupe BFM du PIB. Mettre 0 si vous ne connaissez pas le taux, mais cela sous-estimera la mensualité réelle.", ptbAgentStatus_info: "Statut de l'agent DGAC/ENAC (Actif ou Retraité). Impacte le montant maximum du PTB.", ptbZone_info: "Zone géographique des travaux. Pertinent pour les agents actifs pour déterminer le montant maximum du PTB. Pour les retraités, le plafond est unique et la zone n'est pas utilisée pour le plafond.", ptbRFR_info: "Revenu Fiscal de Référence N-2 du foyer. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbHouseholdSize_info: "Nombre de personnes au foyer fiscal. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbAmountWanted_info: "Montant que vous souhaitez emprunter via le PTB. Sera plafonné par le montant total des travaux et le maximum autorisé pour le PTB (minimum 7 500€ si pris).", ptbDuration_info: "Durée de remboursement du PTB, entre 3 et 10 ans.", ptbIncludeInsurance_info: "L'assurance pour le PTB est facultative et s'élève à 0,36% du capital emprunté si vous la souscrivez.", fg_montant: "Coût estimé de la garantie pour le prêt classique. Le PIB/PTB n'exige pas de caution spécifique selon la documentation DGAC.", taeg_comp_info: "TAEG (Taux Annuel Effectif Global) du Prêt Classique : Coût total du prêt classique exprimé en pourcentage annuel. Il intègre son taux d'intérêt nominal, son coût d'assurance, les frais de dossier, les frais de courtier et les frais de garantie. Le PIB/PTB, n'ayant pas de frais de dossier ni de garantie spécifiques, a un coût plus direct.", res_scenarios_info: "Simulation de financement combiné (PTB + PIB + Prêt Classique sur 20 et 25 ans), avec calcul des mensualités, du coût total des crédits, du TAEG du prêt classique, de votre taux d'endettement et du reste à vivre.", res_apport_req_info: "Exigences d'apport : Les banques demandent souvent un apport couvrant au moins les frais d'acquisition (notaire, garantie, dossier, courtier). Un apport de 10% du prix du bien est une règle commune pour rassurer.", cas1_info: "Frais d'acquisition (Notaire, Garantie Prêt Classique, Dossier Prêt Classique, Courtier) + 10% du prix net vendeur : Exigence courante des banques. Votre apport doit couvrir l'ensemble des frais liés à l'acquisition PLUS au moins 10% du prix d'achat du bien.", cas2_info: "10% du coût total de l'opération : Une autre exigence courante, où votre apport doit représenter au moins 10% du montant total de l'opération (incluant tous les frais et travaux).", cas3_info: "Couverture des frais d'acquisition : Le minimum d'apport souvent exigé par les banques, il doit couvrir tous les frais liés à l'acquisition (frais de notaire, frais de garantie, frais de dossier bancaire du prêt classique et frais de courtier).", cas4_info: "Votre apport comparé à 10% du prix du bien hors frais d'agence. Un indicateur de base pour évaluer votre mise de fonds par rapport au prix 'brut' du bien.", cas5_info: "Votre apport comparé à 10% du prix du bien incluant les frais d'agence. Cet indicateur prend en compte le coût du bien tel qu'il est souvent affiché.", cas6_info: "Votre apport comparé à la somme des frais d'acquisition (notaire, garantie prêt classique, dossier prêt classique, courtier) ET de 10% du prix du bien incluant les frais d'agence. C'est un scénario d'apport solide.", classic_only_info: "Estimation du coût total de votre projet si l'intégralité du 'Crédit total nécessaire' était financée par un prêt classique uniquement (aux taux et conditions du prêt classique saisis), incluant les frais de garantie recalculés pour ce montant total.", savings_info: "Différence entre le coût total de l'opération avec un financement 100% classique et le coût total avec l'utilisation des prêts bonifiés (PTB/PIB). Un chiffre positif indique une économie."
+        P_info: "Prix net vendeur : Le prix affiché par le propriétaire ou l'agence, hors frais supplémentaires.", FAg_info: "Frais d'agence : Pourcentage du prix net vendeur que l'agence immobilière perçoit pour ses services. Ils sont généralement inclus dans le prix final 'Frais d'Agence Inclus' (FAI).", M_info: "Prix du mobilier : Le prix du mobilier éventuellement inclus dans la vente. Ce montant peut être déduit de l'assiette de calcul des frais de notaire sur l'ancien, réduisant ainsi leur coût.", typeBien_info: "Type de bien : 'Ancien' pour les biens existants (frais de notaire plus élevés). 'Neuf' pour les constructions neuves ou VEFA (Vente en l'État Futur d'Achèvement) où les frais de notaire sont réduits.", FN_mode_info: "Calcul Frais Notaire : 'Automatique' utilise un barème notarial estimatif. 'Manuel' vous permet de saisir un montant précis si vous l'avez déjà obtenu.", FN_info: "Frais de notaire : Incluent les taxes (droits de mutation), les émoluments du notaire et les débours. Leur montant dépend du prix du bien et de son type (ancien/neuf).", typeGarantie_info: "Type de garantie du prêt classique : La garantie est une sûreté prise par la banque en cas de non-remboursement du prêt classique. Le PIB/PTB ne requiert pas de garantie spécifique selon la documentation DGAC.", FG_manual_info: "Coût garantie manuel : Si vous avez une estimation précise ou un type de garantie non standard pour le prêt classique, entrez son coût ici.", FD_info: "Frais de dossier bancaire pour le prêt classique : Somme facturée par la banque pour l'étude et la mise en place de votre dossier de prêt immobilier classique. Le PIB/PTB n'a pas de frais de dossier.", T_info: "Montant total des travaux : Coût estimé des rénovations ou aménagements que vous prévoyez de réaliser après l'acquisition. Ce montant s'ajoute au coût total de l'opération et peut être partiellement financé par un PTB.", A_info: "Apport personnel : Somme d'argent dont vous disposez et que vous êtes prêt à investir dans l'opération. Il réduit le montant du crédit à demander.", S_info: "Salaires nets mensuels du foyer : Le total des revenus nets de votre foyer par mois, avant impôt sur le revenu mais après prélèvements sociaux.", AutresCredits_info: "Autres crédits en cours : La somme des mensualités de vos autres crédits (crédit auto, crédit consommation, etc.) qui s'ajoutent à votre charge d'endettement.", AutresCharges_info: "Autres charges mensuelles fixes : Entrez ici le total de vos autres charges mensuelles récurrentes qui ne sont pas des crédits (par exemple, un loyer si vous en payez encore un, pensions alimentaires versées, etc.). Ces charges réduisent votre capacité d'emprunt.", tedt_info: "Taux d'endettement maximal : Pourcentage de vos revenus nets que les banques acceptent généralement comme mensualités de crédits (tous crédits confondus, y compris le nouveau prêt immobilier) et charges fixes. Souvent plafonné à 35%.", rav_info: "Reste à vivre minimal : Somme minimale que la banque estime nécessaire pour vos dépenses courantes après paiement de toutes les mensualités (crédits, nouveau prêt) et charges fixes. Varie selon la composition du foyer et la localisation.", res_credit_info: "Crédit Total Nécessaire = Coût Total de l'Opération (incluant frais de garantie et dossier du prêt classique) - Apport Personnel. Ce montant sera réparti entre le PTB, PIB (si applicable) et le prêt classique.", res_fg_info: "Montant estimé des frais de garantie pour le prêt classique.", res_cto_info: "Coût Total de l'Opération = Prix FAI + Frais de Notaire + Frais de Garantie (prêt classique) + Frais de Dossier (prêt classique) + Frais de Courtier + Coût des Travaux. C'est le montant total à financer avant apport.", pibZone_info: "Zone géographique du bien (A/A bis, B1/B2, C) selon l'arrêté du 1er août 2014. Détermine le montant maximum du PIB et les plafonds de ressources pour la bonification de 3%.", pibRFR_info: "Revenu Fiscal de Référence de votre foyer pour l'année N-2 (ex: avis d'impôt 2024 sur revenus 2023 pour une demande en 2025). Sert à déterminer l'éligibilité à la bonification de 3%.", pibHouseholdSize_info: "Nombre de personnes composant le foyer fiscal (figurant sur l'avis d'imposition). Utilisé pour les plafonds de ressources de la bonification de 3%.", pibBFMRate_info: "Taux d'intérêt nominal proposé par la Banque Française Mutualiste (BFM) avant la bonification de la DGAC. Par défaut 3,74% (valable du 01/01/2025 au 30/06/2025). Ce taux est révisé semestriellement et s'applique au PIB et au PTB.", pibDuration_info: "Durée de remboursement du PIB, entre 3 et 12 ans.", pibInsuranceRate_info: "Taux annuel de l'assurance emprunteur pour le PIB (obligatoire). Saisissez le taux proposé par votre assureur (BFM ou autre). La DGAC ne spécifie pas de taux pour l'assurance groupe BFM du PIB. Mettre 0 si vous ne connaissez pas le taux, mais cela sous-estimera la mensualité réelle.", ptbAgentStatus_info: "Statut de l'agent DGAC/ENAC (Actif ou Retraité). Impacte le montant maximum du PTB.", ptbZone_info: "Zone géographique des travaux. Pertinent pour les agents actifs pour déterminer le montant maximum du PTB. Pour les retraités, le plafond est unique et la zone n'est pas utilisée pour le plafond.", ptbRFR_info: "Revenu Fiscal de Référence N-2 du foyer. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbHouseholdSize_info: "Nombre de personnes au foyer fiscal. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbAmountWanted_info: "Montant que vous souhaitez emprunter via le PTB. Sera plafonné par le montant total des travaux et le maximum autorisé pour le PTB (minimum 7 500€ si pris).", ptbDuration_info: "Durée de remboursement du PTB, entre 3 et 10 ans.", ptbIncludeInsurance_info: "L'assurance pour le PTB est facultative et s'élève à 0,36% du capital emprunté si vous la souscrivez.", fg_montant: "Coût estimé de la garantie pour le prêt classique. Le PIB/PTB n'exige pas de caution spécifique selon la documentation DGAC.", taeg_comp_info: "TAEG (Taux Annuel Effectif Global) du Prêt Classique : Coût total du prêt classique exprimé en pourcentage annuel. Il intègre son taux d'intérêt nominal, son coût d'assurance, les frais de dossier, les frais de courtier et les frais de garantie. Le PIB/PTB, n'ayant pas de frais de dossier ni de garantie spécifiques, a un coût plus direct.", res_scenarios_info: "Simulation de financement combiné (PTB + PIB + Prêt Classique sur 20 et 25 ans), avec calcul des mensualités, du coût total des crédits, du TAEG du prêt classique, de votre taux d'endettement et du reste à vivre.", res_apport_req_info: "Exigences d'apport : Les banques demandent souvent un apport couvrant au moins les frais d'acquisition (notaire, garantie, dossier, courtier). Un apport de 10% du prix du bien est une règle commune pour rassurer.", cas1_info: "Frais d'acquisition (Notaire, Garantie Prêt Classique, Dossier Prêt Classique, Courtier) + 10% du prix net vendeur : Exigence courante des banques. Votre apport doit couvrir l'ensemble des frais liés à l'acquisition PLUS au moins 10% du prix d'achat du bien.", cas2_info: "10% du coût total de l'opération : Une autre exigence courante, où votre apport doit représenter au moins 10% du montant total de l'opération (incluant tous les frais et travaux).", cas3_info: "Couverture des frais d'acquisition : Le minimum d'apport souvent exigé par les banques, il doit couvrir tous les frais liés à l'acquisition (frais de notaire, frais de garantie, frais de dossier bancaire du prêt classique et frais de courtier).", cas4_info: "Votre apport comparé à 10% du prix du bien hors frais d'agence. Un indicateur de base pour évaluer votre mise de fonds par rapport au prix 'brut' du bien.", cas5_info: "Votre apport comparé à 10% du prix du bien incluant les frais d'agence. Cet indicateur prend en compte le coût du bien tel qu'il est souvent affiché.", cas6_info: "Votre apport comparé à la somme des frais d'acquisition (notaire, garantie prêt classique, dossier prêt classique, courtier) ET de 10% du prix du bien incluant les frais d'agence. C'est un scénario d'apport solide.", classic_only_info: "Estimation du coût total de votre projet si l'intégralité du 'Crédit total nécessaire' était financée par un prêt classique uniquement (aux taux et conditions du prêt classique saisis), incluant les frais de garantie recalculés pour ce montant total.", savings_info: "Différence entre le coût total de l'opération avec un financement 100% classique et le coût total avec l'utilisation des prêts bonifiés (PTB/PIB). Un chiffre positif indique une économie."
     };
 
     // === 0. CONFIGURATION MÉTIER (Phase 0) ===
@@ -555,24 +615,26 @@ document.addEventListener('DOMContentLoaded', () => {
         return midRate * 1200; 
     };
 
-    const generateAmortizationSchedule = (loanName, principal, annualNominalRate, durationYears, annualInsuranceRateOnInitialCapital) => {
+    const generateAmortizationSchedule = (loanName, principal, annualNominalRate, durationYears, annualInsuranceRateOnInitialCapital, insuranceBase = 'initial') => {
         const schedule = [];
         if (principal <= 0 || durationYears <= 0) return schedule;
         const monthlyNominalRate = annualNominalRate / 100 / 12;
         const numberOfMonths = durationYears * 12;
         const monthlyPaymentPrincipalInterest = calculerMensualiteCredit(principal, annualNominalRate, numberOfMonths);
-        const monthlyInsuranceAmount = (principal * (annualInsuranceRateOnInitialCapital / 100)) / 12;
-        const totalMonthlyPaymentWithInsurance = monthlyPaymentPrincipalInterest + monthlyInsuranceAmount;
+        const fixedMonthlyInsurance = insuranceBase === 'initial' ? (principal * (annualInsuranceRateOnInitialCapital / 100)) / 12 : 0;
         let remainingBalance = principal;
         for (let i = 1; i <= numberOfMonths; i++) {
             const interestPaid = remainingBalance * monthlyNominalRate;
             let principalRepaid = monthlyPaymentPrincipalInterest - interestPaid;
-            if (i === numberOfMonths) principalRepaid = remainingBalance; 
+            if (i === numberOfMonths) principalRepaid = remainingBalance;
             remainingBalance -= principalRepaid;
-            if (Math.abs(remainingBalance) < 0.01) remainingBalance = 0; 
+            if (Math.abs(remainingBalance) < 0.01) remainingBalance = 0;
+            const monthlyInsuranceAmount = insuranceBase === 'crd'
+                ? (remainingBalance + principalRepaid) * (annualInsuranceRateOnInitialCapital / 100) / 12
+                : fixedMonthlyInsurance;
             schedule.push({
                 month: i, paymentWithoutInsurance: monthlyPaymentPrincipalInterest, interest: interestPaid,
-                principalRepaid, insurance: monthlyInsuranceAmount, totalPayment: totalMonthlyPaymentWithInsurance, remainingBalance
+                principalRepaid, insurance: monthlyInsuranceAmount, totalPayment: monthlyPaymentPrincipalInterest + monthlyInsuranceAmount, remainingBalance
             });
         }
         return schedule;
@@ -615,7 +677,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 let val = parseFloat(num.value);
                 const minVal = parseFloat(slider.min), maxVal = parseFloat(slider.max);
                 const stepAttr = slider.step, step = parseFloat(stepAttr) || 0.01;
-                const decimals = (stepAttr && stepAttr.includes('.')) ? stepAttr.split('.')[1].length : (step.toString().includes('.') ? step.toString().split('.')[1].length : 0);
+                const numStepAttr = num.step || stepAttr;
+                const decimals = (numStepAttr && numStepAttr.includes('.')) ? numStepAttr.split('.')[1].length : (step.toString().includes('.') ? step.toString().split('.')[1].length : 0);
                 val = isNaN(val) || val < minVal ? minVal : (val > maxVal ? maxVal : val);
                 num.value = val.toFixed(decimals); slider.value = num.value;
                 updateSliderVisual(); 
@@ -773,11 +836,7 @@ document.addEventListener('DOMContentLoaded', () => {
             duree: Math.max(10, Math.min(30, Math.round(numFrom(f.duree_num) || 20))),
             TE: numFrom(f.TE_num),
             TA: numFrom(f.TA_num),
-            // Compat. legacy (utilisé dans amort-button handler côté revente)
-            TE_20: numFrom(f.TE_num),
-            TA_20: numFrom(f.TA_num),
-            TE_25: numFrom(f.TE_num),
-            TA_25: numFrom(f.TA_num),
+            typeAssuranceClassique: getEl('typeAssuranceClassique')?.value || 'initial',
             isPIBEnabled: !!f.enablePIB?.checked,
             pibBFMRate: numFrom(f.pibBFMRate_num),
             isPTBEnabled: !!f.enablePTB?.checked,
@@ -795,7 +854,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ptbHouseholdSize: Math.max(1, Math.round(numFrom(f.ptbHouseholdSize_num) || 1)),
             ptbAmountWanted: numFrom(f.ptbAmountWanted_num),
             ptbDuration: Math.max(3, Math.round(numFrom(f.ptbDuration_num) || 7)),
-            ptbInsuranceRate: numFrom(f.ptbInsuranceRate_num)
+            ptbInsuranceRate: numFrom(f.ptbInsuranceRate_num),
+            typeGarantie: f.typeGarantie?.value || 'caution'
         };
 
         const uiState = {
@@ -1191,6 +1251,8 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.scen_duree_display, s.duree);
         setTextEl(ui.scen_classic_amount_display, formatCurrency(s.classic_amount) + " €");
         setTextEl(ui.scen_classic_mensualite, formatCurrency(s.mensTotaleClassique, 2) + " €");
+        const mensAss = s.classic_amount > 0 ? (s.classic_amount * (state.TA / 100)) / 12 : 0;
+        setText('scen_classic_assurance_detail', formatCurrency(mensAss, 2) + ' €/mois');
         setTextEl(ui.comp_mensualite, formatCurrency(s.mensTotaleGlobale, 2) + " €");
         setTextEl(ui.comp_resteAVivre, formatCurrency(s.resteAVivre) + " €");
         setTextEl(ui.comp_coutCredit, formatCurrency(s.coutCreditGlobal) + " €");
@@ -1460,7 +1522,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div><span style="font-size:.7rem;color:var(--text-light-color);">Prêt classique</span><br><strong>${formatCurrency(pt.classicAmt)} €</strong></div>
                 <div><span style="font-size:.7rem;color:var(--text-light-color);">Mensualité totale</span><br><strong>${formatCurrency(pt.mensTotGlob, 0)} €/mois</strong></div>
                 <div><span style="font-size:.7rem;color:var(--text-light-color);">Coût total crédits</span><br><strong>${formatCurrency(pt.coutCredit)} €</strong></div>
-                <div><span style="font-size:.7rem;color:var(--text-light-color);">LTV</span><br><strong style="color:${ltvColor}">${formatPercentage(pt.ltv, 1)} %</strong></div>
+                <div><span style="font-size:.7rem;color:var(--text-light-color);">Financement</span><br><strong style="color:${ltvColor}">${formatPercentage(pt.ltv, 1)} %</strong></div>
             </div>`;
         if (apportChart) { apportChart._currentApport = apportAlt; apportChart.update('none'); }
     }
@@ -1484,8 +1546,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const { ctx, scales, chartArea } = chart;
                 if (!scales.x || !chartArea) return;
                 const lines = [
-                    { xVal: apportLTV90, color: '#FF9800', label: 'LTV 90%', dash: true  },
-                    { xVal: apportLTV80, color: '#4CAF50', label: 'LTV 80%', dash: true  },
+                    { xVal: apportLTV90, color: '#FF9800', label: 'Apport 10%', dash: true  },
+                    { xVal: apportLTV80, color: '#4CAF50', label: 'Apport 20%', dash: true  },
                     { xVal: chart._currentApport ?? -1, color: '#2196F3', label: '',     dash: false }
                 ];
                 lines.forEach(({ xVal, color, label, dash }) => {
@@ -1513,6 +1575,10 @@ document.addEventListener('DOMContentLoaded', () => {
             apportChart.data.datasets[0].data = dataMens;
             apportChart.data.datasets[1].data = dataCout;
             apportChart._currentApport = currentApport;
+            apportChart.options.scales.y.min  = Math.floor(Math.min(...dataMens) * 0.95);
+            apportChart.options.scales.y.max  = Math.ceil(Math.max(...dataMens) * 1.05);
+            apportChart.options.scales.y2.min = Math.floor(Math.min(...dataCout) * 0.95);
+            apportChart.options.scales.y2.max = Math.ceil(Math.max(...dataCout) * 1.05);
             apportChart.update('none');
             return;
         }
@@ -1540,8 +1606,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 scales: {
                     x:  { ticks: { font: { size: 9 }, maxTicksLimit: 8, callback: (_, i) => i < labels.length ? (labels[i] / 1000).toFixed(0) + ' k€' : '' } },
-                    y:  { position: 'left',  title: { display: true, text: 'Mensualité (€/mois)',  font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' } },
-                    y2: { position: 'right', title: { display: true, text: 'Coût crédits (€)',     font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }, grid: { drawOnChartArea: false } }
+                    y:  { position: 'left',  min: Math.floor(Math.min(...dataMens) * 0.95), max: Math.ceil(Math.max(...dataMens) * 1.05), title: { display: true, text: 'Mensualité (€/mois)',  font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' } },
+                    y2: { position: 'right', min: Math.floor(Math.min(...dataCout) * 0.95), max: Math.ceil(Math.max(...dataCout) * 1.05), title: { display: true, text: 'Coût crédits (€)',     font: { size: 10 } }, ticks: { font: { size: 10 }, callback: v => v.toLocaleString('fr-FR') + ' €' }, grid: { drawOnChartArea: false } }
                 }
             }
         });
@@ -1792,6 +1858,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (classicAmount <= 0 || raMontant <= 0 || raMois >= dureeMois) return null;
 
         const crd = calculerCapitalRestantDu(classicAmount, tauxClassique, dureeMois, raMois);
+        // Mettre à jour le max du slider RA dynamiquement
+        const raMontantEl = getEl('raMontant');
+        const raMontantNumEl = getEl('raMontant_num');
+        if (raMontantEl && raMontantNumEl && crd > 0) {
+            const newMax = Math.max(200000, Math.ceil(crd / 1000) * 1000);
+            raMontantEl.max = newMax;
+            raMontantNumEl.max = newMax;
+        }
         if (crd <= 0 || raMontant >= crd) return null;
 
         // IRA légale sur le montant remboursé par anticipation
@@ -2345,6 +2419,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function lireEtatSolver() {
         return {
             apportMin: parseFloat(getEl('solver_apportMin_num')?.value || 0),
+            apportMax: parseFloat(getEl('solver_apportMax_num')?.value || 0),
             mensualiteMax: parseFloat(getEl('solver_mensualiteMax_num')?.value || 1500),
             tauxEpargne: parseFloat(getEl('solver_tauxEpargne_num')?.value || 3),
             horizonRevente: parseInt(getEl('solver_horizonRevente_num')?.value || 10, 10),
@@ -2358,7 +2433,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function calculerOptimisationApport(state, solverState, coutTotalOperation, prixFAI, pib, ptb) {
         const { apportMin, mensualiteMax, tauxEpargne, horizonRevente, matriceTaux } = solverState;
-        const apportMax  = state.A;
+        const apportMax  = (solverState.apportMax > apportMin) ? solverState.apportMax : state.A;
         const bonified   = pib.amount + ptb.amount;
         const horizonMois = horizonRevente * 12;
 
@@ -2460,7 +2535,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div style="font-size:.7rem;color:var(--text-light-color);margin-bottom:.3rem;">🎯 Scénario optimal identifié</div>
                 <strong>${formatCurrency(optimal.apport)} € d'apport sur ${optimal.duree} ans</strong><br>
                 Mensualité totale : <strong>${formatCurrency(optimal.mensualite, 0)} €/mois</strong><br>
-                Taux applicable (LTV ${formatPercentage(optimal.ltv, 1)} %) : <strong>${formatPercentage(optimal.tauxNominal, 2)} %</strong><br>
+                Taux applicable (financement ${formatPercentage(optimal.ltv, 1)} %) : <strong>${formatPercentage(optimal.tauxNominal, 2)} %</strong><br>
                 Coût réel à ${solverState.horizonRevente} ans : <strong>${formatCurrency(optimal.coutReel)} €</strong><br>
                 Gain d'opportunité épargne : <strong style="color:var(--primary-color)">${formatCurrency(optimal.gainOpportunite)} €</strong>
                 ${vsMax > 0 ? `<br><span style="color:var(--primary-color);font-weight:700;">✅ Économie vs apport max : ${formatCurrency(vsMax)} €</span>` : ''}
@@ -2545,7 +2620,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Montant emprunté (€)</label><input type="number" data-field="montant" value="${montant}" min="0" max="5000000" step="1000"></div>
                 <div class="comp-offer-field"><label>Durée initiale (ans)</label><input type="number" data-field="dureeAns" value="${duree}" min="5" max="30" step="1"></div>
                 <div class="comp-offer-field"><label>Taux nominal (%)</label><input type="number" data-field="tauxNominal" value="${taux}" min="0" max="20" step="0.05"></div>
-                <div class="comp-offer-field"><label>Taux assurance (%)</label><input type="number" data-field="tauxAssurance" value="${ass}" min="0" max="5" step="0.01"></div>
+                <div class="comp-offer-field"><label>Taux assurance (%)</label><input type="number" data-field="tauxAssurance" value="${ass}" min="0" max="5" step="0.01"><span class="comp-assurance-mensuelle" style="font-size:.7rem;color:var(--text-light-color);white-space:nowrap;"></span></div>
                 <div class="comp-offer-field"><label>Base assurance</label><select data-field="typeAssurance"><option value="initial" selected>Capital initial</option><option value="crd">Sur CRD</option></select></div>
                 <div class="comp-offer-field"><label>Frais de dossier (€)</label><input type="number" data-field="fraisDossier" value="${fraisDoss}" min="0" max="10000" step="100"></div>
                 <div class="comp-offer-field"><label>Frais de courtage (€)</label><input type="number" data-field="fraisCourtage" value="${courtier}" min="0" max="20000" step="100"></div>
@@ -2553,7 +2628,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Frais garantie (€)</label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
                 <div class="comp-offer-field"><label>Parts sociales (€)</label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
                 <div class="comp-offer-field"><label>Frais bancaires mensuels (€)</label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
-                <div class="comp-offer-field"><label>Exonération IRA</label><input type="checkbox" data-field="exonerationIRA"></div>
+                <div class="comp-offer-field"><label>IRA (% du plafond légal) <span style="font-size:.7rem;color:var(--text-light-color);">0=exonéré, 100=max légal</span></label><input type="number" data-field="iraPct" value="100" min="0" max="100" step="5"></div>
                 <div class="comp-offer-field"><label>Activer modularité</label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
             </div>
             <div class="comp-modularite-section" id="comp_mod_${index}">
@@ -2569,6 +2644,34 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = getEl('comp_offers_container');
         if (!container) return;
         _offerCount = 0;
+
+        // Restaurer depuis sauvegarde si disponible
+        const saved = window._savedComparateur;
+        if (saved && saved.offres && saved.offres.length > 0) {
+            // Restaurer l'horizon
+            const hrNum = getEl('comp_horizonRevente_num'), hrRange = getEl('comp_horizonRevente');
+            if (hrNum) hrNum.value = saved.horizonRevente;
+            if (hrRange) hrRange.value = saved.horizonRevente;
+            // Reconstruire chaque carte
+            container.innerHTML = '';
+            saved.offres.forEach((offre, i) => {
+                const div = document.createElement('div');
+                div.innerHTML = buildOffreCardHTML(i, null);
+                const card = div.firstElementChild;
+                container.appendChild(card);
+                // Injecter les valeurs sauvegardées
+                const set = (field, val) => { const el = card.querySelector(`[data-field="${field}"]`); if (el) { if (el.type === 'checkbox') el.checked = !!val; else el.value = val; } };
+                Object.entries(offre).forEach(([k, v]) => set(k, v));
+                // Forcer le nom (input text non data-field)
+                const nameEl = card.querySelector('[data-field="nom"]');
+                if (nameEl) nameEl.value = offre.nom;
+                attachOffreEvents(card);
+            });
+            _offerCount = saved.offres.length;
+            window._savedComparateur = null;
+            return;
+        }
+
         let prefilledState = null;
         if (_p2Cache) {
             const { state, besoinCreditFinalClassique } = _p2Cache;
@@ -2599,12 +2702,26 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#comp_offers_container .comp-offer-card').forEach((c, i) => {
                 c.dataset.offerIndex = i;
             });
+            // Masquer les résultats devenus obsolètes
+            const compResults = getEl('comp_results_container');
+            if (compResults) compResults.style.display = 'none';
         });
         card.querySelector('.comp-modularite-toggle')?.addEventListener('change', (e) => {
             const idx = card.dataset.offerIndex;
             const section = document.getElementById(`comp_mod_${idx}`);
             if (section) section.style.display = e.target.checked ? 'block' : 'none';
         });
+        // Affichage mensualité assurance en €
+        const updateAssLabel = () => {
+            const montant = parseFloat(card.querySelector('[data-field="montant"]')?.value || 0);
+            const taux    = parseFloat(card.querySelector('[data-field="tauxAssurance"]')?.value || 0);
+            const mensAss = montant > 0 && taux > 0 ? (montant * taux / 100 / 12) : 0;
+            const label   = card.querySelector('.comp-assurance-mensuelle');
+            if (label) label.textContent = mensAss > 0 ? `≈ ${formatCurrency(mensAss, 0)} €/mois` : '';
+        };
+        card.querySelector('[data-field="montant"]')?.addEventListener('input', updateAssLabel);
+        card.querySelector('[data-field="tauxAssurance"]')?.addEventListener('input', updateAssLabel);
+        updateAssLabel();
     }
 
     function lireEtatComparateur() {
@@ -2623,7 +2740,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fraisDossier: num('fraisDossier'), fraisCourtage: num('fraisCourtage'),
                 typeGarantie: sel('typeGarantie', 'caution'), fraisGarantie: num('fraisGarantie'),
                 partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
-                exonerationIRA: bool('exonerationIRA'), activerModularite: bool('activerModularite'),
+                iraPct: Math.max(0, Math.min(100, num('iraPct') || 100)), activerModularite: bool('activerModularite'),
                 moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
             };
         });
@@ -2635,7 +2752,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return offres.map(offre => {
             const { montant, dureeAns, tauxNominal, tauxAssurance, typeAssurance,
                     fraisDossier, fraisCourtage, fraisGarantie, partsSociales,
-                    fraisBancairesMensuels, exonerationIRA, activerModularite, moisActivation, haussePct } = offre;
+                    fraisBancairesMensuels, iraPct, activerModularite, moisActivation, haussePct } = offre;
 
             if (montant <= 0) return null;
 
@@ -2676,8 +2793,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let ira = 0;
-            if (!exonerationIRA && capitalRestant > 0) {
-                ira = Math.min(0.03 * capitalRestant, 6 * capitalRestant * tauxMensuel);
+            if (capitalRestant > 0 && iraPct > 0) {
+                const iraMax = Math.min(0.03 * capitalRestant, 6 * capitalRestant * tauxMensuel);
+                ira = iraMax * (iraPct / 100);
             }
 
             let fraisSortie   = 0;
@@ -2929,8 +3047,9 @@ document.addEventListener('DOMContentLoaded', () => {
             calculateAll();
         });
 
-        ui.form.enablePIB?.addEventListener('change', e => { setDisplayEl(ui.pibInputsContainer, e.target.checked ? 'block' : 'none'); calculateAll(); });
-        ui.form.enablePTB?.addEventListener('change', e => { setDisplayEl(ui.ptbInputsContainer, e.target.checked ? 'block' : 'none'); calculateAll(); });
+        getEl('typeAssuranceClassique')?.addEventListener('change', calculateAll);
+        ui.form.enablePIB?.addEventListener('change', e => { ui.pibInputsContainer?.classList.toggle('disabled-section', !e.target.checked); calculateAll(); });
+        ui.form.enablePTB?.addEventListener('change', e => { ui.ptbInputsContainer?.classList.toggle('disabled-section', !e.target.checked); calculateAll(); });
         ui.form.ptbAgentStatus?.addEventListener('change', e => { 
             const ptbZoneSlider = ui.form.ptbZone;
             if (ptbZoneSlider) ptbZoneSlider.disabled = (e.target.value === 'retraite'); 
@@ -2941,7 +3060,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelector('.modal-overlay')?.addEventListener('click', e => { if (e.target.classList.contains('modal-overlay')) e.target.classList.remove('visible'); });
 
         document.body.addEventListener('click', e => {
-            if (e.target.classList.contains('amort-button')) {
+            if (e.target.classList.contains('amort-button') && e.target.dataset.loanType) {
                 const loanType = e.target.dataset.loanType;
                 let schedule, loanName = "";
                 
@@ -2965,9 +3084,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     const bonifRate = (thresholds && state.pibRFR <= (thresholds[Math.min(state.pibHouseholdSize, 5)] || 0)) ? 3 : 2;
                     schedule=generateAmortizationSchedule("PIB",currentPibAmount,Math.max(0, state.pibBFMRate - bonifRate),state.pibDuration,state.pibInsuranceRate); 
                 }
-                else if (loanType==='classic'&&currentClassicLoanAmount>0) { 
-                    loanName=`Classique (${state.duree}a)`; 
-                    schedule=generateAmortizationSchedule(`Classique ${state.duree}a`,currentClassicLoanAmount,state.TE,state.duree,state.TA);
+                else if (loanType==='classic'&&currentClassicLoanAmount>0) {
+                    loanName=`Classique (${state.duree}a)`;
+                    schedule=generateAmortizationSchedule(`Classique ${state.duree}a`,currentClassicLoanAmount,state.TE,state.duree,state.TA,state.typeAssuranceClassique);
                     // Phase 2.3 — ajouter PIB/PTB si actifs
                     const extras = [];
                     if (currentPibAmount > 0) {
@@ -3161,7 +3280,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // === ONGLET 2 — Solveur : bouton + sliders ===
         getEl('btn-run-solver')?.addEventListener('click', runSolver);
 
-        ['solver_apportMin', 'solver_mensualiteMax', 'solver_tauxEpargne', 'solver_horizonRevente'].forEach(id => {
+        ['solver_apportMin', 'solver_apportMax', 'solver_mensualiteMax', 'solver_tauxEpargne', 'solver_horizonRevente'].forEach(id => {
             const num   = getEl(`${id}_num`);
             const range = getEl(id);
             if (num && range) {
@@ -3189,9 +3308,33 @@ document.addEventListener('DOMContentLoaded', () => {
         getEl('btn-run-comparator')?.addEventListener('click', runComparator);
         getEl('comp_add_offer_btn')?.addEventListener('click', addOffreComparateur);
 
+        // Boutons sync horizon depuis Tab 1
+        getEl('solver_sync_horizon')?.addEventListener('click', () => {
+            const val = getEl('resaleHorizon_num')?.value || 10;
+            const n = getEl('solver_horizonRevente_num'), r = getEl('solver_horizonRevente');
+            if (n) n.value = val; if (r) r.value = val;
+            runSolver();
+        });
+        getEl('comp_sync_horizon')?.addEventListener('click', () => {
+            const val = getEl('resaleHorizon_num')?.value || 10;
+            const n = getEl('comp_horizonRevente_num'), r = getEl('comp_horizonRevente');
+            if (n) n.value = val; if (r) r.value = val;
+        });
+
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();
         chargerEtat(); // On recharge les données avant de lancer le premier calcul
+
+        // Restaure la visibilité des sections dépliables selon l'état chargé
+        const restaurerEtatsVisuels = () => {
+            setDisplayEl(ui.coEmprunteurInputs, ui.form.coEmprunteur?.checked ? 'block' : 'none');
+            ui.pibInputsContainer?.classList.toggle('disabled-section', !ui.form.enablePIB?.checked);
+            ui.ptbInputsContainer?.classList.toggle('disabled-section', !ui.form.enablePTB?.checked);
+            if (ui.form.typeGarantie?.value === 'manual_guarantee') setDisplayEl(ui.manualGuaranteeInput, 'flex');
+            if (ui.form.ptbAgentStatus?.value === 'retraite' && ui.form.ptbZone) ui.form.ptbZone.disabled = true;
+        };
+        restaurerEtatsVisuels();
+
         if (loadedFromURL) { window.history.replaceState(null, '', window.location.pathname); }
         calculateAll();
     }

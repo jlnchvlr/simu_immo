@@ -415,3 +415,5 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
 .pricing-total td { background: #1565c0 !important; color: #fff !important; font-weight: 700 !important; font-size: .8rem !important; }
 .pricing-total td:first-child { background: #0d47a1 !important; }
 .pricing-winner-cell { background: var(--primary-color) !important; color: #fff !important; font-weight: 900 !important; font-size: .85rem !important; }
+
+.disabled-section { opacity: 0.45; pointer-events: none; }
