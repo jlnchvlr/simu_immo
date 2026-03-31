@@ -12,7 +12,14 @@
         <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
             <button id="btn-reset" class="btn-reset">🔄 Réinitialiser la simulation</button>
         </div>
-        <div id="operation-tab">
+        <!-- Navigation onglets -->
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-tab="tab-projet">📋 Mon Projet</button>
+            <button class="tab-btn" data-tab="tab-solver">🎯 Solveur Stratégique</button>
+            <button class="tab-btn" data-tab="tab-comparator">⚖️ Comparateur d'Offres</button>
+        </div>
+
+        <div id="tab-projet" class="tab-pane active">
              <section id="inputs-section" class="card two-columns">
                 <div class="input-column">
                     <div class="input-group">
@@ -819,6 +826,100 @@
             </section>
             <!-- ===== /PHASE 6 ===== -->
 
+        </div>
+
+        <!-- ===== ONGLET 2 : SOLVEUR STRATÉGIQUE ===== -->
+        <div id="tab-solver" class="tab-pane">
+            <section class="card two-columns">
+                <div class="input-column">
+                    <div class="input-group">
+                        <h3>🎯 Paramètres du Solveur</h3>
+                        <p class="section-description">Trouvez la combinaison optimale apport/durée pour minimiser votre coût réel tout en préservant votre épargne. L'apport max est celui renseigné dans "Mon Projet".</p>
+
+                        <div class="input-item">
+                            <label for="solver_apportMin_num">Apport minimum (€) :</label>
+                            <input type="range" id="solver_apportMin" min="0" max="500000" value="10000" step="1000">
+                            <input type="number" id="solver_apportMin_num" min="0" max="500000" value="10000" step="1000">
+                        </div>
+                        <div class="input-item">
+                            <label for="solver_mensualiteMax_num">Mensualité max cible (€) :</label>
+                            <input type="range" id="solver_mensualiteMax" min="200" max="10000" value="1500" step="50">
+                            <input type="number" id="solver_mensualiteMax_num" min="200" max="10000" value="1500" step="50">
+                        </div>
+                        <div class="input-item">
+                            <label for="solver_tauxEpargne_num">Rendement épargne nette (%) :</label>
+                            <input type="range" id="solver_tauxEpargne" min="0" max="10" value="3" step="0.1">
+                            <input type="number" id="solver_tauxEpargne_num" min="0" max="10" value="3" step="0.1">
+                        </div>
+                        <div class="input-item">
+                            <label for="solver_horizonRevente_num">Horizon de revente (ans) :</label>
+                            <input type="range" id="solver_horizonRevente" min="1" max="30" value="10" step="1">
+                            <input type="number" id="solver_horizonRevente_num" min="1" max="30" value="10" step="1">
+                        </div>
+
+                        <h4>📊 Matrice Taux / LTV</h4>
+                        <p class="section-description">Associez chaque palier de LTV (Loan-to-Value) au taux nominal estimé du marché.</p>
+                        <table class="ltv-matrix-table">
+                            <thead><tr><th>LTV ≤ (%)</th><th>Taux nominal (%)</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td><input type="number" id="ltv_row0_ltv" value="80" min="1" max="110" step="1"></td>
+                                    <td><input type="number" id="ltv_row0_taux" value="3.50" min="0" max="20" step="0.05"></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="number" id="ltv_row1_ltv" value="90" min="1" max="110" step="1"></td>
+                                    <td><input type="number" id="ltv_row1_taux" value="3.80" min="0" max="20" step="0.05"></td>
+                                </tr>
+                                <tr>
+                                    <td><input type="number" id="ltv_row2_ltv" value="110" min="1" max="120" step="1"></td>
+                                    <td><input type="number" id="ltv_row2_taux" value="4.10" min="0" max="20" step="0.05"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <button id="btn-run-solver" class="btn-scenario" style="margin-top:.8rem;width:100%;">🔍 Calculer le scénario optimal</button>
+                    </div>
+                </div>
+                <div class="result-column">
+                    <div id="solver_verdict_container">
+                        <div class="solver-verdict-placeholder">Configurez les paramètres puis cliquez sur "Calculer le scénario optimal".</div>
+                    </div>
+                    <div style="position:relative; height:280px; margin-top:.8rem;">
+                        <canvas id="solverChartCanvas"></canvas>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <!-- ===== ONGLET 3 : COMPARATEUR D'OFFRES ===== -->
+        <div id="tab-comparator" class="tab-pane">
+            <section class="card">
+                <div class="comp-offers-header">
+                    <h3 style="margin:0;">⚖️ Comparateur d'Offres Bancaires</h3>
+                    <button id="comp_add_offer_btn" class="btn-comp-add">+ Ajouter une offre</button>
+                </div>
+                <p class="section-description" style="margin-top:.5rem;">Comparez vos offres sur votre horizon de revente réel, coûts cachés inclus. L'offre de référence est pré-remplie depuis "Mon Projet".</p>
+
+                <div class="input-item" style="margin-bottom:1rem;">
+                    <label for="comp_horizonRevente_num">Horizon de revente (ans) :</label>
+                    <input type="range" id="comp_horizonRevente" min="1" max="30" value="10" step="1">
+                    <input type="number" id="comp_horizonRevente_num" min="1" max="30" value="10" step="1">
+                </div>
+
+                <div id="comp_offers_container"></div>
+
+                <button id="btn-run-comparator" class="btn-scenario" style="width:100%; margin-bottom:1rem;">⚖️ Comparer les offres</button>
+
+                <div id="comp_results_container" style="display:none;">
+                    <h4>📊 Résultats sur <span id="comp_horizon_label">10</span> ans</h4>
+                    <div style="overflow-x:auto; margin-bottom:1rem;">
+                        <table id="comp_pricing_table" class="pricing-table"></table>
+                    </div>
+                    <div style="position:relative; height:300px;">
+                        <canvas id="comparatorChartCanvas"></canvas>
+                    </div>
+                </div>
+            </section>
         </div>
     </main>
 

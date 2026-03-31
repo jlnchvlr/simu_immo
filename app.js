@@ -1375,6 +1375,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let apportChart = null;
     let amortChart  = null;
     let _p2Cache    = null; // { state, coutTotalOperation, prixFAI, pib, ptb, courbeApport }
+    let solverChart     = null;
+    let comparatorChart = null;
+    let _offerCount     = 0;
 
     // ── 2.1 Sensibilité au taux ──────────────────────────────────────────────
 
@@ -2198,7 +2201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Cache pour le slider apport_alt (update asynchrone)
-        _p2Cache = { state, coutTotalOperation, prixFAI, pib, ptb, courbeApport };
+        _p2Cache = { state, coutTotalOperation, prixFAI, pib, ptb, courbeApport, besoinCreditFinalClassique };
         mettreAJourInfoApportAlt(parseFloat(getEl('apport_alt')?.value || state.A), courbeApport);
 
         // 7. PHASE 4 — Remboursement Anticipé Partiel
@@ -2336,6 +2339,450 @@ document.addEventListener('DOMContentLoaded', () => {
         if (ui.res_real_balance) ui.res_real_balance.style.color = realNetBalance >= 0 ? 'var(--primary-color)' : 'var(--danger-color)';
     }
 
+
+    // === ONGLET 2 — SOLVEUR STRATÉGIQUE ===
+
+    function lireEtatSolver() {
+        return {
+            apportMin: parseFloat(getEl('solver_apportMin_num')?.value || 0),
+            mensualiteMax: parseFloat(getEl('solver_mensualiteMax_num')?.value || 1500),
+            tauxEpargne: parseFloat(getEl('solver_tauxEpargne_num')?.value || 3),
+            horizonRevente: parseInt(getEl('solver_horizonRevente_num')?.value || 10, 10),
+            matriceTaux: [
+                { ltvMax: parseFloat(getEl('ltv_row0_ltv')?.value || 80),  taux: parseFloat(getEl('ltv_row0_taux')?.value || 3.50) },
+                { ltvMax: parseFloat(getEl('ltv_row1_ltv')?.value || 90),  taux: parseFloat(getEl('ltv_row1_taux')?.value || 3.80) },
+                { ltvMax: parseFloat(getEl('ltv_row2_ltv')?.value || 110), taux: parseFloat(getEl('ltv_row2_taux')?.value || 4.10) }
+            ]
+        };
+    }
+
+    function calculerOptimisationApport(state, solverState, coutTotalOperation, prixFAI, pib, ptb) {
+        const { apportMin, mensualiteMax, tauxEpargne, horizonRevente, matriceTaux } = solverState;
+        const apportMax  = state.A;
+        const bonified   = pib.amount + ptb.amount;
+        const horizonMois = horizonRevente * 12;
+
+        if (apportMin >= apportMax || coutTotalOperation <= 0 || apportMax <= 0) return null;
+
+        const step = 1000;
+        const scenarios = [];
+
+        for (let apport = apportMin; apport <= apportMax; apport += step) {
+            const capital = Math.max(0, coutTotalOperation - apport - bonified);
+            if (capital <= 0) {
+                scenarios.push({ apport, capital: 0, duree: 0, mensualite: 0, coutReel: 0, gainOpportunite: 0, score: -Infinity });
+                continue;
+            }
+
+            // Taux depuis la matrice LTV
+            const ltv = prixFAI > 0 ? (capital / prixFAI) * 100 : 0;
+            let tauxNominal = matriceTaux[matriceTaux.length - 1].taux;
+            for (const row of [...matriceTaux].sort((a, b) => a.ltvMax - b.ltvMax)) {
+                if (ltv <= row.ltvMax) { tauxNominal = row.taux; break; }
+            }
+
+            // Durée minimale pour respecter la mensualité max
+            let dureeMin = 0;
+            for (let d = 10; d <= 30; d++) {
+                const mInt = calculerMensualiteCredit(capital, tauxNominal, d * 12);
+                const mAss = capital * (state.TA / 100 / 12);
+                const mTot = mInt + mAss + pib.monthlyPayment + ptb.monthlyPayment;
+                if (mTot <= mensualiteMax) { dureeMin = d; break; }
+            }
+            if (dureeMin === 0) continue; // Impossible même à 30 ans
+
+            const dureeMois   = dureeMin * 12;
+            const tauxMensuel = tauxNominal / 100 / 12;
+            const mensInt     = calculerMensualiteCredit(capital, tauxNominal, dureeMois);
+            const mensAss     = capital * (state.TA / 100 / 12);
+            const mensuelleTotal = mensInt + mensAss + pib.monthlyPayment + ptb.monthlyPayment;
+
+            // Simulation d'amortissement jusqu'à l'horizon
+            const horizon = Math.min(horizonMois, dureeMois);
+            let capitalRestant = capital;
+            let totalInterets  = 0;
+            let totalAssurance = 0;
+            for (let m = 0; m < horizon; m++) {
+                const interetMois = capitalRestant * tauxMensuel;
+                const capitalMois = Math.max(0, mensInt - interetMois);
+                totalInterets  += interetMois;
+                totalAssurance += mensAss;
+                capitalRestant  = Math.max(0, capitalRestant - capitalMois);
+            }
+
+            // IRA : min(3% CRD, 6 mois intérêts)
+            const ira = capitalRestant > 0 ? Math.min(0.03 * capitalRestant, 6 * capitalRestant * tauxMensuel) : 0;
+            const coutReel = totalInterets + totalAssurance + ira + pib.totalCost + ptb.totalCost;
+
+            // Gain d'opportunité sur l'épargne résiduelle
+            const epargneResiduelle = apportMax - apport;
+            const gainOpportunite   = epargneResiduelle > 0 ? epargneResiduelle * (Math.pow(1 + tauxEpargne / 100, horizonRevente) - 1) : 0;
+
+            const score = coutReel - gainOpportunite;
+            scenarios.push({ apport, capital, duree: dureeMin, mensualite: mensuelleTotal, capitalRestant, coutReel, gainOpportunite, score, tauxNominal, ltv });
+        }
+
+        if (scenarios.length === 0) return null;
+
+        const valid   = scenarios.filter(s => s.duree > 0);
+        if (valid.length === 0) return null;
+        const optimal = valid.reduce((best, s) => s.score < best.score ? s : best, valid[0]);
+        const minScen = valid[0];
+        const maxScen = valid[valid.length - 1];
+
+        return { optimal, minScen, maxScen, scenarios: valid };
+    }
+
+    function runSolver() {
+        if (!_p2Cache) return;
+        const { state, coutTotalOperation, prixFAI, pib, ptb } = _p2Cache;
+        const solverState = lireEtatSolver();
+        const result = calculerOptimisationApport(state, solverState, coutTotalOperation, prixFAI, pib, ptb);
+        renderSolver(result, solverState);
+    }
+
+    function renderSolver(result, solverState) {
+        const container = getEl('solver_verdict_container');
+        if (!container) return;
+
+        if (!result) {
+            container.innerHTML = `<div class="solver-verdict-placeholder">⚠️ Aucun scénario trouvable. Vérifiez que l'apport min &lt; apport max (onglet 1) et que la mensualité max est atteignable sur 30 ans.</div>`;
+            if (solverChart) { solverChart.destroy(); solverChart = null; }
+            return;
+        }
+
+        const { optimal, minScen, maxScen } = result;
+        const economie = (minScen.coutReel - optimal.coutReel) + (optimal.gainOpportunite - minScen.gainOpportunite);
+        const vsMax    = (maxScen.coutReel  - optimal.coutReel) + (optimal.gainOpportunite - maxScen.gainOpportunite);
+
+        container.innerHTML = `
+            <div class="solver-verdict-box">
+                <div style="font-size:.7rem;color:var(--text-light-color);margin-bottom:.3rem;">🎯 Scénario optimal identifié</div>
+                <strong>${formatCurrency(optimal.apport)} € d'apport sur ${optimal.duree} ans</strong><br>
+                Mensualité totale : <strong>${formatCurrency(optimal.mensualite, 0)} €/mois</strong><br>
+                Taux applicable (LTV ${formatPercentage(optimal.ltv, 1)} %) : <strong>${formatPercentage(optimal.tauxNominal, 2)} %</strong><br>
+                Coût réel à ${solverState.horizonRevente} ans : <strong>${formatCurrency(optimal.coutReel)} €</strong><br>
+                Gain d'opportunité épargne : <strong style="color:var(--primary-color)">${formatCurrency(optimal.gainOpportunite)} €</strong>
+                ${vsMax > 0 ? `<br><span style="color:var(--primary-color);font-weight:700;">✅ Économie vs apport max : ${formatCurrency(vsMax)} €</span>` : ''}
+                ${economie > 0 ? `<br><span style="color:var(--secondary-color);font-weight:600;">📈 Économie vs apport min : ${formatCurrency(economie)} €</span>` : ''}
+            </div>`;
+
+        renderSolverChart(result, solverState);
+    }
+
+    function renderSolverChart(result, solverState) {
+        const canvas = getEl('solverChartCanvas');
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        const { optimal, minScen, maxScen } = result;
+        const labels = [
+            `Apport Min\n${formatCurrency(minScen.apport)} €`,
+            `Apport Optimal\n${formatCurrency(optimal.apport)} €`,
+            `Apport Max\n${formatCurrency(maxScen.apport)} €`
+        ];
+        const scens = [minScen, optimal, maxScen];
+        const isOpt = [false, true, false];
+
+        if (solverChart) { solverChart.destroy(); solverChart = null; }
+
+        solverChart = new Chart(canvas, {
+            type: 'bar',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'Coût Réel (€)',
+                        data: scens.map(s => Math.round(s.coutReel)),
+                        backgroundColor: isOpt.map(o => o ? '#ef9a9a' : '#ffcdd2'),
+                        borderColor: '#e53935', borderWidth: 1
+                    },
+                    {
+                        label: 'Gain Épargne (€)',
+                        data: scens.map(s => Math.round(s.gainOpportunite)),
+                        backgroundColor: isOpt.map(o => o ? '#a5d6a7' : '#c8e6c9'),
+                        borderColor: '#388e3c', borderWidth: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 10 } } },
+                    title: { display: true, text: `Comparaison sur ${solverState.horizonRevente} ans`, font: { size: 11 } },
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)} €` } }
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { font: { size: 9 }, callback: v => formatCurrency(v) + ' €' } },
+                    x: { ticks: { font: { size: 9 } } }
+                }
+            }
+        });
+    }
+
+    // === ONGLET 3 — COMPARATEUR D'OFFRES ===
+
+    function buildOffreCardHTML(index, prefilledState) {
+        const nom       = index === 0 ? 'Banque A (référence)' : `Banque ${String.fromCharCode(66 + index - 1)}`;
+        const montant   = index === 0 && prefilledState ? Math.round(prefilledState.besoinCreditClassique || 200000) : 200000;
+        const duree     = index === 0 && prefilledState ? (prefilledState.duree || 20) : 20;
+        const taux      = index === 0 && prefilledState ? (prefilledState.TE  || 3.5)  : 3.5;
+        const ass       = index === 0 && prefilledState ? (prefilledState.TA  || 0.2)  : 0.2;
+        const typeGar   = index === 0 && prefilledState ? (prefilledState.typeGarantie || 'caution') : 'caution';
+        const fraisDoss = index === 0 && prefilledState ? (prefilledState.FD      || 0) : 0;
+        const courtier  = index === 0 && prefilledState ? (prefilledState.Courtier || 0) : 0;
+
+        const optCaut = `<option value="caution"${typeGar === 'caution' ? ' selected' : ''}>Caution</option>`;
+        const optHyp  = `<option value="hypotheque"${typeGar === 'hypotheque' ? ' selected' : ''}>Hypothèque</option>`;
+        const optPpd  = `<option value="ppd"${typeGar === 'ppd' ? ' selected' : ''}>PPD</option>`;
+
+        return `
+        <div class="comp-offer-card${index === 0 ? ' reference-offer' : ''}" data-offer-index="${index}">
+            ${index > 0 ? `<button class="comp-offer-remove" title="Supprimer">&times;</button>` : ''}
+            <div class="comp-offer-title">
+                Offre ${index + 1} — <input type="text" class="comp-offer-name-input" data-field="nom" value="${nom}">
+            </div>
+            <div class="comp-offer-grid">
+                <div class="comp-offer-field"><label>Montant emprunté (€)</label><input type="number" data-field="montant" value="${montant}" min="0" max="5000000" step="1000"></div>
+                <div class="comp-offer-field"><label>Durée initiale (ans)</label><input type="number" data-field="dureeAns" value="${duree}" min="5" max="30" step="1"></div>
+                <div class="comp-offer-field"><label>Taux nominal (%)</label><input type="number" data-field="tauxNominal" value="${taux}" min="0" max="20" step="0.05"></div>
+                <div class="comp-offer-field"><label>Taux assurance (%)</label><input type="number" data-field="tauxAssurance" value="${ass}" min="0" max="5" step="0.01"></div>
+                <div class="comp-offer-field"><label>Base assurance</label><select data-field="typeAssurance"><option value="initial" selected>Capital initial</option><option value="crd">Sur CRD</option></select></div>
+                <div class="comp-offer-field"><label>Frais de dossier (€)</label><input type="number" data-field="fraisDossier" value="${fraisDoss}" min="0" max="10000" step="100"></div>
+                <div class="comp-offer-field"><label>Frais de courtage (€)</label><input type="number" data-field="fraisCourtage" value="${courtier}" min="0" max="20000" step="100"></div>
+                <div class="comp-offer-field"><label>Type garantie</label><select data-field="typeGarantie">${optCaut}${optHyp}${optPpd}</select></div>
+                <div class="comp-offer-field"><label>Frais garantie (€)</label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
+                <div class="comp-offer-field"><label>Parts sociales (€)</label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
+                <div class="comp-offer-field"><label>Frais bancaires mensuels (€)</label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
+                <div class="comp-offer-field"><label>Exonération IRA</label><input type="checkbox" data-field="exonerationIRA"></div>
+                <div class="comp-offer-field"><label>Activer modularité</label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
+            </div>
+            <div class="comp-modularite-section" id="comp_mod_${index}">
+                <div class="comp-offer-grid">
+                    <div class="comp-offer-field"><label>Mois d'activation</label><input type="number" data-field="moisActivation" value="12" min="1" max="360" step="1"></div>
+                    <div class="comp-offer-field"><label>Hausse mensualité (%)</label><input type="number" data-field="haussePct" value="10" min="0" max="50" step="0.5"></div>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function initOffresComparateur() {
+        const container = getEl('comp_offers_container');
+        if (!container) return;
+        _offerCount = 0;
+        let prefilledState = null;
+        if (_p2Cache) {
+            const { state, besoinCreditFinalClassique } = _p2Cache;
+            prefilledState = { ...state, besoinCreditClassique: _p2Cache.besoinCreditFinalClassique ?? besoinCreditFinalClassique ?? 200000 };
+        }
+        container.innerHTML = buildOffreCardHTML(0, prefilledState);
+        _offerCount = 1;
+        attachOffreEvents(container.querySelector('.comp-offer-card'));
+    }
+
+    function addOffreComparateur() {
+        const container = getEl('comp_offers_container');
+        if (!container || _offerCount >= 4) return;
+        const div = document.createElement('div');
+        div.innerHTML = buildOffreCardHTML(_offerCount, null);
+        const card = div.firstElementChild;
+        container.appendChild(card);
+        attachOffreEvents(card);
+        _offerCount++;
+    }
+
+    function attachOffreEvents(card) {
+        if (!card) return;
+        card.querySelector('.comp-offer-remove')?.addEventListener('click', () => {
+            card.remove();
+            _offerCount = Math.max(1, _offerCount - 1);
+            // Re-index remaining cards visually
+            document.querySelectorAll('#comp_offers_container .comp-offer-card').forEach((c, i) => {
+                c.dataset.offerIndex = i;
+            });
+        });
+        card.querySelector('.comp-modularite-toggle')?.addEventListener('change', (e) => {
+            const idx = card.dataset.offerIndex;
+            const section = document.getElementById(`comp_mod_${idx}`);
+            if (section) section.style.display = e.target.checked ? 'block' : 'none';
+        });
+    }
+
+    function lireEtatComparateur() {
+        const horizonRevente = parseInt(getEl('comp_horizonRevente_num')?.value || 10, 10);
+        const cards = document.querySelectorAll('#comp_offers_container .comp-offer-card');
+        const offres = Array.from(cards).map(card => {
+            const get  = (field) => card.querySelector(`[data-field="${field}"]`);
+            const num  = (field) => parseFloat(get(field)?.value || 0);
+            const bool = (field) => get(field)?.checked || false;
+            const sel  = (field, def) => get(field)?.value || def;
+            return {
+                nom: get('nom')?.value || 'Banque',
+                montant: num('montant'), dureeAns: parseInt(get('dureeAns')?.value || 20, 10),
+                tauxNominal: num('tauxNominal'), tauxAssurance: num('tauxAssurance'),
+                typeAssurance: sel('typeAssurance', 'initial'),
+                fraisDossier: num('fraisDossier'), fraisCourtage: num('fraisCourtage'),
+                typeGarantie: sel('typeGarantie', 'caution'), fraisGarantie: num('fraisGarantie'),
+                partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
+                exonerationIRA: bool('exonerationIRA'), activerModularite: bool('activerModularite'),
+                moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
+            };
+        });
+        return { horizonRevente, offres };
+    }
+
+    function comparerOffresBancaires(offres, horizonAns) {
+        const horizonMois = horizonAns * 12;
+        return offres.map(offre => {
+            const { montant, dureeAns, tauxNominal, tauxAssurance, typeAssurance,
+                    fraisDossier, fraisCourtage, fraisGarantie, partsSociales,
+                    fraisBancairesMensuels, exonerationIRA, activerModularite, moisActivation, haussePct } = offre;
+
+            if (montant <= 0) return null;
+
+            const dureeMois    = dureeAns * 12;
+            const tauxMensuel  = tauxNominal / 100 / 12;
+            let mensInt        = calculerMensualiteCredit(montant, tauxNominal, dureeMois);
+            let mensuelleActuelle = mensInt;
+            const fraisInitiaux = fraisDossier + fraisCourtage + fraisGarantie + partsSociales;
+
+            const actualHorizon = Math.min(horizonMois, dureeMois);
+            let capitalRestant  = montant;
+            let totalInterets   = 0;
+            let totalAssurance  = 0;
+            let totalFraisBanc  = 0;
+            const evolutionCoutCumule = [0];
+
+            for (let m = 1; m <= actualHorizon; m++) {
+                if (capitalRestant <= 0) break;
+
+                if (activerModularite && m === moisActivation && capitalRestant > 0) {
+                    const moisRestants = Math.max(1, dureeMois - m + 1);
+                    const baseNew = calculerMensualiteCredit(capitalRestant, tauxNominal, moisRestants);
+                    mensuelleActuelle = baseNew * (1 + haussePct / 100);
+                }
+
+                const interetMois = capitalRestant * tauxMensuel;
+                const capitalMois = Math.max(0, mensuelleActuelle - interetMois);
+                totalInterets  += interetMois;
+                totalAssurance += typeAssurance === 'initial'
+                    ? montant * (tauxAssurance / 100 / 12)
+                    : capitalRestant * (tauxAssurance / 100 / 12);
+                totalFraisBanc += fraisBancairesMensuels;
+                capitalRestant  = Math.max(0, capitalRestant - capitalMois);
+
+                if (m % 12 === 0 || m === actualHorizon) {
+                    evolutionCoutCumule.push(Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc));
+                }
+            }
+
+            let ira = 0;
+            if (!exonerationIRA && capitalRestant > 0) {
+                ira = Math.min(0.03 * capitalRestant, 6 * capitalRestant * tauxMensuel);
+            }
+
+            let fraisSortie   = 0;
+            let restitutions  = 0;
+            if (offre.typeGarantie === 'hypotheque') {
+                fraisSortie = capitalRestant * 0.007; // mainlevée estimée
+            } else if (offre.typeGarantie === 'caution') {
+                restitutions = partsSociales * 0.75; // restitution partielle FMG estimée
+            }
+
+            const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + ira + fraisSortie - restitutions);
+            const mensualiteInitiale = mensInt + (typeAssurance === 'initial'
+                ? montant * (tauxAssurance / 100 / 12)
+                : capitalRestant * (tauxAssurance / 100 / 12));
+
+            return {
+                nom: offre.nom, montant, dureeAns, tauxNominal, mensualiteInitiale: Math.round(mensualiteInitiale),
+                totalInterets: Math.round(totalInterets), totalAssurance: Math.round(totalAssurance),
+                fraisInitiaux: Math.round(fraisInitiaux), totalFraisBanc: Math.round(totalFraisBanc),
+                ira: Math.round(ira), restitutions: Math.round(restitutions), fraisSortie: Math.round(fraisSortie),
+                coutGlobalReel, capitalRestant: Math.round(capitalRestant), evolutionCoutCumule
+            };
+        }).filter(Boolean);
+    }
+
+    function runComparator() {
+        const { horizonRevente, offres } = lireEtatComparateur();
+        const label = getEl('comp_horizon_label');
+        if (label) label.textContent = horizonRevente;
+        if (offres.length < 1) return;
+        const results = comparerOffresBancaires(offres, horizonRevente);
+        if (results.length > 0) renderComparator(results, horizonRevente);
+    }
+
+    function renderComparator(results, horizonAns) {
+        const container = getEl('comp_results_container');
+        if (!container) return;
+        container.style.display = 'block';
+
+        const winnerIdx = results.reduce((bi, r, i) => r.coutGlobalReel < results[bi].coutGlobalReel ? i : bi, 0);
+
+        const rows = [
+            { label: 'Montant emprunté',               key: 'montant',            fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Durée initiale',                  key: 'dureeAns',           fmt: v => v + ' ans' },
+            { label: 'Taux nominal',                    key: 'tauxNominal',        fmt: v => formatPercentage(v, 2) + ' %' },
+            { label: 'Mensualité initiale',             key: 'mensualiteInitiale', fmt: v => formatCurrency(v, 0) + ' €/mois' },
+            { label: 'Total intérêts',                  key: 'totalInterets',      fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Total assurance',                 key: 'totalAssurance',     fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Frais initiaux',                  key: 'fraisInitiaux',      fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Frais bancaires (total)',         key: 'totalFraisBanc',     fmt: v => formatCurrency(v) + ' €' },
+            { label: 'IRA à la revente',                key: 'ira',                fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Restitutions',                    key: 'restitutions',       fmt: v => '– ' + formatCurrency(v) + ' €' },
+            { label: 'Frais de sortie garantie',        key: 'fraisSortie',        fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Capital restant dû à la revente', key: 'capitalRestant',     fmt: v => formatCurrency(v) + ' €' },
+        ];
+
+        const table = getEl('comp_pricing_table');
+        if (table) {
+            let html = `<thead><tr><th>Critère</th>${results.map(r => `<th>${r.nom}</th>`).join('')}</tr></thead><tbody>`;
+            for (const row of rows) {
+                html += `<tr><td>${row.label}</td>${results.map(r => `<td>${row.fmt(r[row.key])}</td>`).join('')}</tr>`;
+            }
+            html += `<tr class="pricing-total"><td>💰 Coût Réel Net à ${horizonAns} ans</td>`;
+            html += results.map((r, i) => `<td class="${i === winnerIdx ? 'pricing-winner-cell' : ''}">${formatCurrency(r.coutGlobalReel)} €${i === winnerIdx ? ' 🏆' : ''}</td>`).join('');
+            html += `</tr></tbody>`;
+            table.innerHTML = html;
+        }
+
+        renderComparatorChart(results, horizonAns);
+    }
+
+    function renderComparatorChart(results, horizonAns) {
+        const canvas = getEl('comparatorChartCanvas');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (comparatorChart) { comparatorChart.destroy(); comparatorChart = null; }
+
+        const colors = ['#2196F3', '#F44336', '#4CAF50', '#FF9800'];
+        const maxPts = Math.max(...results.map(r => r.evolutionCoutCumule.length));
+        const labels = Array.from({ length: maxPts }, (_, i) => `An ${i}`);
+
+        comparatorChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: results.map((r, i) => ({
+                    label: r.nom, data: r.evolutionCoutCumule,
+                    borderColor: colors[i % colors.length],
+                    backgroundColor: colors[i % colors.length] + '18',
+                    borderWidth: 2, pointRadius: 2, tension: 0.3
+                }))
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 10 } } },
+                    title: { display: true, text: `Évolution du coût réel cumulé sur ${horizonAns} ans`, font: { size: 11 } },
+                    tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)} €` } }
+                },
+                scales: {
+                    y: { ticks: { font: { size: 9 }, callback: v => formatCurrency(v) + ' €' } },
+                    x: { ticks: { font: { size: 9 } } }
+                }
+            }
+        });
+    }
 
     // === 5. INITIALISATION (Start App) ===
     function startApp() {
@@ -2695,6 +3142,52 @@ document.addEventListener('DOMContentLoaded', () => {
                 }).catch(() => prompt('Copiez ce lien :', url));
             } catch(e) { console.warn('Erreur partage URL:', e); }
         });
+
+        // === TABS — Navigation ===
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const target = btn.dataset.tab;
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+                btn.classList.add('active');
+                getEl(target)?.classList.add('active');
+                if (target === 'tab-comparator') {
+                    // Initialiser les offres si le conteneur est vide
+                    if (!getEl('comp_offers_container')?.children.length) initOffresComparateur();
+                }
+            });
+        });
+
+        // === ONGLET 2 — Solveur : bouton + sliders ===
+        getEl('btn-run-solver')?.addEventListener('click', runSolver);
+
+        ['solver_apportMin', 'solver_mensualiteMax', 'solver_tauxEpargne', 'solver_horizonRevente'].forEach(id => {
+            const num   = getEl(`${id}_num`);
+            const range = getEl(id);
+            if (num && range) {
+                const sync = (src, dst) => { dst.value = src.value; runSolver(); };
+                range.addEventListener('input',  () => sync(range, num));
+                num.addEventListener('input',    () => sync(num, range));
+            }
+        });
+
+        // Matrice taux LTV — recalcul au changement
+        [0, 1, 2].forEach(i => {
+            getEl(`ltv_row${i}_ltv`)?.addEventListener('change',  runSolver);
+            getEl(`ltv_row${i}_taux`)?.addEventListener('change', runSolver);
+        });
+
+        // Slider horizon comparateur
+        const compHorizonRange = getEl('comp_horizonRevente');
+        const compHorizonNum   = getEl('comp_horizonRevente_num');
+        if (compHorizonRange && compHorizonNum) {
+            compHorizonRange.addEventListener('input', () => { compHorizonNum.value = compHorizonRange.value; });
+            compHorizonNum.addEventListener('input',   () => { compHorizonRange.value = compHorizonNum.value; });
+        }
+
+        // === ONGLET 3 — Comparateur : boutons ===
+        getEl('btn-run-comparator')?.addEventListener('click', runComparator);
+        getEl('comp_add_offer_btn')?.addEventListener('click', addOffreComparateur);
 
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();

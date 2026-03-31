@@ -337,3 +337,81 @@ table tr:nth-child(even) td { background-color: #f7f7f7; }
 .p6-compare-table th:first-child, .p6-compare-table td:first-child { text-align: left; font-weight: 500; background: #f5f5f5; }
 .p6-compare-table thead th { background: var(--secondary-color); color: #fff; font-size: .72rem; text-align: center; }
 .p6-compare-table thead th:first-child { background: #455a64; }
+
+/* === TABS NAVIGATION === */
+.tabs-nav {
+    display: flex; gap: 4px; margin-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color); padding-bottom: 0;
+}
+.tab-btn {
+    background: none; border: none; padding: 8px 16px;
+    font-family: 'Poppins', sans-serif; font-size: .85rem; font-weight: 600;
+    color: var(--text-light-color); cursor: pointer;
+    border-bottom: 3px solid transparent; margin-bottom: -2px;
+    transition: color .2s, border-color .2s, background .2s;
+    border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
+}
+.tab-btn:hover { color: var(--secondary-color); background: #f0f7ff; }
+.tab-btn.active { color: var(--secondary-color); border-bottom-color: var(--secondary-color); background: #f0f7ff; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* === TAB 2 — Solveur : Matrice LTV === */
+.ltv-matrix-table { width: 100%; border-collapse: collapse; margin-top: .4rem; font-size: .75rem; }
+.ltv-matrix-table th { background: var(--secondary-color); color: #fff; padding: 5px 8px; font-weight: 600; text-transform: uppercase; font-size: .65rem; }
+.ltv-matrix-table td { padding: 4px 6px; border: 1px solid var(--border-color); }
+.ltv-matrix-table input { width: 80px; padding: 3px 5px; border: 1px solid var(--input-border-color); border-radius: var(--border-radius-small); font-size: .75rem; text-align: right; }
+.solver-verdict-box {
+    background: linear-gradient(135deg, #e8f5e9, #e3f2fd);
+    border: 1px solid var(--primary-color); border-radius: var(--border-radius-medium);
+    padding: .8rem 1rem; margin-bottom: .8rem; font-size: .8rem; line-height: 1.8;
+}
+.solver-verdict-box strong { color: var(--primary-color); font-size: 1rem; }
+.solver-verdict-placeholder { color: var(--text-light-color); font-style: italic; font-size: .8rem; padding: .6rem; }
+
+/* === TAB 3 — Comparateur : Carte offre === */
+.comp-offers-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .8rem; flex-wrap: wrap; gap: .5rem; }
+.comp-offer-card {
+    background: #fdfdfd; border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-medium); padding: .8rem; margin-bottom: .8rem; position: relative;
+}
+.comp-offer-card.reference-offer { border-color: var(--secondary-color); border-left-width: 3px; }
+.comp-offer-title { font-weight: 700; color: var(--secondary-color); font-size: .9rem; margin-bottom: .6rem; display: flex; align-items: center; gap: 6px; }
+.comp-offer-name-input { background: none; border: none; border-bottom: 1px solid #ccc; font-weight: 700; color: var(--secondary-color); font-size: .9rem; width: 180px; padding: 0 2px; font-family: 'Poppins', sans-serif; }
+.comp-offer-name-input:focus { outline: none; border-bottom-color: var(--secondary-color); }
+.comp-offer-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .5rem .8rem; }
+.comp-offer-field { display: flex; flex-direction: column; gap: 2px; }
+.comp-offer-field label { font-size: .7rem; color: var(--text-light-color); font-weight: 500; }
+.comp-offer-field input[type="number"], .comp-offer-field select {
+    padding: 4px 7px; border: 1px solid var(--input-border-color);
+    border-radius: var(--border-radius-small); font-size: .75rem; width: 100%;
+    box-sizing: border-box; font-family: 'Poppins', sans-serif;
+}
+.comp-offer-field input[type="checkbox"] { width: 14px; height: 14px; margin-top: 4px; }
+.comp-offer-remove {
+    position: absolute; top: 8px; right: 10px; background: none; border: none;
+    font-size: 1.2rem; color: var(--text-light-color); cursor: pointer; line-height: 1;
+}
+.comp-offer-remove:hover { color: var(--danger-color); }
+.comp-modularite-section {
+    display: none; margin-top: .6rem; padding: .6rem;
+    background: #f0f7ff; border-radius: 4px; border: 1px dashed var(--secondary-color);
+}
+.btn-comp-add {
+    background: var(--secondary-color); color: #fff; border: none;
+    padding: 6px 14px; border-radius: var(--border-radius-small);
+    font-size: .78rem; font-weight: 600; cursor: pointer; transition: background-color .2s;
+}
+.btn-comp-add:hover { background: #1976d2; }
+
+/* === PRICING TABLE === */
+.pricing-table { width: 100%; border-collapse: collapse; font-size: .75rem; min-width: 400px; }
+.pricing-table th { background: var(--secondary-color); color: #fff; padding: 6px 10px; text-align: center; font-weight: 700; font-size: .7rem; white-space: nowrap; }
+.pricing-table th:first-child { background: #455a64; text-align: left; }
+.pricing-table td { padding: 5px 8px; border: 1px solid var(--border-color); text-align: right; background: #fdfdfd; color: var(--text-light-color); }
+.pricing-table td:first-child { text-align: left; font-weight: 500; background: #f5f5f5; color: var(--text-color); }
+.pricing-table tr:nth-child(even) td { background: #f7f7f7; }
+.pricing-table tr:nth-child(even) td:first-child { background: #f0f0f0; }
+.pricing-total td { background: #1565c0 !important; color: #fff !important; font-weight: 700 !important; font-size: .8rem !important; }
+.pricing-total td:first-child { background: #0d47a1 !important; }
+.pricing-winner-cell { background: var(--primary-color) !important; color: #fff !important; font-weight: 900 !important; font-size: .85rem !important; }
