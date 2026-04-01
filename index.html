@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Simulateur Achat Immobilier V6.4</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <!-- html2pdf.js — export PDF dossier bancaire -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
@@ -356,6 +356,17 @@
 
             <!-- Zone encadrée pour l'export PDF (résumé + scénarios + graphiques) -->
             <div id="zone_a_exporter">
+
+            <!-- En-tête PDF (caché à l'écran, visible uniquement en .pdf-mode) -->
+            <div class="pdf-header">
+                <h1 class="pdf-title">Rapport d'Ingénierie Financière Immobilière</h1>
+                <p class="pdf-subtitle">Analyse complète du plan de financement</p>
+                <div class="pdf-meta">
+                    <span>Client : ___________________________</span>
+                    <span id="pdf-date">Date : —</span>
+                </div>
+            </div>
+
             <section id="results-section" class="card">
                 <div class="result-column">
                     <div class="result-group">
@@ -515,6 +526,13 @@
 
             </section>
             <!-- ===== /PHASE 2 ===== -->
+
+            <!-- Pied de page PDF (caché à l'écran, visible uniquement en .pdf-mode) -->
+            <div class="pdf-footer">
+                Document généré à titre indicatif. Ne constitue pas une offre de prêt.<br>
+                Les résultats présentés sont des estimations basées sur les paramètres saisis et ne sauraient engager la responsabilité de l'éditeur.
+            </div>
+
             </div><!-- /zone_a_exporter -->
 
             <!-- ===== PHASE 3 ===== -->
@@ -877,7 +895,10 @@
                             </div>
                         </div>
 
-                        <button id="btn-run-solver" class="btn-scenario" style="margin-top:.8rem;width:100%;">🔍 Calculer le scénario optimal</button>
+                        <div style="display:flex; gap:.5rem; margin-top:.8rem;">
+                            <button id="btn-run-solver" class="btn-scenario" style="flex:1;">🔍 Calculer le scénario optimal</button>
+                            <button id="btn-reset-regles" type="button" title="Remettre les règles bancaires aux valeurs par défaut" style="background:none; border:1px solid var(--border-color); border-radius:var(--border-radius-small); padding:7px 12px; font-size:.75rem; color:var(--text-light-color); cursor:pointer; white-space:nowrap; transition:background .2s, color .2s;" onmouseover="this.style.background='var(--surface-subtle)'" onmouseout="this.style.background='none'">↺ Réinitialiser les règles</button>
+                        </div>
                     </div>
                 </div>
                 <div class="result-column">

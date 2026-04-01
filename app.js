@@ -433,6 +433,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const setHTMLEl = (el, html) => { if (el) el.innerHTML = html; };
     const setDisplayEl = (el, display) => { if (el) el.style.display = display; };
 
+    // Met à jour la piste colorée d'un slider via --val (purement visuel)
+    const updateTrack = (rangeEl) => {
+        if (!rangeEl) return;
+        const min = parseFloat(rangeEl.min) || 0;
+        const max = parseFloat(rangeEl.max) || 100;
+        const val = Math.max(min, Math.min(parseFloat(rangeEl.value) || 0, max));
+        rangeEl.style.setProperty('--val', `${max === min ? 0 : ((val - min) / (max - min)) * 100}%`);
+    };
+
     const infoMessages = {
         duree_info: "Durée du prêt classique : entre 10 et 30 ans. Le slider de durée met à jour en temps réel tous les résultats et la courbe durée/coût.",
         TE_info: "Taux d'intérêt nominal annuel du prêt classique, hors assurance.",
@@ -1500,7 +1509,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (dash) ctx.setLineDash([5, 3]);
                     ctx.stroke();
                     if (label) {
-                        ctx.fillStyle = color; ctx.font = 'bold 9px Poppins, sans-serif';
+                        ctx.fillStyle = color; ctx.font = 'bold 9px Inter, system-ui, sans-serif';
                         ctx.textAlign = 'center'; ctx.fillText(label, xPx, chartArea.top - 4);
                     }
                     ctx.restore();
@@ -2453,6 +2462,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const gainOpportunite   = epargneResiduelle > 0 ? epargneResiduelle * (Math.pow(1 + tauxEpargne / 100, horizonRevente) - 1) : 0;
 
             const score = coutReel - gainOpportunite;
+            const ltv   = coutTotalOperation > 0 ? (capital / coutTotalOperation) * 100 : 0;
             scenarios.push({ apport, capital, duree: dureeMin, mensualite: mensuelleTotal, capitalRestant, coutReel, gainOpportunite, score, tauxNominal, ltv });
         }
 
@@ -3255,7 +3265,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const num   = getEl(`${id}_num`);
             const range = getEl(id);
             if (num && range) {
-                const sync = (src, dst) => { dst.value = src.value; runSolver(); };
+                const sync = (src, dst) => {
+                    dst.value = src.value;
+                    if (dst.type === 'range') updateTrack(dst); else updateTrack(range);
+                    runSolver();
+                };
                 range.addEventListener('input',  () => sync(range, num));
                 num.addEventListener('input',    () => sync(num, range));
             }
@@ -3267,12 +3281,25 @@ document.addEventListener('DOMContentLoaded', () => {
             getEl(`ltv_row${i}_taux`)?.addEventListener('change', runSolver);
         });
 
+        // Règles bancaires — recalcul auto au changement
+        ['malus_faible_apport', 'bonus_bon_apport', 'bonus_excellent_apport', 'taux_base'].forEach(id => {
+            getEl(id)?.addEventListener('change', runSolver);
+        });
+
+        // Reset règles bancaires
+        getEl('btn-reset-regles')?.addEventListener('click', () => {
+            getEl('malus_faible_apport').value    =  0.10;
+            getEl('bonus_bon_apport').value       = -0.15;
+            getEl('bonus_excellent_apport').value = -0.25;
+            runSolver();
+        });
+
         // Slider horizon comparateur
         const compHorizonRange = getEl('comp_horizonRevente');
         const compHorizonNum   = getEl('comp_horizonRevente_num');
         if (compHorizonRange && compHorizonNum) {
-            compHorizonRange.addEventListener('input', () => { compHorizonNum.value = compHorizonRange.value; });
-            compHorizonNum.addEventListener('input',   () => { compHorizonRange.value = compHorizonNum.value; });
+            compHorizonRange.addEventListener('input', () => { compHorizonNum.value = compHorizonRange.value; updateTrack(compHorizonRange); });
+            compHorizonNum.addEventListener('input',   () => { compHorizonRange.value = compHorizonNum.value; updateTrack(compHorizonRange); });
         }
 
         // === ONGLET 3 — Comparateur : boutons ===
@@ -3302,33 +3329,76 @@ document.addEventListener('DOMContentLoaded', () => {
             getEl('comp_results_container').style.display = 'none';
         });
 
-        // === EXPORT PDF — Dossier Bancaire ===
+        // === EXPORT PDF — Dossier Bancaire (mode professionnel) ===
         getEl('btn_export_pdf')?.addEventListener('click', () => {
             const zone = getEl('zone_a_exporter');
             if (!zone) { alert('Zone d\'export introuvable.'); return; }
 
             const btn = getEl('btn_export_pdf');
             const originalText = btn.textContent;
-            btn.textContent = '⏳ Génération du PDF…';
+            btn.textContent = '⏳ Génération du PDF en cours…';
             btn.disabled = true;
 
+            // 1. Injecter la date dans l'en-tête PDF
+            const dateEl = getEl('pdf-date');
+            if (dateEl) {
+                const now = new Date();
+                dateEl.textContent = 'Date : ' + now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+            }
+
+            // 2. Activer le mode PDF (force le CSS d'impression)
+            document.body.classList.add('pdf-mode');
+
+            // 3. Redimensionner les canvas Chart.js pour un rendu propre
+            const canvases = zone.querySelectorAll('canvas');
+            const originalSizes = [];
+            canvases.forEach(canvas => {
+                originalSizes.push({
+                    el: canvas,
+                    width: canvas.style.width,
+                    height: canvas.style.height,
+                    parentHeight: canvas.parentElement?.style.height
+                });
+                canvas.style.width = '100%';
+                canvas.style.height = '200px';
+                if (canvas.parentElement) canvas.parentElement.style.height = '210px';
+            });
+
+            // 4. Options html2pdf qualité maximale
             const options = {
-                margin:      10,
-                filename:    'mon_dossier_bancaire.pdf',
-                image:       { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: true, logging: false },
-                jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                margin:      [12, 10, 12, 10],
+                filename:    'dossier_bancaire_' + new Date().toISOString().slice(0, 10) + '.pdf',
+                image:       { type: 'jpeg', quality: 1 },
+                html2canvas: { scale: 3, useCORS: true, logging: false, letterRendering: true },
+                jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
             };
 
-            html2pdf().set(options).from(zone).save().then(() => {
-                btn.textContent = originalText;
-                btn.disabled = false;
-            }).catch(err => {
-                console.error('Erreur export PDF:', err);
-                btn.textContent = originalText;
-                btn.disabled = false;
-                alert('Une erreur est survenue lors de la génération du PDF.');
-            });
+            // 5. Petit délai pour laisser le navigateur re-rendre avec .pdf-mode
+            setTimeout(() => {
+                html2pdf().set(options).from(zone).save().then(() => {
+                    // 6. Restaurer l'état normal
+                    document.body.classList.remove('pdf-mode');
+                    canvases.forEach((canvas, i) => {
+                        canvas.style.width = originalSizes[i].width;
+                        canvas.style.height = originalSizes[i].height;
+                        if (canvas.parentElement) canvas.parentElement.style.height = originalSizes[i].parentHeight;
+                    });
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                }).catch(err => {
+                    console.error('Erreur export PDF:', err);
+                    document.body.classList.remove('pdf-mode');
+                    canvases.forEach((canvas, i) => {
+                        canvas.style.width = originalSizes[i].width;
+                        canvas.style.height = originalSizes[i].height;
+                        if (canvas.parentElement) canvas.parentElement.style.height = originalSizes[i].parentHeight;
+                    });
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    alert('Une erreur est survenue lors de la génération du PDF.');
+                });
+            }, 150);
         });
 
         // Chargement depuis URL hash (partage)
