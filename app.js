@@ -456,7 +456,19 @@ document.addEventListener('DOMContentLoaded', () => {
         res_real_balance_info: "Le bilan financier net ajusté pour tenir compte de l'inflation. Il représente le gain ou la perte en pouvoir d'achat par rapport à aujourd'hui.",
         bilan_patrimonial_info: "Gain ou perte sur la valeur du bien (Prix de revente - Coût d'achat global - Frais de revente et IRA). Ne déduit PAS ce que le crédit vous a coûté en intérêts et assurances.",
         bilan_financier_info: "Le véritable résultat net de toute l'opération sur votre compte en banque. C'est le Bilan Patrimonial auquel on soustrait l'ensemble des intérêts et assurances payés à la banque.",
-        P_info: "Prix net vendeur : Le prix affiché par le propriétaire ou l'agence, hors frais supplémentaires.", FAg_info: "Frais d'agence : Pourcentage du prix net vendeur que l'agence immobilière perçoit pour ses services. Ils sont généralement inclus dans le prix final 'Frais d'Agence Inclus' (FAI).", M_info: "Prix du mobilier : Le prix du mobilier éventuellement inclus dans la vente. Ce montant peut être déduit de l'assiette de calcul des frais de notaire sur l'ancien, réduisant ainsi leur coût.", typeBien_info: "Type de bien : 'Ancien' pour les biens existants (frais de notaire plus élevés). 'Neuf' pour les constructions neuves ou VEFA (Vente en l'État Futur d'Achèvement) où les frais de notaire sont réduits.", FN_mode_info: "Calcul Frais Notaire : 'Automatique' utilise un barème notarial estimatif. 'Manuel' vous permet de saisir un montant précis si vous l'avez déjà obtenu.", FN_info: "Frais de notaire : Incluent les taxes (droits de mutation), les émoluments du notaire et les débours. Leur montant dépend du prix du bien et de son type (ancien/neuf).", typeGarantie_info: "Type de garantie du prêt classique : La garantie est une sûreté prise par la banque en cas de non-remboursement du prêt classique. Le PIB/PTB ne requiert pas de garantie spécifique selon la documentation DGAC.", FG_manual_info: "Coût garantie manuel : Si vous avez une estimation précise ou un type de garantie non standard pour le prêt classique, entrez son coût ici.", FD_info: "Frais de dossier bancaire pour le prêt classique : Somme facturée par la banque pour l'étude et la mise en place de votre dossier de prêt immobilier classique. Le PIB/PTB n'a pas de frais de dossier.", T_info: "Montant total des travaux : Coût estimé des rénovations ou aménagements que vous prévoyez de réaliser après l'acquisition. Ce montant s'ajoute au coût total de l'opération et peut être partiellement financé par un PTB.", A_info: "Apport personnel : Somme d'argent dont vous disposez et que vous êtes prêt à investir dans l'opération. Il réduit le montant du crédit à demander.", S_info: "Salaires nets mensuels du foyer : Le total des revenus nets de votre foyer par mois, avant impôt sur le revenu mais après prélèvements sociaux.", AutresCredits_info: "Autres crédits en cours : La somme des mensualités de vos autres crédits (crédit auto, crédit consommation, etc.) qui s'ajoutent à votre charge d'endettement.", AutresCharges_info: "Autres charges mensuelles fixes : Entrez ici le total de vos autres charges mensuelles récurrentes qui ne sont pas des crédits (par exemple, un loyer si vous en payez encore un, pensions alimentaires versées, etc.). Ces charges réduisent votre capacité d'emprunt.", tedt_info: "Taux d'endettement maximal : Pourcentage de vos revenus nets que les banques acceptent généralement comme mensualités de crédits (tous crédits confondus, y compris le nouveau prêt immobilier) et charges fixes. Souvent plafonné à 35%.", rav_info: "Reste à vivre minimal : Somme minimale que la banque estime nécessaire pour vos dépenses courantes après paiement de toutes les mensualités (crédits, nouveau prêt) et charges fixes. Varie selon la composition du foyer et la localisation.", res_credit_info: "Crédit Total Nécessaire = Coût Total de l'Opération (incluant frais de garantie et dossier du prêt classique) - Apport Personnel. Ce montant sera réparti entre le PTB, PIB (si applicable) et le prêt classique.", res_fg_info: "Montant estimé des frais de garantie pour le prêt classique.", res_cto_info: "Coût Total de l'Opération = Prix FAI + Frais de Notaire + Frais de Garantie (prêt classique) + Frais de Dossier (prêt classique) + Frais de Courtier + Coût des Travaux. C'est le montant total à financer avant apport.", pibZone_info: "Zone géographique du bien (A/A bis, B1/B2, C) selon l'arrêté du 1er août 2014. Détermine le montant maximum du PIB et les plafonds de ressources pour la bonification de 3%.", pibRFR_info: "Revenu Fiscal de Référence de votre foyer pour l'année N-2 (ex: avis d'impôt 2024 sur revenus 2023 pour une demande en 2025). Sert à déterminer l'éligibilité à la bonification de 3%.", pibHouseholdSize_info: "Nombre de personnes composant le foyer fiscal (figurant sur l'avis d'imposition). Utilisé pour les plafonds de ressources de la bonification de 3%.", pibBFMRate_info: "Taux d'intérêt nominal proposé par la Banque Française Mutualiste (BFM) avant la bonification de la DGAC. Par défaut 3,74% (valable du 01/01/2025 au 30/06/2025). Ce taux est révisé semestriellement et s'applique au PIB et au PTB.", pibDuration_info: "Durée de remboursement du PIB, entre 3 et 12 ans.", pibInsuranceRate_info: "Taux annuel de l'assurance emprunteur pour le PIB (obligatoire). Saisissez le taux proposé par votre assureur (BFM ou autre). La DGAC ne spécifie pas de taux pour l'assurance groupe BFM du PIB. Mettre 0 si vous ne connaissez pas le taux, mais cela sous-estimera la mensualité réelle.", ptbAgentStatus_info: "Statut de l'agent DGAC/ENAC (Actif ou Retraité). Impacte le montant maximum du PTB.", ptbZone_info: "Zone géographique des travaux. Pertinent pour les agents actifs pour déterminer le montant maximum du PTB. Pour les retraités, le plafond est unique et la zone n'est pas utilisée pour le plafond.", ptbRFR_info: "Revenu Fiscal de Référence N-2 du foyer. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbHouseholdSize_info: "Nombre de personnes au foyer fiscal. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbAmountWanted_info: "Montant que vous souhaitez emprunter via le PTB. Sera plafonné par le montant total des travaux et le maximum autorisé pour le PTB (minimum 7 500€ si pris).", ptbDuration_info: "Durée de remboursement du PTB, entre 3 et 10 ans.", ptbIncludeInsurance_info: "L'assurance pour le PTB est facultative et s'élève à 0,36% du capital emprunté si vous la souscrivez.", fg_montant: "Coût estimé de la garantie pour le prêt classique. Le PIB/PTB n'exige pas de caution spécifique selon la documentation DGAC.", taeg_comp_info: "TAEG (Taux Annuel Effectif Global) du Prêt Classique : Coût total du prêt classique exprimé en pourcentage annuel. Il intègre son taux d'intérêt nominal, son coût d'assurance, les frais de dossier, les frais de courtier et les frais de garantie. Le PIB/PTB, n'ayant pas de frais de dossier ni de garantie spécifiques, a un coût plus direct.", res_scenarios_info: "Simulation de financement combiné (PTB + PIB + Prêt Classique sur 20 et 25 ans), avec calcul des mensualités, du coût total des crédits, du TAEG du prêt classique, de votre taux d'endettement et du reste à vivre.", res_apport_req_info: "Exigences d'apport : Les banques demandent souvent un apport couvrant au moins les frais d'acquisition (notaire, garantie, dossier, courtier). Un apport de 10% du prix du bien est une règle commune pour rassurer.", cas1_info: "Frais d'acquisition (Notaire, Garantie Prêt Classique, Dossier Prêt Classique, Courtier) + 10% du prix net vendeur : Exigence courante des banques. Votre apport doit couvrir l'ensemble des frais liés à l'acquisition PLUS au moins 10% du prix d'achat du bien.", cas2_info: "10% du coût total de l'opération : Une autre exigence courante, où votre apport doit représenter au moins 10% du montant total de l'opération (incluant tous les frais et travaux).", cas3_info: "Couverture des frais d'acquisition : Le minimum d'apport souvent exigé par les banques, il doit couvrir tous les frais liés à l'acquisition (frais de notaire, frais de garantie, frais de dossier bancaire du prêt classique et frais de courtier).", cas4_info: "Votre apport comparé à 10% du prix du bien hors frais d'agence. Un indicateur de base pour évaluer votre mise de fonds par rapport au prix 'brut' du bien.", cas5_info: "Votre apport comparé à 10% du prix du bien incluant les frais d'agence. Cet indicateur prend en compte le coût du bien tel qu'il est souvent affiché.", cas6_info: "Votre apport comparé à la somme des frais d'acquisition (notaire, garantie prêt classique, dossier prêt classique, courtier) ET de 10% du prix du bien incluant les frais d'agence. C'est un scénario d'apport solide.", classic_only_info: "Estimation du coût total de votre projet si l'intégralité du 'Crédit total nécessaire' était financée par un prêt classique uniquement (aux taux et conditions du prêt classique saisis), incluant les frais de garantie recalculés pour ce montant total.", savings_info: "Différence entre le coût total de l'opération avec un financement 100% classique et le coût total avec l'utilisation des prêts bonifiés (PTB/PIB). Un chiffre positif indique une économie."
+        P_info: "Prix net vendeur : Le prix affiché par le propriétaire ou l'agence, hors frais supplémentaires.", FAg_info: "Frais d'agence : Pourcentage du prix net vendeur que l'agence immobilière perçoit pour ses services. Ils sont généralement inclus dans le prix final 'Frais d'Agence Inclus' (FAI).", M_info: "Prix du mobilier : Le prix du mobilier éventuellement inclus dans la vente. Ce montant peut être déduit de l'assiette de calcul des frais de notaire sur l'ancien, réduisant ainsi leur coût.", typeBien_info: "Type de bien : 'Ancien' pour les biens existants (frais de notaire plus élevés). 'Neuf' pour les constructions neuves ou VEFA (Vente en l'État Futur d'Achèvement) où les frais de notaire sont réduits.", FN_mode_info: "Calcul Frais Notaire : 'Automatique' utilise un barème notarial estimatif. 'Manuel' vous permet de saisir un montant précis si vous l'avez déjà obtenu.", FN_info: "Frais de notaire : Incluent les taxes (droits de mutation), les émoluments du notaire et les débours. Leur montant dépend du prix du bien et de son type (ancien/neuf).", typeGarantie_info: "Type de garantie du prêt classique : La garantie est une sûreté prise par la banque en cas de non-remboursement du prêt classique. Le PIB/PTB ne requiert pas de garantie spécifique selon la documentation DGAC.", FG_manual_info: "Coût garantie manuel : Si vous avez une estimation précise ou un type de garantie non standard pour le prêt classique, entrez son coût ici.", FD_info: "Frais de dossier bancaire pour le prêt classique : Somme facturée par la banque pour l'étude et la mise en place de votre dossier de prêt immobilier classique. Le PIB/PTB n'a pas de frais de dossier.", T_info: "Montant total des travaux : Coût estimé des rénovations ou aménagements que vous prévoyez de réaliser après l'acquisition. Ce montant s'ajoute au coût total de l'opération et peut être partiellement financé par un PTB.", A_info: "Apport personnel : Somme d'argent dont vous disposez et que vous êtes prêt à investir dans l'opération. Il réduit le montant du crédit à demander.", S_info: "Salaires nets mensuels du foyer : Le total des revenus nets de votre foyer par mois, avant impôt sur le revenu mais après prélèvements sociaux.", AutresCredits_info: "Autres crédits en cours : La somme des mensualités de vos autres crédits (crédit auto, crédit consommation, etc.) qui s'ajoutent à votre charge d'endettement.", AutresCharges_info: "Autres charges mensuelles fixes : Entrez ici le total de vos autres charges mensuelles récurrentes qui ne sont pas des crédits (par exemple, un loyer si vous en payez encore un, pensions alimentaires versées, etc.). Ces charges réduisent votre capacité d'emprunt.", tedt_info: "Taux d'endettement maximal : Pourcentage de vos revenus nets que les banques acceptent généralement comme mensualités de crédits (tous crédits confondus, y compris le nouveau prêt immobilier) et charges fixes. Souvent plafonné à 35%.", rav_info: "Reste à vivre minimal : Somme minimale que la banque estime nécessaire pour vos dépenses courantes après paiement de toutes les mensualités (crédits, nouveau prêt) et charges fixes. Varie selon la composition du foyer et la localisation.", res_credit_info: "Crédit Total Nécessaire = Coût Total de l'Opération (incluant frais de garantie et dossier du prêt classique) - Apport Personnel. Ce montant sera réparti entre le PTB, PIB (si applicable) et le prêt classique.", res_fg_info: "Montant estimé des frais de garantie pour le prêt classique.", res_cto_info: "Coût Total de l'Opération = Prix FAI + Frais de Notaire + Frais de Garantie (prêt classique) + Frais de Dossier (prêt classique) + Frais de Courtier + Coût des Travaux. C'est le montant total à financer avant apport.", pibZone_info: "Zone géographique du bien (A/A bis, B1/B2, C) selon l'arrêté du 1er août 2014. Détermine le montant maximum du PIB et les plafonds de ressources pour la bonification de 3%.", pibRFR_info: "Revenu Fiscal de Référence de votre foyer pour l'année N-2 (ex: avis d'impôt 2024 sur revenus 2023 pour une demande en 2025). Sert à déterminer l'éligibilité à la bonification de 3%.", pibHouseholdSize_info: "Nombre de personnes composant le foyer fiscal (figurant sur l'avis d'imposition). Utilisé pour les plafonds de ressources de la bonification de 3%.", pibBFMRate_info: "Taux d'intérêt nominal proposé par la Banque Française Mutualiste (BFM) avant la bonification de la DGAC. Par défaut 3,74% (valable du 01/01/2025 au 30/06/2025). Ce taux est révisé semestriellement et s'applique au PIB et au PTB.", pibDuration_info: "Durée de remboursement du PIB, entre 3 et 12 ans.", pibInsuranceRate_info: "Taux annuel de l'assurance emprunteur pour le PIB (obligatoire). Saisissez le taux proposé par votre assureur (BFM ou autre). La DGAC ne spécifie pas de taux pour l'assurance groupe BFM du PIB. Mettre 0 si vous ne connaissez pas le taux, mais cela sous-estimera la mensualité réelle.", ptbAgentStatus_info: "Statut de l'agent DGAC/ENAC (Actif ou Retraité). Impacte le montant maximum du PTB.", ptbZone_info: "Zone géographique des travaux. Pertinent pour les agents actifs pour déterminer le montant maximum du PTB. Pour les retraités, le plafond est unique et la zone n'est pas utilisée pour le plafond.", ptbRFR_info: "Revenu Fiscal de Référence N-2 du foyer. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbHouseholdSize_info: "Nombre de personnes au foyer fiscal. Utilisé pour le calcul de la bonification du PTB (identique au PIB).", ptbAmountWanted_info: "Montant que vous souhaitez emprunter via le PTB. Sera plafonné par le montant total des travaux et le maximum autorisé pour le PTB (minimum 7 500€ si pris).", ptbDuration_info: "Durée de remboursement du PTB, entre 3 et 10 ans.", ptbIncludeInsurance_info: "L'assurance pour le PTB est facultative et s'élève à 0,36% du capital emprunté si vous la souscrivez.", fg_montant: "Coût estimé de la garantie pour le prêt classique. Le PIB/PTB n'exige pas de caution spécifique selon la documentation DGAC.", taeg_comp_info: "TAEG (Taux Annuel Effectif Global) du Prêt Classique : Coût total du prêt classique exprimé en pourcentage annuel. Il intègre son taux d'intérêt nominal, son coût d'assurance, les frais de dossier, les frais de courtier et les frais de garantie. Le PIB/PTB, n'ayant pas de frais de dossier ni de garantie spécifiques, a un coût plus direct.", res_scenarios_info: "Simulation de financement combiné (PTB + PIB + Prêt Classique sur 20 et 25 ans), avec calcul des mensualités, du coût total des crédits, du TAEG du prêt classique, de votre taux d'endettement et du reste à vivre.", res_apport_req_info: "Exigences d'apport : Les banques demandent souvent un apport couvrant au moins les frais d'acquisition (notaire, garantie, dossier, courtier). Un apport de 10% du prix du bien est une règle commune pour rassurer.", cas1_info: "Frais d'acquisition (Notaire, Garantie Prêt Classique, Dossier Prêt Classique, Courtier) + 10% du prix net vendeur : Exigence courante des banques. Votre apport doit couvrir l'ensemble des frais liés à l'acquisition PLUS au moins 10% du prix d'achat du bien.", cas2_info: "10% du coût total de l'opération : Une autre exigence courante, où votre apport doit représenter au moins 10% du montant total de l'opération (incluant tous les frais et travaux).", cas3_info: "Couverture des frais d'acquisition : Le minimum d'apport souvent exigé par les banques, il doit couvrir tous les frais liés à l'acquisition (frais de notaire, frais de garantie, frais de dossier bancaire du prêt classique et frais de courtier).", cas4_info: "Votre apport comparé à 10% du prix du bien hors frais d'agence. Un indicateur de base pour évaluer votre mise de fonds par rapport au prix 'brut' du bien.", cas5_info: "Votre apport comparé à 10% du prix du bien incluant les frais d'agence. Cet indicateur prend en compte le coût du bien tel qu'il est souvent affiché.", cas6_info: "Votre apport comparé à la somme des frais d'acquisition (notaire, garantie prêt classique, dossier prêt classique, courtier) ET de 10% du prix du bien incluant les frais d'agence. C'est un scénario d'apport solide.", classic_only_info: "Estimation du coût total de votre projet si l'intégralité du 'Crédit total nécessaire' était financée par un prêt classique uniquement (aux taux et conditions du prêt classique saisis), incluant les frais de garantie recalculés pour ce montant total.", savings_info: "Différence entre le coût total de l'opération avec un financement 100% classique et le coût total avec l'utilisation des prêts bonifiés (PTB/PIB). Un chiffre positif indique une économie.",
+        ra_crd_info: "Capital Restant Dû : montant qu'il vous reste à rembourser à la banque à la date choisie, avant le remboursement anticipé.",
+        ra_ira_info_ra: "Indemnités de Remboursement Anticipé : pénalité contractuelle lors d'un remboursement avant terme. Plafonnée légalement à 3 % du CRD ou 6 mois d'intérêts (le plus faible des deux).",
+        ra_breakeven_info: "Option B uniquement — nombre de mois nécessaires pour que la réduction de mensualité compense le coût de l'IRA. Ex : IRA de 1 000 € et économie de 50 €/mois → break-even à 20 mois.",
+        ra_economie_info: "Économie totale réalisée sur les intérêts futurs, après déduction du coût de l'IRA payée. Un chiffre positif signifie un bénéfice net sur toute la durée restante.",
+        comp_ira_info: "Indemnités de Remboursement Anticipé : pénalité si vous remboursez le prêt avant terme (ex : revente). 0 % = exonéré (à négocier à la signature). 3 % = plafond légal maximal.",
+        comp_fraisDossier_info: "Frais facturés par la banque pour l'étude et la mise en place de votre dossier de prêt.",
+        comp_fraisCourtage_info: "Rémunération du courtier en crédit immobilier pour son service d'intermédiation. S'ajoutent au coût total de l'opération.",
+        comp_typeGarantie_info: "Caution (ex : Crédit Logement) : fonds de garantie mutuel, moins cher, partiellement remboursable. Hypothèque conventionnelle : garantie sur le bien, plus coûteuse (~1,5-2%). PPD (Privilège de Prêteur de Deniers) : uniquement sur l'ancien, moins cher que l'hypothèque.",
+        comp_fraisGarantie_info: "Coût de la garantie prise par la banque en cas de défaut de paiement. Varie selon le type : caution ~1 % du capital, hypothèque ~1,5-2 %.",
+        comp_partsSociales_info: "Certaines banques mutualistes exigent la souscription de parts sociales pour obtenir le prêt. Elles ne sont pas récupérables à la revente du bien.",
+        comp_fraisBancaires_info: "Frais mensuels liés au compte ou aux services bancaires associés au prêt (tenue de compte, assurance compte, etc.).",
+        comp_modularite_info: "La modularité permet d'augmenter votre mensualité en cours de prêt (ex : après une hausse de salaire), ce qui réduit la durée et le coût total en intérêts."
     };
 
     // === 0. CONFIGURATION MÉTIER (Phase 0) ===
@@ -1890,22 +1902,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const colorEco = v => `<span style="color:${v >= 0 ? 'var(--primary-color)' : 'var(--danger-color)'};font-weight:700">${v >= 0 ? '+' : ''}${fmt(v)}</span>`;
 
         const html = `
+        <p style="font-size:.75rem;color:var(--text-light-color);margin-bottom:.5rem;">Après le remboursement anticipé, la banque vous propose deux options. Comparez-les ci-dessous.</p>
         <table>
             <thead>
                 <tr>
                     <th>Indicateur</th>
                     <th>Sans RA</th>
-                    <th class="ra-strat-a">Strat. A — Réduire durée</th>
-                    <th class="ra-strat-b">Strat. B — Réduire mensualité</th>
+                    <th class="ra-strat-a">Option A — Même mensualité, finir plus vite</th>
+                    <th class="ra-strat-b">Option B — Mensualité allégée, même durée</th>
                 </tr>
             </thead>
             <tbody>
                 <tr><td>Mensualité restante</td><td>${fmt(raData.sanRA.mensualite)}</td><td class="ra-strat-a">${fmt(raData.stratA.mensualite)}</td><td class="ra-strat-b">${fmt(raData.stratB.mensualite)}</td></tr>
                 <tr><td>Durée restante</td><td>${fmtMois(raData.sanRA.moisRestants)}</td><td class="ra-strat-a">${fmtMois(raData.stratA.moisRestants)} <small>(−${raData.stratA.moisGagnes}m)</small></td><td class="ra-strat-b">${fmtMois(raData.stratB.moisRestants)}</td></tr>
                 <tr><td>Intérêts restants</td><td>${fmt(raData.sanRA.interetsRestants)}</td><td class="ra-strat-a">${fmt(raData.stratA.interetsRestants)}</td><td class="ra-strat-b">${fmt(raData.stratB.interetsRestants)}</td></tr>
-                <tr class="ra-section-head"><td colspan="4">IRA : ${fmt(raData.iraRA)}</td></tr>
-                <tr><td>Économie nette (après IRA)</td><td>—</td><td class="ra-strat-a">${colorEco(raData.stratA.economieNette)}</td><td class="ra-strat-b">${colorEco(raData.stratB.economieNette)}</td></tr>
-                <tr><td>Break-even (mois)</td><td>—</td><td class="ra-strat-a">immédiat (durée réduite)</td><td class="ra-strat-b">${raData.stratB.breakEven != null ? raData.stratB.breakEven + ' mois' : '—'}</td></tr>
+                <tr class="ra-section-head"><td colspan="4">Pénalité bancaire (IRA) : ${fmt(raData.iraRA)}</td></tr>
+                <tr><td>Gain total sur intérêts <span class="info-icon" data-info-key="ra_economie_info">ⓘ</span></td><td>—</td><td class="ra-strat-a">${colorEco(raData.stratA.economieNette)}</td><td class="ra-strat-b">${colorEco(raData.stratB.economieNette)}</td></tr>
+                <tr><td>Délai de récupération <span class="info-icon" data-info-key="ra_breakeven_info">ⓘ</span></td><td>—</td><td class="ra-strat-a">Immédiat (durée réduite)</td><td class="ra-strat-b">${raData.stratB.breakEven != null ? raData.stratB.breakEven + ' mois' : '—'}</td></tr>
             </tbody>
         </table>`;
         setHTMLEl(container, html);
@@ -2591,14 +2604,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Taux nominal (%)</label><input type="number" data-field="tauxNominal" value="${taux}" min="0" max="20" step="0.05"></div>
                 <div class="comp-offer-field"><label>Taux assurance (%)</label><input type="number" data-field="tauxAssurance" value="${ass}" min="0" max="5" step="0.01"><span class="comp-assurance-mensuelle" style="font-size:.7rem;color:var(--text-light-color);white-space:nowrap;"></span></div>
                 <div class="comp-offer-field"><label>Base assurance</label><select data-field="typeAssurance"><option value="initial" selected>Capital initial</option><option value="crd">Sur CRD</option></select></div>
-                <div class="comp-offer-field"><label>Frais de dossier (€)</label><input type="number" data-field="fraisDossier" value="${fraisDoss}" min="0" max="10000" step="100"></div>
-                <div class="comp-offer-field"><label>Frais de courtage (€)</label><input type="number" data-field="fraisCourtage" value="${courtier}" min="0" max="20000" step="100"></div>
-                <div class="comp-offer-field"><label>Type garantie</label><select data-field="typeGarantie">${optCaut}${optHyp}${optPpd}</select></div>
-                <div class="comp-offer-field"><label>Frais garantie (€)</label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
-                <div class="comp-offer-field"><label>Parts sociales (€)</label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
-                <div class="comp-offer-field"><label>Frais bancaires mensuels (€)</label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
-                <div class="comp-offer-field"><label>IRA (% du CRD) <span style="font-size:.7rem;color:var(--text-light-color);">0=exonéré, 3%=max légal</span></label><input type="number" data-field="iraRate" value="3" min="0" max="3" step="0.25"></div>
-                <div class="comp-offer-field"><label>Activer modularité</label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
+                <div class="comp-offer-field"><label>Frais de dossier (€) <span class="info-icon" data-info-key="comp_fraisDossier_info">ⓘ</span></label><input type="number" data-field="fraisDossier" value="${fraisDoss}" min="0" max="10000" step="100"></div>
+                <div class="comp-offer-field"><label>Frais de courtage (€) <span class="info-icon" data-info-key="comp_fraisCourtage_info">ⓘ</span></label><input type="number" data-field="fraisCourtage" value="${courtier}" min="0" max="20000" step="100"></div>
+                <div class="comp-offer-field"><label>Type garantie <span class="info-icon" data-info-key="comp_typeGarantie_info">ⓘ</span></label><select data-field="typeGarantie">${optCaut}${optHyp}${optPpd}</select></div>
+                <div class="comp-offer-field"><label>Frais garantie (€) <span class="info-icon" data-info-key="comp_fraisGarantie_info">ⓘ</span></label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
+                <div class="comp-offer-field"><label>Parts sociales (€) <span class="info-icon" data-info-key="comp_partsSociales_info">ⓘ</span></label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
+                <div class="comp-offer-field"><label>Frais bancaires mensuels (€) <span class="info-icon" data-info-key="comp_fraisBancaires_info">ⓘ</span></label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
+                <div class="comp-offer-field"><label>IRA (% du CRD) <span class="info-icon" data-info-key="comp_ira_info">ⓘ</span></label><input type="number" data-field="iraRate" value="3" min="0" max="3" step="0.25"></div>
+                <div class="comp-offer-field"><label>Activer modularité <span class="info-icon" data-info-key="comp_modularite_info">ⓘ</span></label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
             </div>
             <div class="comp-modularite-section" id="comp_mod_${index}">
                 <div class="comp-offer-grid">
@@ -3329,76 +3342,26 @@ document.addEventListener('DOMContentLoaded', () => {
             getEl('comp_results_container').style.display = 'none';
         });
 
-        // === EXPORT PDF — Dossier Bancaire (mode professionnel) ===
-        getEl('btn_export_pdf')?.addEventListener('click', () => {
-            const zone = getEl('zone_a_exporter');
-            if (!zone) { alert('Zone d\'export introuvable.'); return; }
 
-            const btn = getEl('btn_export_pdf');
-            const originalText = btn.textContent;
-            btn.textContent = '⏳ Génération du PDF en cours…';
-            btn.disabled = true;
-
-            // 1. Injecter la date dans l'en-tête PDF
-            const dateEl = getEl('pdf-date');
-            if (dateEl) {
-                const now = new Date();
-                dateEl.textContent = 'Date : ' + now.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' }) + ' à ' + now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-            }
-
-            // 2. Activer le mode PDF (force le CSS d'impression)
-            document.body.classList.add('pdf-mode');
-
-            // 3. Redimensionner les canvas Chart.js pour un rendu propre
-            const canvases = zone.querySelectorAll('canvas');
-            const originalSizes = [];
-            canvases.forEach(canvas => {
-                originalSizes.push({
-                    el: canvas,
-                    width: canvas.style.width,
-                    height: canvas.style.height,
-                    parentHeight: canvas.parentElement?.style.height
-                });
-                canvas.style.width = '100%';
-                canvas.style.height = '200px';
-                if (canvas.parentElement) canvas.parentElement.style.height = '210px';
+        // === SELECTS ABRÉGÉS — texte court en mode fermé, texte complet à l'ouverture ===
+        function setupAbbreviatedSelect(sel) {
+            if (!sel) return;
+            sel.querySelectorAll('option').forEach(opt => {
+                if (!opt.dataset.full) opt.dataset.full = opt.text;
+                if (!opt.dataset.short) opt.dataset.short = opt.text.split('(')[0].trim();
             });
-
-            // 4. Options html2pdf qualité maximale
-            const options = {
-                margin:      [12, 10, 12, 10],
-                filename:    'dossier_bancaire_' + new Date().toISOString().slice(0, 10) + '.pdf',
-                image:       { type: 'jpeg', quality: 1 },
-                html2canvas: { scale: 3, useCORS: true, logging: false, letterRendering: true },
-                jsPDF:       { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                pagebreak:   { mode: ['avoid-all', 'css', 'legacy'] }
+            const abbreviate = () => {
+                sel.querySelectorAll('option').forEach(opt => { opt.text = opt.dataset.short; });
             };
-
-            // 5. Petit délai pour laisser le navigateur re-rendre avec .pdf-mode
-            setTimeout(() => {
-                html2pdf().set(options).from(zone).save().then(() => {
-                    // 6. Restaurer l'état normal
-                    document.body.classList.remove('pdf-mode');
-                    canvases.forEach((canvas, i) => {
-                        canvas.style.width = originalSizes[i].width;
-                        canvas.style.height = originalSizes[i].height;
-                        if (canvas.parentElement) canvas.parentElement.style.height = originalSizes[i].parentHeight;
-                    });
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                }).catch(err => {
-                    console.error('Erreur export PDF:', err);
-                    document.body.classList.remove('pdf-mode');
-                    canvases.forEach((canvas, i) => {
-                        canvas.style.width = originalSizes[i].width;
-                        canvas.style.height = originalSizes[i].height;
-                        if (canvas.parentElement) canvas.parentElement.style.height = originalSizes[i].parentHeight;
-                    });
-                    btn.textContent = originalText;
-                    btn.disabled = false;
-                    alert('Une erreur est survenue lors de la génération du PDF.');
-                });
-            }, 150);
+            sel.addEventListener('mousedown', () => {
+                sel.querySelectorAll('option').forEach(opt => { opt.text = opt.dataset.full; });
+            });
+            sel.addEventListener('change', abbreviate);
+            sel.addEventListener('blur', abbreviate);
+            abbreviate();
+        }
+        ['chargeAgence', 'optimizer_mode', 'ira_mode', 'typeAssuranceClassique'].forEach(id => {
+            setupAbbreviatedSelect(getEl(id));
         });
 
         // Chargement depuis URL hash (partage)

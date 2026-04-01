@@ -6,8 +6,6 @@
     <title>Simulateur Achat Immobilier V6.4</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <!-- html2pdf.js — export PDF dossier bancaire -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <main class="container">
@@ -45,8 +43,8 @@
                         <div class="input-item">
                             <label for="chargeAgence">Frais d'agence à la charge : <span class="info-icon" data-info-key="chargeAgence_info">ⓘ</span></label>
                             <select id="chargeAgence">
-                                <option value="acquereur" selected>Acquéreur (Moins de frais de notaire)</option>
-                                <option value="vendeur">Vendeur (Moins d'apport exigé)</option>
+                                <option value="acquereur" selected data-short="Acquéreur">Acquéreur (Moins de frais de notaire)</option>
+                                <option value="vendeur" data-short="Vendeur">Vendeur (Moins d'apport exigé)</option>
                             </select>
                         </div>
                         <div class="summary-line">
@@ -244,8 +242,8 @@
                             <div class="input-item">
                                 <label for="typeAssuranceClassique">Base calcul assurance :</label>
                                 <select id="typeAssuranceClassique">
-                                    <option value="initial" selected>Capital initial (CIO)</option>
-                                    <option value="crd">Capital restant dû (CRD)</option>
+                                    <option value="initial" selected data-short="Capital initial">Capital initial (CIO)</option>
+                                    <option value="crd" data-short="Capital restant dû">Capital restant dû (CRD)</option>
                                 </select>
                             </div>
                         </div>
@@ -349,23 +347,7 @@
                     </div>
                 </div>
             </section>
-            <!-- Bouton export PDF — visible uniquement quand des résultats sont présents -->
-            <div style="display:flex; justify-content:flex-end; margin-bottom:.6rem;">
-                <button id="btn_export_pdf" class="btn-export-pdf">📄 Exporter mon Dossier Bancaire (PDF)</button>
-            </div>
 
-            <!-- Zone encadrée pour l'export PDF (résumé + scénarios + graphiques) -->
-            <div id="zone_a_exporter">
-
-            <!-- En-tête PDF (caché à l'écran, visible uniquement en .pdf-mode) -->
-            <div class="pdf-header">
-                <h1 class="pdf-title">Rapport d'Ingénierie Financière Immobilière</h1>
-                <p class="pdf-subtitle">Analyse complète du plan de financement</p>
-                <div class="pdf-meta">
-                    <span>Client : ___________________________</span>
-                    <span id="pdf-date">Date : —</span>
-                </div>
-            </div>
 
             <section id="results-section" class="card">
                 <div class="result-column">
@@ -481,8 +463,8 @@
                         <div class="input-item" style="margin:0;">
                             <label style="font-size:.8rem;">Mode :</label>
                             <select id="optimizer_mode" style="min-width:200px; max-width:260px; font-size:.8rem;">
-                                <option value="mensualite_max">A — Mensualité max (durée la plus courte)</option>
-                                <option value="cout_min">B — Coude de la courbe (coût optimal)</option>
+                                <option value="mensualite_max" data-short="A — Mensualité max">A — Mensualité max (durée la plus courte)</option>
+                                <option value="cout_min" data-short="B — Coude de la courbe">B — Coude de la courbe (coût optimal)</option>
                             </select>
                         </div>
                         <div class="input-item" id="optimizer_target_container" style="margin:0;">
@@ -527,13 +509,6 @@
             </section>
             <!-- ===== /PHASE 2 ===== -->
 
-            <!-- Pied de page PDF (caché à l'écran, visible uniquement en .pdf-mode) -->
-            <div class="pdf-footer">
-                Document généré à titre indicatif. Ne constitue pas une offre de prêt.<br>
-                Les résultats présentés sont des estimations basées sur les paramètres saisis et ne sauraient engager la responsabilité de l'éditeur.
-            </div>
-
-            </div><!-- /zone_a_exporter -->
 
             <!-- ===== PHASE 3 ===== -->
             <section id="phase3-section" class="card">
@@ -573,7 +548,7 @@
                 <div class="input-column">
                     <div class="input-group">
                         <h3>⏩ Remboursement Anticipé Partiel (RA)</h3>
-                        <p class="section-description">Simulez l'impact d'un remboursement anticipé partiel sur votre prêt classique. L'IRA est calculée selon les plafonds légaux saisis dans la section Revente.</p>
+                        <p class="section-description">Vous disposez d'une somme et souhaitez rembourser une partie de votre prêt avant son terme ? Deux options s'offrent à vous : <strong>finir de rembourser plus vite</strong> (même mensualité) ou <strong>alléger vos mensualités</strong> (même durée). Cette section compare ces deux stratégies et calcule l'éventuelle pénalité bancaire (IRA).</p>
                         <div class="input-item">
                             <label for="raMois">Mois du remboursement (n°) :</label>
                             <input type="range" id="raMois" min="1" max="360" value="60" step="1">
@@ -585,15 +560,15 @@
                             <input type="number" id="raMontant_num" min="0" max="200000" value="20000" step="1000">
                         </div>
                         <div id="ra_info_box" style="background:#f0f8ff; padding:8px; border-radius:4px; font-size:.75rem; color:var(--text-light-color); margin-top:4px; display:none;">
-                            <p style="margin:2px 0;">CRD au mois <strong id="ra_mois_display">60</strong> : <strong id="ra_crd_display">—</strong> €</p>
-                            <p style="margin:2px 0;">IRA estimée : <strong id="ra_ira_display" style="color:var(--danger-color)">—</strong> €</p>
+                            <p style="margin:2px 0;">Capital restant dû <span class="info-icon" data-info-key="ra_crd_info">ⓘ</span> au mois <strong id="ra_mois_display">60</strong> : <strong id="ra_crd_display">—</strong> €</p>
+                            <p style="margin:2px 0;">Pénalité bancaire (IRA) <span class="info-icon" data-info-key="ra_ira_info_ra">ⓘ</span> : <strong id="ra_ira_display" style="color:var(--danger-color)">—</strong> €</p>
                             <p style="margin:2px 0;">Montant net investi (RA + IRA) : <strong id="ra_net_invested">—</strong> €</p>
                         </div>
                     </div>
                 </div>
                 <div class="result-column">
                     <div class="result-group">
-                        <h3>⏩ Comparaison Stratégies Post-RA</h3>
+                        <h3>⏩ Que faire après un remboursement anticipé ?</h3>
                         <div id="ra_table_container">
                             <p style="color:var(--text-light-color);font-size:.75rem;">Configurez un montant de prêt classique non nul pour activer cette analyse.</p>
                         </div>
@@ -651,8 +626,8 @@
                         <div class="input-item">
                             <label for="ira_mode">Pénalités remb. anticipé (IRA) :</label>
                             <select id="ira_mode">
-                                <option value="percentage">Plafonds légaux avec taux (%)</option>
-                                <option value="manual">Montant global manuel (€)</option>
+                                <option value="percentage" data-short="Plafonds légaux (%)">Plafonds légaux avec taux (%)</option>
+                                <option value="manual" data-short="Montant manuel (€)">Montant global manuel (€)</option>
                             </select>
                         </div>
                         
