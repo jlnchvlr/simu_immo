@@ -446,7 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
         duree_info: "Durée du prêt classique : entre 10 et 30 ans. Le slider de durée met à jour en temps réel tous les résultats et la courbe durée/coût.",
         TE_info: "Taux d'intérêt nominal annuel du prêt classique, hors assurance.",
         TA_info: "Taux annuel de l'assurance emprunteur pour le prêt classique.",
-        chargeAgence_info: "Charge Acquéreur : Les frais d'agence sont exclus du calcul des frais de notaire (économie), mais la banque exigera souvent que vous les payiez avec votre apport personnel. Charge Vendeur : L'agence est incluse dans le prix, le notaire taxe le tout (plus cher), mais la banque le finance plus facilement (moins d'apport exigé).",
+        chargeAgence_info: "Acquéreur : les frais d'agence sont exclus du calcul des frais de notaire (économie sur les frais de notaire), mais la banque exige souvent que vous les payiez sur votre apport. Vendeur : l'agence est incluse dans le prix de vente, le notaire taxe le tout (frais de notaire plus élevés), mais la banque peut financer la totalité (moins d'apport exigé).",
+        optimizer_mode_info: "A — Mensualité max : trouve la durée la plus courte en restant sous la mensualité cible saisie. B — Coude de la courbe : trouve le point où rallonger la durée ne réduit plus significativement le coût total (optimum coût/durée).",
+        typeAssurance_info: "Capital initial (CIO) : la prime d'assurance est calculée sur le capital emprunté au départ — elle reste constante toute la durée du prêt. Capital restant dû (CRD) : la prime diminue chaque mois au fil des remboursements — souvent moins chère sur le long terme.",
         Courtier_info: "Frais de courtage : Rémunération du courtier en crédit immobilier pour son service d'intermédiation avec les banques. Ces frais s'ajoutent au coût total.",
         resaleHorizon_info: "Nombre d'années après l'achat auquel vous simulez la revente du bien.",
         plusValue_info: "Estimation de l'évolution de la valeur du bien. Vous pouvez choisir un taux annuel ou entrer le prix final directement.",
@@ -466,7 +468,10 @@ document.addEventListener('DOMContentLoaded', () => {
         comp_fraisCourtage_info: "Rémunération du courtier en crédit immobilier pour son service d'intermédiation. S'ajoutent au coût total de l'opération.",
         comp_typeGarantie_info: "Caution (ex : Crédit Logement) : fonds de garantie mutuel, moins cher, partiellement remboursable. Hypothèque conventionnelle : garantie sur le bien, plus coûteuse (~1,5-2%). PPD (Privilège de Prêteur de Deniers) : uniquement sur l'ancien, moins cher que l'hypothèque.",
         comp_fraisGarantie_info: "Coût de la garantie prise par la banque en cas de défaut de paiement. Varie selon le type : caution ~1 % du capital, hypothèque ~1,5-2 %.",
-        comp_partsSociales_info: "Certaines banques mutualistes exigent la souscription de parts sociales pour obtenir le prêt. Elles ne sont pas récupérables à la revente du bien.",
+        comp_partsSociales_info: "Certaines banques mutualistes exigent la souscription de parts sociales pour obtenir le prêt. Elles sont récupérables à la clôture du compte, indépendamment des frais de garantie.",
+        comp_cautionCommission_info: "Part des frais de caution qui correspond à la commission non remboursable de l'organisme (ex: 30% → 3 000 € sur 10 000 € de frais).",
+        comp_cautionFmg_info: "Part des frais de caution versée dans le Fonds Mutuel de Garantie (ex: 70% → 7 000 € sur 10 000 €). La somme commission + FMG doit faire 100%.",
+        comp_cautionRestitution_info: "Pourcentage du FMG restitué à la revente / remboursement (ex: 75% → 5 250 € récupérés sur 7 000 € de FMG).",
         comp_fraisBancaires_info: "Frais mensuels liés au compte ou aux services bancaires associés au prêt (tenue de compte, assurance compte, etc.).",
         comp_modularite_info: "La modularité permet d'augmenter votre mensualité en cours de prêt (ex : après une hausse de salaire), ce qui réduit la durée et le coût total en intérêts."
     };
@@ -2619,6 +2624,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="comp-offer-field"><label>Hausse mensualité (%)</label><input type="number" data-field="haussePct" value="10" min="0" max="50" step="0.5"></div>
                 </div>
             </div>
+            <div class="comp-caution-section" id="comp_caut_${index}" style="display:${typeGar === 'caution' ? 'block' : 'none'}">
+                <div style="font-size:.75rem;font-weight:600;color:var(--text-light-color);margin:6px 0 4px;text-transform:uppercase;letter-spacing:.04em;">Détail caution</div>
+                <div class="comp-offer-grid">
+                    <div class="comp-offer-field"><label>Commission (% des frais) <span class="info-icon" data-info-key="comp_cautionCommission_info">ⓘ</span></label><input type="number" data-field="cautionCommissionPct" value="30" min="0" max="100" step="1"></div>
+                    <div class="comp-offer-field"><label>Part FMG (% des frais) <span class="info-icon" data-info-key="comp_cautionFmg_info">ⓘ</span></label><input type="number" data-field="cautionFmgPct" value="70" min="0" max="100" step="1"></div>
+                    <div class="comp-offer-field"><label>Restitution FMG (%) <span class="info-icon" data-info-key="comp_cautionRestitution_info">ⓘ</span></label><input type="number" data-field="cautionRestitutionPct" value="75" min="0" max="100" step="1"></div>
+                </div>
+            </div>
         </div>`;
     }
 
@@ -2696,6 +2709,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = document.getElementById(`comp_mod_${idx}`);
             if (section) section.style.display = e.target.checked ? 'block' : 'none';
         });
+        card.querySelector('[data-field="typeGarantie"]')?.addEventListener('change', (e) => {
+            const idx = card.dataset.offerIndex;
+            const section = document.getElementById(`comp_caut_${idx}`);
+            if (section) section.style.display = e.target.value === 'caution' ? 'block' : 'none';
+        });
         // Affichage mensualité assurance en €
         const updateAssLabel = () => {
             const montant = parseFloat(card.querySelector('[data-field="montant"]')?.value || 0);
@@ -2733,6 +2751,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 typeAssurance: sel('typeAssurance', 'initial'),
                 fraisDossier: num('fraisDossier'), fraisCourtage: num('fraisCourtage'),
                 typeGarantie: sel('typeGarantie', 'caution'), fraisGarantie: num('fraisGarantie'),
+                cautionCommissionPct: num('cautionCommissionPct') || 30,
+                cautionFmgPct: num('cautionFmgPct') || 70,
+                cautionRestitutionPct: num('cautionRestitutionPct') || 75,
                 partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
                 iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)), activerModularite: bool('activerModularite'),
                 moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
@@ -2746,6 +2767,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return offres.map(offre => {
             const { montant, dureeAns, tauxNominal, tauxAssurance, typeAssurance,
                     fraisDossier, fraisCourtage, fraisGarantie, partsSociales,
+                    cautionFmgPct, cautionRestitutionPct,
                     fraisBancairesMensuels, activerModularite, moisActivation, haussePct } = offre;
 
             if (montant <= 0) return null;
@@ -2797,7 +2819,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (offre.typeGarantie === 'hypotheque') {
                 fraisSortie = capitalRestant * 0.007; // mainlevée estimée
             } else if (offre.typeGarantie === 'caution') {
-                restitutions = partsSociales * 0.75; // restitution partielle FMG estimée
+                const fmg = fraisGarantie * (cautionFmgPct / 100);
+                restitutions = fmg * (cautionRestitutionPct / 100);
             }
 
             const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + ira + fraisSortie - restitutions);
@@ -3343,26 +3366,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
 
-        // === SELECTS ABRÉGÉS — texte court en mode fermé, texte complet à l'ouverture ===
-        function setupAbbreviatedSelect(sel) {
-            if (!sel) return;
-            sel.querySelectorAll('option').forEach(opt => {
-                if (!opt.dataset.full) opt.dataset.full = opt.text;
-                if (!opt.dataset.short) opt.dataset.short = opt.text.split('(')[0].trim();
-            });
-            const abbreviate = () => {
-                sel.querySelectorAll('option').forEach(opt => { opt.text = opt.dataset.short; });
-            };
-            sel.addEventListener('mousedown', () => {
-                sel.querySelectorAll('option').forEach(opt => { opt.text = opt.dataset.full; });
-            });
-            sel.addEventListener('change', abbreviate);
-            sel.addEventListener('blur', abbreviate);
-            abbreviate();
-        }
-        ['chargeAgence', 'optimizer_mode', 'ira_mode', 'typeAssuranceClassique'].forEach(id => {
-            setupAbbreviatedSelect(getEl(id));
-        });
 
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();

@@ -176,6 +176,9 @@ body {
 .input-item select#typeGarantie { min-width: 120px; max-width: 160px; }
 .input-item select#resaleScenarioRef, .input-item select#pv_mode,
 .input-item select#inflation_mode, .input-item select#ira_mode { min-width: 140px; max-width: 200px; }
+.input-item select#chargeAgence { min-width: 110px; max-width: 160px; }
+.input-item select#typeAssuranceClassique { min-width: 170px; max-width: 210px; }
+.input-item select#optimizer_mode { min-width: 165px; max-width: 210px; }
 .input-item input[type="number"]:focus, .input-item select:focus {
     border-color: var(--primary-color); outline: none;
     box-shadow: 0 0 0 3px rgba(5, 150, 105, .12);
