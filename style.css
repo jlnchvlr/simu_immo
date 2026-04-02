@@ -592,6 +592,7 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
 .pricing-total td { background: var(--secondary-color) !important; color: #fff !important; font-weight: 700 !important; font-size: .82rem !important; }
 .pricing-total td:first-child { background: var(--secondary-hover) !important; }
 .pricing-winner-cell { background: var(--primary-color) !important; color: #fff !important; font-weight: 900 !important; font-size: .88rem !important; }
+.comp-delta { display: block; font-size: .72rem; font-weight: 500; opacity: .85; margin-top: 2px; }
 
 .disabled-section { opacity: 0.4; pointer-events: none; }
 

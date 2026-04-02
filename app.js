@@ -2905,7 +2905,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 html += `<tr><td>${row.label}</td>${results.map(r => `<td>${row.fmt(r[row.key])}</td>`).join('')}</tr>`;
             }
             html += `<tr class="pricing-total"><td>💰 Coût Réel Net à ${horizonAns} ans</td>`;
-            html += results.map((r, i) => `<td class="${i === winnerIdx ? 'pricing-winner-cell' : ''}">${formatCurrency(r.coutGlobalReel)} €${i === winnerIdx ? ' 🏆' : ''}</td>`).join('');
+            const bestCout = results[winnerIdx].coutGlobalReel;
+            html += results.map((r, i) => {
+                const delta = i !== winnerIdx ? ` <span class="comp-delta">+${formatCurrency(r.coutGlobalReel - bestCout)} €</span>` : ' 🏆';
+                return `<td class="${i === winnerIdx ? 'pricing-winner-cell' : ''}">${formatCurrency(r.coutGlobalReel)} €${delta}</td>`;
+            }).join('');
             html += `</tr></tbody>`;
             table.innerHTML = html;
         }
