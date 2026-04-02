@@ -555,6 +555,12 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
     transition: color .2s;
 }
 .comp-offer-remove:hover { color: var(--danger-color); }
+.comp-offer-duplicate {
+    position: absolute; top: 10px; right: 38px; background: none; border: none;
+    font-size: 1.1rem; color: var(--text-muted); cursor: pointer; line-height: 1;
+    transition: color .2s;
+}
+.comp-offer-duplicate:hover { color: var(--primary-color); }
 .comp-modularite-section {
     display: none; margin-top: .7rem; padding: .7rem;
     background: var(--secondary-light); border-radius: var(--border-radius-small);

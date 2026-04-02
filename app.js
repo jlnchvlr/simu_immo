@@ -2600,6 +2600,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return `
         <div class="comp-offer-card${index === 0 ? ' reference-offer' : ''}" data-offer-index="${index}">
             ${index > 0 ? `<button class="comp-offer-remove" title="Supprimer">&times;</button>` : ''}
+            <button class="comp-offer-duplicate" title="Dupliquer cette offre">⎘</button>
             <div class="comp-offer-title">
                 Offre ${index + 1} — <input type="text" class="comp-offer-name-input" data-field="nom" value="${nom}">
             </div>
@@ -2690,6 +2691,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function attachOffreEvents(card) {
         if (!card) return;
+        card.querySelector('.comp-offer-duplicate')?.addEventListener('click', () => {
+            const container = getEl('comp_offers_container');
+            if (!container || _offerCount >= 4) return;
+            const div = document.createElement('div');
+            div.innerHTML = buildOffreCardHTML(_offerCount, null);
+            const newCard = div.firstElementChild;
+            container.appendChild(newCard);
+            // Copier toutes les valeurs de la carte source
+            card.querySelectorAll('[data-field]').forEach(src => {
+                const dst = newCard.querySelector(`[data-field="${src.dataset.field}"]`);
+                if (!dst) return;
+                if (src.type === 'checkbox') dst.checked = src.checked;
+                else dst.value = src.value;
+            });
+            // Copier le nom avec suffixe
+            const nameEl = newCard.querySelector('[data-field="nom"]');
+            if (nameEl) nameEl.value = (card.querySelector('[data-field="nom"]')?.value || 'Banque') + ' (copie)';
+            // Synchroniser l'affichage des sections conditionnelles
+            const newIdx = _offerCount;
+            const typeGar = newCard.querySelector('[data-field="typeGarantie"]')?.value;
+            const cautSection = document.getElementById(`comp_caut_${newIdx}`);
+            if (cautSection) cautSection.style.display = typeGar === 'caution' ? 'block' : 'none';
+            const modChecked = newCard.querySelector('[data-field="activerModularite"]')?.checked;
+            const modSection = document.getElementById(`comp_mod_${newIdx}`);
+            if (modSection) modSection.style.display = modChecked ? 'block' : 'none';
+            attachOffreEvents(newCard);
+            _offerCount++;
+        });
         card.querySelector('.comp-offer-remove')?.addEventListener('click', () => {
             card.remove();
             _offerCount = Math.max(1, _offerCount - 1);
@@ -2751,9 +2780,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 typeAssurance: sel('typeAssurance', 'initial'),
                 fraisDossier: num('fraisDossier'), fraisCourtage: num('fraisCourtage'),
                 typeGarantie: sel('typeGarantie', 'caution'), fraisGarantie: num('fraisGarantie'),
-                cautionCommissionPct: num('cautionCommissionPct') || 30,
-                cautionFmgPct: num('cautionFmgPct') || 70,
-                cautionRestitutionPct: num('cautionRestitutionPct') || 75,
+                cautionCommissionPct: get('cautionCommissionPct')?.value !== '' ? num('cautionCommissionPct') : 30,
+                cautionFmgPct: get('cautionFmgPct')?.value !== '' ? num('cautionFmgPct') : 70,
+                cautionRestitutionPct: get('cautionRestitutionPct')?.value !== '' ? num('cautionRestitutionPct') : 75,
                 partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
                 iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)), activerModularite: bool('activerModularite'),
                 moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
