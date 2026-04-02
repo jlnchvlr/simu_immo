@@ -3400,6 +3400,180 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+        // === ONGLET 4 — Renégociation & Rachat de Crédit ===
+        function calculerRenegociation() {
+            const crd = parseFloat(getEl('renego_crd')?.value) || 0;
+            const dureeRestanteAnnees = parseFloat(getEl('renego_duree_restante')?.value) || 0;
+            const tauxActuel = parseFloat(getEl('renego_taux_actuel')?.value) || 0;
+            const assuranceActuelle = parseFloat(getEl('renego_assurance_actuelle')?.value) || 0;
+            const nouveauTaux = parseFloat(getEl('renego_nouveau_taux')?.value) || 0;
+            const nouvelleAssurance = parseFloat(getEl('renego_nouvelle_assurance')?.value) || 0;
+            const fraisDossier = parseFloat(getEl('renego_frais_dossier')?.value) || 0;
+            const fraisGarantie = parseFloat(getEl('renego_frais_garantie')?.value) || 0;
+            const strategie = document.querySelector('input[name="renego_strategie"]:checked')?.value || 'A';
+
+            const dureeRestanteMois = Math.round(dureeRestanteAnnees * 12);
+            const resultsEl = getEl('renego_results');
+
+            // Protections
+            if (crd <= 0 || dureeRestanteMois <= 0) {
+                if (resultsEl) resultsEl.style.display = 'none';
+                return;
+            }
+
+            // === Mensualité actuelle (hors assurance) ===
+            const mensualiteActuelle = calculerMensualiteCredit(crd, tauxActuel, dureeRestanteMois);
+
+            // === IRA légaux : Min(3% du CRD, 6 mois d'intérêts sur le CRD) ===
+            const ira3pct = crd * 0.03;
+            const ira6mois = crd * (tauxActuel / 100) / 2;
+            const ira = Math.min(ira3pct, ira6mois);
+
+            // === Nouveau capital = CRD + IRA + frais garantie + frais dossier ===
+            const nouveauCapital = crd + ira + fraisGarantie + fraisDossier;
+            const fraisTotal = ira + fraisGarantie + fraisDossier;
+
+            let nouvelleMensualite, nouvelleDureeMois, coutNouveauPret, gainNet, breakEvenMois;
+
+            if (strategie === 'A') {
+                // Même durée, nouvelle mensualité
+                nouvelleDureeMois = dureeRestanteMois;
+                nouvelleMensualite = calculerMensualiteCredit(nouveauCapital, nouveauTaux, nouvelleDureeMois);
+            } else {
+                // Même mensualité, durée réduite
+                nouvelleMensualite = mensualiteActuelle;
+                // Isoler N : N = -ln(1 - C*r/M) / ln(1+r)
+                const r = toMonthlyRate(nouveauTaux);
+                if (r > 0 && nouvelleMensualite > 0) {
+                    const x = 1 - (nouveauCapital * r) / nouvelleMensualite;
+                    if (x <= 0) {
+                        // La mensualité actuelle ne couvre même pas les intérêts du nouveau capital
+                        afficherRenegociationImpossible(resultsEl, fraisTotal);
+                        return;
+                    }
+                    nouvelleDureeMois = Math.ceil(-Math.log(x) / Math.log(1 + r));
+                } else if (r === 0 && nouvelleMensualite > 0) {
+                    nouvelleDureeMois = Math.ceil(nouveauCapital / nouvelleMensualite);
+                } else {
+                    afficherRenegociationImpossible(resultsEl, fraisTotal);
+                    return;
+                }
+            }
+
+            // === Coûts globaux ===
+            const coutAncienPret = (mensualiteActuelle + assuranceActuelle) * dureeRestanteMois;
+            coutNouveauPret = (nouvelleMensualite + nouvelleAssurance) * nouvelleDureeMois;
+            gainNet = coutAncienPret - coutNouveauPret;
+
+            // === Point mort ===
+            if (strategie === 'A') {
+                // Gain mensuel = ancienne mensualité globale - nouvelle mensualité globale
+                const gainMensuel = (mensualiteActuelle + assuranceActuelle) - (nouvelleMensualite + nouvelleAssurance);
+                if (gainMensuel > 0) {
+                    breakEvenMois = Math.ceil(fraisTotal / gainMensuel);
+                } else {
+                    breakEvenMois = Infinity;
+                }
+            } else {
+                // Stratégie B : point mort = frais / (différence de coût total mensuel moyen)
+                if (gainNet > 0 && nouvelleDureeMois > 0) {
+                    // On calcule le break-even comme le mois à partir duquel les économies cumulées dépassent les frais
+                    const gainMensuel = (mensualiteActuelle + assuranceActuelle) - (nouvelleMensualite + nouvelleAssurance);
+                    if (gainMensuel > 0) {
+                        breakEvenMois = Math.ceil(fraisTotal / gainMensuel);
+                    } else {
+                        // Avec stratégie B, le gain vient de la durée réduite — les mois épargnés après la fin du nouveau prêt
+                        const moisEconomises = dureeRestanteMois - nouvelleDureeMois;
+                        if (moisEconomises > 0) {
+                            breakEvenMois = nouvelleDureeMois; // Le gain se matérialise à la fin du nouveau prêt
+                        } else {
+                            breakEvenMois = Infinity;
+                        }
+                    }
+                } else {
+                    breakEvenMois = Infinity;
+                }
+            }
+
+            // === Affichage ===
+            if (resultsEl) resultsEl.style.display = 'block';
+
+            const fmt = v => formatCurrency(Math.round(v)) + ' €';
+
+            setText('renego_mens_actuelle', fmt(mensualiteActuelle + assuranceActuelle));
+            setText('renego_mens_nouvelle', fmt(nouvelleMensualite + nouvelleAssurance));
+
+            // Affichage durée si stratégie B
+            const durationRow = getEl('renego_new_duration_row');
+            if (strategie === 'B' && durationRow) {
+                durationRow.style.display = 'flex';
+                const annees = Math.floor(nouvelleDureeMois / 12);
+                const mois = nouvelleDureeMois % 12;
+                setText('renego_new_duration', annees > 0 ? `${annees} an${annees > 1 ? 's' : ''} et ${mois} mois` : `${mois} mois`);
+            } else if (durationRow) {
+                durationRow.style.display = 'none';
+            }
+
+            // Frais
+            setText('renego_frais_total', fmt(fraisTotal));
+            setText('renego_frais_detail', `IRA : ${fmt(ira)} · Garantie : ${fmt(fraisGarantie)} · Dossier : ${fmt(fraisDossier)}`);
+
+            // Gain net
+            setText('renego_gain_net', (gainNet >= 0 ? '+' : '') + fmt(gainNet));
+            setText('renego_gain_detail', `Coût ancien : ${fmt(coutAncienPret)} → Coût nouveau : ${fmt(coutNouveauPret)}`);
+            const gainCard = document.querySelector('.renego-kpi--gain');
+            if (gainCard) {
+                gainCard.classList.toggle('renego-kpi--negative', gainNet < 0);
+            }
+
+            // Break-even
+            if (breakEvenMois === Infinity || !isFinite(breakEvenMois) || breakEvenMois <= 0) {
+                setText('renego_breakeven', 'Non rentable');
+                setText('renego_breakeven_detail', 'La renégociation ne génère pas d\'économie');
+            } else {
+                const beAnnees = Math.floor(breakEvenMois / 12);
+                const beMois = breakEvenMois % 12;
+                const beText = beAnnees > 0
+                    ? `${beAnnees} an${beAnnees > 1 ? 's' : ''} et ${beMois} mois`
+                    : `${beMois} mois`;
+                setText('renego_breakeven', beText);
+                setText('renego_breakeven_detail', `L'opération devient rentable dans ${beText}`);
+            }
+
+            // Verdict
+            const verdictEl = getEl('renego_verdict');
+            if (verdictEl) {
+                if (gainNet > 0 && breakEvenMois < dureeRestanteMois) {
+                    verdictEl.className = 'renego-verdict renego-verdict--positive';
+                    verdictEl.textContent = `✅ Renégociation rentable ! Vous économisez ${fmt(gainNet)} sur la durée restante.`;
+                } else if (gainNet > 0 && breakEvenMois >= dureeRestanteMois) {
+                    verdictEl.className = 'renego-verdict renego-verdict--negative';
+                    verdictEl.textContent = `⚠️ Gain théorique de ${fmt(gainNet)} mais le point mort dépasse la durée restante du prêt.`;
+                } else {
+                    verdictEl.className = 'renego-verdict renego-verdict--negative';
+                    verdictEl.textContent = '❌ Renégociation non rentable. Le nouveau taux ne compense pas les frais de rachat.';
+                }
+            }
+        }
+
+        function afficherRenegociationImpossible(resultsEl, fraisTotal) {
+            if (resultsEl) resultsEl.style.display = 'block';
+            const fmt = v => formatCurrency(Math.round(v)) + ' €';
+            setText('renego_mens_actuelle', '—');
+            setText('renego_mens_nouvelle', '—');
+            setText('renego_frais_total', fmt(fraisTotal));
+            setText('renego_gain_net', '—');
+            setText('renego_breakeven', 'Impossible');
+            setText('renego_breakeven_detail', 'La mensualité actuelle ne couvre pas les intérêts du nouveau capital');
+            const verdictEl = getEl('renego_verdict');
+            if (verdictEl) {
+                verdictEl.className = 'renego-verdict renego-verdict--negative';
+                verdictEl.textContent = '❌ Opération impossible : la mensualité actuelle est insuffisante pour rembourser le nouveau capital à ce taux.';
+            }
+        }
+
+        getEl('btn-run-renego')?.addEventListener('click', calculerRenegociation);
+
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();
         chargerEtat(); // On recharge les données avant de lancer le premier calcul

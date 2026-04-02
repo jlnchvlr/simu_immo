@@ -17,6 +17,7 @@
             <button class="tab-btn active" data-tab="tab-projet">📋 Mon Projet</button>
             <button class="tab-btn" data-tab="tab-solver">🎯 Solveur Stratégique</button>
             <button class="tab-btn" data-tab="tab-comparator">⚖️ Comparateur d'Offres</button>
+            <button class="tab-btn" data-tab="tab-renego">🔄 Renégociation</button>
         </div>
 
         <div id="validation-alerts" class="validation-alerts" style="display:none;">
@@ -921,6 +922,121 @@
                 </div>
             </section>
         </div>
+        <!-- ===== ONGLET 4 : RENEGOCIATION & RACHAT DE CREDIT ===== -->
+        <div id="tab-renego" class="tab-pane">
+            <section class="card">
+                <h3 style="margin:0 0 .3rem 0;">🔄 Renégociation & Rachat de Crédit</h3>
+                <p class="section-description">Comparez votre crédit en cours avec une nouvelle offre bancaire. Vérifiez que les frais de rachat n'annulent pas les gains du nouveau taux.</p>
+
+                <div class="renego-columns">
+                    <!-- Colonne 1 : Situation actuelle -->
+                    <div class="renego-col">
+                        <h4 class="renego-col-title renego-col-title--current">📌 Situation Actuelle</h4>
+                        <div class="renego-field">
+                            <label for="renego_crd">Capital Restant Dû (€)</label>
+                            <input type="number" id="renego_crd" min="0" max="2000000" value="200000" step="1000">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_duree_restante">Durée restante (années)</label>
+                            <input type="number" id="renego_duree_restante" min="1" max="30" value="15" step="1">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_taux_actuel">Taux actuel (%)</label>
+                            <input type="number" id="renego_taux_actuel" min="0" max="10" value="3.5" step="0.01">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_assurance_actuelle">Assurance actuelle (€/mois)</label>
+                            <input type="number" id="renego_assurance_actuelle" min="0" max="500" value="60" step="1">
+                        </div>
+                    </div>
+
+                    <!-- Colonne 2 : Nouvelle offre -->
+                    <div class="renego-col">
+                        <h4 class="renego-col-title renego-col-title--new">🏦 Nouvelle Offre</h4>
+                        <div class="renego-field">
+                            <label for="renego_nouveau_taux">Nouveau taux (%)</label>
+                            <input type="number" id="renego_nouveau_taux" min="0" max="10" value="2.2" step="0.01">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_nouvelle_assurance">Nouvelle assurance (€/mois)</label>
+                            <input type="number" id="renego_nouvelle_assurance" min="0" max="500" value="45" step="1">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_frais_dossier">Frais de dossier (€)</label>
+                            <input type="number" id="renego_frais_dossier" min="0" max="5000" value="500" step="50">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_frais_garantie">Frais de nouvelle garantie (€)</label>
+                            <input type="number" id="renego_frais_garantie" min="0" max="10000" value="1500" step="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stratégie -->
+                <div class="renego-strategy">
+                    <h4>🎯 Stratégie de renégociation</h4>
+                    <div class="renego-radio-group">
+                        <label class="renego-radio-label">
+                            <input type="radio" name="renego_strategie" value="A" checked>
+                            <span><strong>Stratégie A</strong> — Conserver la même durée (Baisser la mensualité)</span>
+                        </label>
+                        <label class="renego-radio-label">
+                            <input type="radio" name="renego_strategie" value="B">
+                            <span><strong>Stratégie B</strong> — Conserver la même mensualité (Réduire la durée)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <button id="btn-run-renego" class="btn-scenario" style="width:100%; margin-top:.8rem;">🔄 Simuler la renégociation</button>
+
+                <!-- Résultats -->
+                <div id="renego_results" style="display:none; margin-top:1.2rem;">
+                    <h4 style="margin:0 0 .8rem 0;">📊 Résultats de la simulation</h4>
+
+                    <!-- Recap mensualités -->
+                    <div class="renego-recap">
+                        <div class="renego-recap-item">
+                            <span class="renego-recap-label">Mensualité actuelle (hors assurance)</span>
+                            <span class="renego-recap-value" id="renego_mens_actuelle">—</span>
+                        </div>
+                        <div class="renego-recap-item">
+                            <span class="renego-recap-label">Nouvelle mensualité (hors assurance)</span>
+                            <span class="renego-recap-value" id="renego_mens_nouvelle">—</span>
+                        </div>
+                        <div class="renego-recap-item" id="renego_new_duration_row" style="display:none;">
+                            <span class="renego-recap-label">Nouvelle durée</span>
+                            <span class="renego-recap-value" id="renego_new_duration">—</span>
+                        </div>
+                    </div>
+
+                    <!-- 3 cartes KPI -->
+                    <div class="renego-kpi-grid">
+                        <div class="renego-kpi-card renego-kpi--frais">
+                            <div class="renego-kpi-icon">💸</div>
+                            <div class="renego-kpi-label">Frais de passage</div>
+                            <div class="renego-kpi-value" id="renego_frais_total">—</div>
+                            <div class="renego-kpi-detail" id="renego_frais_detail">IRA + Garantie + Dossier</div>
+                        </div>
+                        <div class="renego-kpi-card renego-kpi--gain">
+                            <div class="renego-kpi-icon">📈</div>
+                            <div class="renego-kpi-label">Gain Net Total</div>
+                            <div class="renego-kpi-value" id="renego_gain_net">—</div>
+                            <div class="renego-kpi-detail" id="renego_gain_detail">Économie brute − Frais de passage</div>
+                        </div>
+                        <div class="renego-kpi-card renego-kpi--breakeven">
+                            <div class="renego-kpi-icon">⏱️</div>
+                            <div class="renego-kpi-label">Point Mort</div>
+                            <div class="renego-kpi-value" id="renego_breakeven">—</div>
+                            <div class="renego-kpi-detail" id="renego_breakeven_detail">Délai avant rentabilité</div>
+                        </div>
+                    </div>
+
+                    <!-- Verdict -->
+                    <div id="renego_verdict" class="renego-verdict"></div>
+                </div>
+            </section>
+        </div>
+
     </main>
 
     <div id="amortizationModal" class="modal-overlay">

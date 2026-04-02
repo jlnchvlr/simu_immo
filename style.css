@@ -609,3 +609,95 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
 }
 .validation-alerts li::before { content: "\26A0\FE0F "; }
 
+/* ═══ TAB 4 — Renégociation & Rachat de Crédit ═════════════════ */
+.renego-columns {
+    display: flex; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 1rem;
+}
+.renego-col {
+    flex: 1; min-width: 280px;
+    background: var(--surface-subtle); border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-medium); padding: 1rem 1.1rem;
+}
+.renego-col-title {
+    margin: 0 0 .8rem 0; font-size: .9rem; font-weight: 700;
+    padding-bottom: .4rem; border-bottom: 2px solid var(--border-color);
+}
+.renego-col-title--current { color: var(--secondary-color); border-bottom-color: var(--secondary-color); }
+.renego-col-title--new { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+.renego-field { margin-bottom: .7rem; }
+.renego-field label {
+    display: block; font-size: .75rem; font-weight: 500;
+    color: var(--text-light-color); margin-bottom: 3px;
+}
+.renego-field input[type="number"] {
+    width: 100%; box-sizing: border-box; padding: 7px 10px;
+    border: 1px solid var(--input-border-color); border-radius: var(--border-radius-small);
+    font-size: .82rem; font-family: 'Inter', system-ui, sans-serif;
+    transition: border-color .2s, box-shadow .2s;
+}
+.renego-field input[type="number"]:focus {
+    border-color: var(--primary-color); outline: none;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, .12);
+}
+
+/* Stratégie */
+.renego-strategy {
+    background: var(--surface-subtle); border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-medium); padding: .8rem 1rem; margin-bottom: .5rem;
+}
+.renego-strategy h4 { margin: 0 0 .6rem 0; font-size: .85rem; }
+.renego-radio-group { display: flex; flex-direction: column; gap: .5rem; }
+.renego-radio-label {
+    display: flex; align-items: flex-start; gap: .5rem; cursor: pointer;
+    padding: .5rem .7rem; border-radius: var(--border-radius-small);
+    border: 1px solid transparent; transition: background .2s, border-color .2s;
+}
+.renego-radio-label:hover { background: var(--primary-light); }
+.renego-radio-label input[type="radio"] { margin-top: 3px; accent-color: var(--primary-color); }
+.renego-radio-label span { font-size: .8rem; line-height: 1.4; }
+
+/* Recap */
+.renego-recap {
+    display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1rem;
+}
+.renego-recap-item {
+    flex: 1; min-width: 200px; display: flex; justify-content: space-between;
+    align-items: center; padding: .5rem .8rem;
+    background: var(--surface-subtle); border-radius: var(--border-radius-small);
+    border: 1px solid var(--border-color); font-size: .8rem;
+}
+.renego-recap-label { color: var(--text-light-color); }
+.renego-recap-value { font-weight: 700; color: var(--text-color); }
+
+/* KPI Cards */
+.renego-kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem; margin-bottom: 1rem;
+}
+.renego-kpi-card {
+    border-radius: var(--border-radius-medium); padding: 1.1rem 1rem;
+    text-align: center; border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-light);
+}
+.renego-kpi-icon { font-size: 1.6rem; margin-bottom: .3rem; }
+.renego-kpi-label { font-size: .75rem; font-weight: 600; color: var(--text-light-color); margin-bottom: .3rem; text-transform: uppercase; letter-spacing: .3px; }
+.renego-kpi-value { font-size: 1.5rem; font-weight: 800; margin-bottom: .2rem; }
+.renego-kpi-detail { font-size: .7rem; color: var(--text-muted); }
+
+.renego-kpi--frais { background: var(--danger-light); }
+.renego-kpi--frais .renego-kpi-value { color: var(--danger-color); }
+.renego-kpi--gain { background: var(--primary-light); }
+.renego-kpi--gain .renego-kpi-value { color: var(--primary-color); }
+.renego-kpi--gain.renego-kpi--negative { background: var(--danger-light); }
+.renego-kpi--gain.renego-kpi--negative .renego-kpi-value { color: var(--danger-color); }
+.renego-kpi--breakeven { background: var(--secondary-light); }
+.renego-kpi--breakeven .renego-kpi-value { color: var(--secondary-color); font-size: 1.1rem; }
+
+/* Verdict */
+.renego-verdict {
+    padding: .8rem 1rem; border-radius: var(--border-radius-medium);
+    font-size: .85rem; font-weight: 600; text-align: center;
+}
+.renego-verdict--positive { background: var(--primary-light); color: var(--primary-color); border: 1px solid var(--primary-color); }
+.renego-verdict--negative { background: var(--danger-light); color: var(--danger-color); border: 1px solid var(--danger-color); }
+
