@@ -701,3 +701,40 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
 .renego-verdict--positive { background: var(--primary-light); color: var(--primary-color); border: 1px solid var(--primary-color); }
 .renego-verdict--negative { background: var(--danger-light); color: var(--danger-color); border: 1px solid var(--danger-color); }
 
+/* ═══════════════════════════════════════════════════════════════
+   Module Loi Lemoine — Switch Assurance
+   ═══════════════════════════════════════════════════════════════ */
+.lemoine-info-box {
+    background: var(--accent-light); border: 1px solid var(--accent-color); border-left: 4px solid var(--accent-color);
+    border-radius: var(--border-radius-medium); padding: .7rem 1rem; margin: .8rem 0;
+    font-size: .8rem; line-height: 1.5; color: #92400e;
+}
+.lemoine-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: .7rem .9rem; margin-top: .6rem;
+}
+.lemoine-manual-grid {
+    grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: .5rem .7rem;
+}
+.lemoine-field { display: flex; flex-direction: column; gap: .2rem; }
+.lemoine-field label {
+    font-size: .75rem; font-weight: 600; color: var(--text-light-color);
+}
+.lemoine-field input[type="number"],
+.lemoine-field select {
+    padding: .45rem .6rem; border: 1px solid var(--input-border-color); border-radius: var(--border-radius-small);
+    font-size: .85rem; font-family: inherit; background: #fff; transition: border-color .2s;
+}
+.lemoine-field input[type="number"]:focus,
+.lemoine-field select:focus {
+    outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(5,150,105,.12);
+}
+.lemoine-kpi--gain { background: var(--primary-light); }
+.lemoine-kpi--gain .renego-kpi-value { color: var(--primary-color); }
+.lemoine-kpi--pct { background: var(--secondary-light); }
+.lemoine-kpi--pct .renego-kpi-value { color: var(--secondary-color); font-size: 1.3rem; }
+
+@media (max-width: 700px) {
+    .lemoine-grid { grid-template-columns: 1fr; }
+    .lemoine-manual-grid { grid-template-columns: 1fr; }
+}
+

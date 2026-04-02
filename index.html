@@ -1035,6 +1035,99 @@
                     <div id="renego_verdict" class="renego-verdict"></div>
                 </div>
             </section>
+
+            <!-- ===== Module Loi Lemoine — Switch Assurance ===== -->
+            <section class="card" style="margin-top:1.2rem;">
+                <h3 style="margin:0 0 .3rem 0;">🛡️ Optimisation de l'Assurance (Loi Lemoine)</h3>
+                <p class="section-description">Simulez le gain d'un changement d'assurance emprunteur : acceptez l'assurance banque au départ, puis basculez vers une délégation externe sur le Capital Restant Dû.</p>
+
+                <div class="lemoine-info-box">
+                    <strong>ℹ️ Loi Lemoine :</strong> Depuis 2022, vous pouvez changer d'assurance emprunteur à tout moment, sans frais bancaires. L'assurance externe se calcule généralement sur le Capital Restant Dû, ce qui la rend dégressive et beaucoup moins chère au fil des années.
+                </div>
+
+                <div class="lemoine-grid">
+                    <div class="lemoine-field">
+                        <label for="lemoine_source">Données du prêt :</label>
+                        <select id="lemoine_source">
+                            <option value="tab1" selected>Depuis l'onglet Mon Projet</option>
+                            <option value="manual">Saisie manuelle</option>
+                        </select>
+                    </div>
+                    <div id="lemoine_manual_fields" style="display:none;" class="lemoine-manual-grid">
+                        <div class="lemoine-field">
+                            <label for="lemoine_capital">Capital emprunté (€)</label>
+                            <input type="number" id="lemoine_capital" min="0" max="2000000" value="200000" step="1000">
+                        </div>
+                        <div class="lemoine-field">
+                            <label for="lemoine_taux">Taux nominal (%)</label>
+                            <input type="number" id="lemoine_taux" min="0" max="10" value="3" step="0.01">
+                        </div>
+                        <div class="lemoine-field">
+                            <label for="lemoine_duree">Durée totale (années)</label>
+                            <input type="number" id="lemoine_duree" min="1" max="30" value="20" step="1">
+                        </div>
+                    </div>
+                    <div class="lemoine-field">
+                        <label for="lemoine_mois_switch">Mois du changement prévu</label>
+                        <input type="number" id="lemoine_mois_switch" min="1" max="360" value="3" step="1">
+                    </div>
+                    <div class="lemoine-field">
+                        <label for="lemoine_taux_banque">Taux assurance banque — sur Capital Initial (%)</label>
+                        <input type="number" id="lemoine_taux_banque" min="0" max="2" value="0.36" step="0.01">
+                    </div>
+                    <div class="lemoine-field">
+                        <label for="lemoine_taux_externe">Taux délégation externe — sur CRD (%)</label>
+                        <input type="number" id="lemoine_taux_externe" min="0" max="2" value="0.10" step="0.01">
+                    </div>
+                    <div class="lemoine-field">
+                        <label for="lemoine_frais_courtage">Frais de courtage éventuels (€)</label>
+                        <input type="number" id="lemoine_frais_courtage" min="0" max="5000" value="0" step="50">
+                    </div>
+                </div>
+
+                <button id="btn-run-lemoine" class="btn-scenario" style="width:100%; margin-top:.8rem;">🛡️ Calculer le gain du switch d'assurance</button>
+
+                <!-- Résultat -->
+                <div id="resultat_gain_assurance" style="display:none; margin-top:1.2rem;">
+                    <h4 style="margin:0 0 .8rem 0;">📊 Résultat de l'optimisation</h4>
+
+                    <div class="renego-recap">
+                        <div class="renego-recap-item">
+                            <span class="renego-recap-label">Coût total assurance banque (scénario de base)</span>
+                            <span class="renego-recap-value" id="lemoine_cout_base">—</span>
+                        </div>
+                        <div class="renego-recap-item">
+                            <span class="renego-recap-label">Coût Phase 1 — Banque (premiers mois)</span>
+                            <span class="renego-recap-value" id="lemoine_cout_phase1">—</span>
+                        </div>
+                        <div class="renego-recap-item">
+                            <span class="renego-recap-label">Coût Phase 2 — Délégation externe (CRD dégressif)</span>
+                            <span class="renego-recap-value" id="lemoine_cout_phase2">—</span>
+                        </div>
+                        <div class="renego-recap-item">
+                            <span class="renego-recap-label">Frais de courtage</span>
+                            <span class="renego-recap-value" id="lemoine_frais">—</span>
+                        </div>
+                    </div>
+
+                    <div class="renego-kpi-grid" style="margin-top:.8rem;">
+                        <div class="renego-kpi-card lemoine-kpi--gain">
+                            <div class="renego-kpi-icon">💰</div>
+                            <div class="renego-kpi-label">Économie Nette</div>
+                            <div class="renego-kpi-value" id="lemoine_gain_net">—</div>
+                            <div class="renego-kpi-detail" id="lemoine_gain_detail">Gain total après frais de courtage</div>
+                        </div>
+                        <div class="renego-kpi-card lemoine-kpi--pct">
+                            <div class="renego-kpi-icon">📉</div>
+                            <div class="renego-kpi-label">Réduction du coût assurance</div>
+                            <div class="renego-kpi-value" id="lemoine_gain_pct">—</div>
+                            <div class="renego-kpi-detail">Par rapport au scénario banque</div>
+                        </div>
+                    </div>
+
+                    <div id="lemoine_verdict" class="renego-verdict" style="margin-top:.8rem;"></div>
+                </div>
+            </section>
         </div>
 
     </main>

@@ -3574,6 +3574,100 @@ document.addEventListener('DOMContentLoaded', () => {
 
         getEl('btn-run-renego')?.addEventListener('click', calculerRenegociation);
 
+        // === MODULE LOI LEMOINE — Switch Assurance ===
+        getEl('lemoine_source')?.addEventListener('change', () => {
+            const manual = getEl('lemoine_source').value === 'manual';
+            const fields = getEl('lemoine_manual_fields');
+            if (fields) fields.style.display = manual ? 'grid' : 'none';
+        });
+
+        function calculerSwitchAssurance() {
+            // 1. Récupérer les paramètres du prêt (Tab 1 ou manuel)
+            const source = getEl('lemoine_source')?.value || 'tab1';
+            let capitalEmprunte, tauxNominal, dureeTotaleMois;
+
+            if (source === 'tab1') {
+                const { state } = lireEtatFormulaire(ui);
+                const { besoinCreditFinalClassique } = gererPlanFinancement(
+                    state,
+                    gererFraisAcquisition(state).besoinCreditInitial,
+                    gererFraisAcquisition(state).coutAvantGar
+                );
+                capitalEmprunte = besoinCreditFinalClassique;
+                tauxNominal = state.TE;
+                dureeTotaleMois = state.duree * 12;
+            } else {
+                capitalEmprunte = parseFloat(getEl('lemoine_capital')?.value) || 0;
+                tauxNominal = parseFloat(getEl('lemoine_taux')?.value) || 0;
+                dureeTotaleMois = Math.round((parseFloat(getEl('lemoine_duree')?.value) || 0) * 12);
+            }
+
+            const moisSwitch = Math.max(1, Math.round(parseFloat(getEl('lemoine_mois_switch')?.value) || 3));
+            const tauxBanque = parseFloat(getEl('lemoine_taux_banque')?.value) || 0;
+            const tauxExterne = parseFloat(getEl('lemoine_taux_externe')?.value) || 0;
+            const fraisCourtage = parseFloat(getEl('lemoine_frais_courtage')?.value) || 0;
+
+            const resultatEl = getEl('resultat_gain_assurance');
+            if (capitalEmprunte <= 0 || dureeTotaleMois <= 0) {
+                if (resultatEl) resultatEl.style.display = 'none';
+                return;
+            }
+
+            // 2. Scénario de base : assurance banque fixe sur toute la durée
+            const primeMensuelleBanque = (capitalEmprunte * (tauxBanque / 100)) / 12;
+            const coutTotalBase = primeMensuelleBanque * dureeTotaleMois;
+
+            // 3. Scénario optimisé Loi Lemoine
+            // Phase 1 : assurance banque pendant les premiers mois
+            const moisPhase1 = Math.min(moisSwitch, dureeTotaleMois);
+            const coutPhase1 = primeMensuelleBanque * moisPhase1;
+
+            // Phase 2 : assurance externe sur CRD, mois par mois
+            const tauxMensuel = toMonthlyRate(tauxNominal);
+            const mensualiteCredit = calculerMensualiteCredit(capitalEmprunte, tauxNominal, dureeTotaleMois);
+            let coutPhase2 = 0;
+            let crdCourant = calculerCapitalRestantDu(capitalEmprunte, tauxNominal, dureeTotaleMois, moisPhase1);
+
+            for (let m = moisPhase1 + 1; m <= dureeTotaleMois; m++) {
+                const primeExterne = (crdCourant * (tauxExterne / 100)) / 12;
+                coutPhase2 += primeExterne;
+                // Amortir le CRD d'un mois
+                const interetMois = crdCourant * tauxMensuel;
+                const capitalRembourse = mensualiteCredit - interetMois;
+                crdCourant = Math.max(0, crdCourant - capitalRembourse);
+            }
+
+            // 4. Gain net
+            const coutTotalOptimise = coutPhase1 + coutPhase2 + fraisCourtage;
+            const gainNet = coutTotalBase - coutTotalOptimise;
+            const gainPct = coutTotalBase > 0 ? (gainNet / coutTotalBase) * 100 : 0;
+
+            // 5. Affichage
+            if (resultatEl) resultatEl.style.display = 'block';
+            const fmt = v => formatCurrency(Math.round(v)) + ' €';
+
+            setText('lemoine_cout_base', fmt(coutTotalBase));
+            setText('lemoine_cout_phase1', fmt(coutPhase1));
+            setText('lemoine_cout_phase2', fmt(coutPhase2));
+            setText('lemoine_frais', fmt(fraisCourtage));
+            setText('lemoine_gain_net', (gainNet >= 0 ? '+' : '') + fmt(gainNet));
+            setText('lemoine_gain_pct', gainPct.toFixed(1) + ' %');
+            setText('lemoine_gain_detail', `Base : ${fmt(coutTotalBase)} → Optimisé : ${fmt(coutTotalOptimise)}`);
+
+            const verdictEl = getEl('lemoine_verdict');
+            if (verdictEl) {
+                if (gainNet > 0) {
+                    verdictEl.className = 'renego-verdict renego-verdict--positive';
+                    verdictEl.textContent = `✅ En changeant d'assurance au mois ${moisSwitch}, vous économiserez ${fmt(gainNet)} sur la durée totale du prêt (soit −${gainPct.toFixed(1)} % du coût assurance).`;
+                } else {
+                    verdictEl.className = 'renego-verdict renego-verdict--negative';
+                    verdictEl.textContent = `❌ Le changement d'assurance ne génère pas d'économie avec ces paramètres. Le coût de la délégation externe dépasse celui de l'assurance banque.`;
+                }
+            }
+        }
+
+        getEl('btn-run-lemoine')?.addEventListener('click', calculerSwitchAssurance);
+
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();
         chargerEtat(); // On recharge les données avant de lancer le premier calcul
