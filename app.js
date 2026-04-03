@@ -1932,6 +1932,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // === PHASE 5 — Achat vs Location & Budgétiseur ===
 
     let avlChart = null;
+    let renegoChart = null;
+    let lemoineChart = null;
 
     function calculerAchatVsLocation(state, uiState, mensualiteTotale, prixFAI, coutTotalOperation, pib, ptb, scenData) {
         const horizon = uiState.resale.horizon || 0;
@@ -3436,28 +3438,18 @@ document.addEventListener('DOMContentLoaded', () => {
             let nouvelleMensualite, nouvelleDureeMois, coutNouveauPret, gainNet, breakEvenMois;
 
             if (strategie === 'A') {
-                // Même durée, nouvelle mensualité
                 nouvelleDureeMois = dureeRestanteMois;
                 nouvelleMensualite = calculerMensualiteCredit(nouveauCapital, nouveauTaux, nouvelleDureeMois);
             } else {
-                // Même mensualité, durée réduite
                 nouvelleMensualite = mensualiteActuelle;
-                // Isoler N : N = -ln(1 - C*r/M) / ln(1+r)
                 const r = toMonthlyRate(nouveauTaux);
                 if (r > 0 && nouvelleMensualite > 0) {
                     const x = 1 - (nouveauCapital * r) / nouvelleMensualite;
-                    if (x <= 0) {
-                        // La mensualité actuelle ne couvre même pas les intérêts du nouveau capital
-                        afficherRenegociationImpossible(resultsEl, fraisTotal);
-                        return;
-                    }
+                    if (x <= 0) { afficherRenegociationImpossible(resultsEl, fraisTotal); return; }
                     nouvelleDureeMois = Math.ceil(-Math.log(x) / Math.log(1 + r));
                 } else if (r === 0 && nouvelleMensualite > 0) {
                     nouvelleDureeMois = Math.ceil(nouveauCapital / nouvelleMensualite);
-                } else {
-                    afficherRenegociationImpossible(resultsEl, fraisTotal);
-                    return;
-                }
+                } else { afficherRenegociationImpossible(resultsEl, fraisTotal); return; }
             }
 
             // === Coûts globaux ===
@@ -3467,43 +3459,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // === Point mort ===
             if (strategie === 'A') {
-                // Gain mensuel = ancienne mensualité globale - nouvelle mensualité globale
                 const gainMensuel = (mensualiteActuelle + assuranceActuelle) - (nouvelleMensualite + nouvelleAssurance);
-                if (gainMensuel > 0) {
-                    breakEvenMois = Math.ceil(fraisTotal / gainMensuel);
-                } else {
-                    breakEvenMois = Infinity;
-                }
+                breakEvenMois = gainMensuel > 0 ? Math.ceil(fraisTotal / gainMensuel) : Infinity;
             } else {
-                // Stratégie B : point mort = frais / (différence de coût total mensuel moyen)
                 if (gainNet > 0 && nouvelleDureeMois > 0) {
-                    // On calcule le break-even comme le mois à partir duquel les économies cumulées dépassent les frais
                     const gainMensuel = (mensualiteActuelle + assuranceActuelle) - (nouvelleMensualite + nouvelleAssurance);
                     if (gainMensuel > 0) {
                         breakEvenMois = Math.ceil(fraisTotal / gainMensuel);
                     } else {
-                        // Avec stratégie B, le gain vient de la durée réduite — les mois épargnés après la fin du nouveau prêt
                         const moisEconomises = dureeRestanteMois - nouvelleDureeMois;
-                        if (moisEconomises > 0) {
-                            breakEvenMois = nouvelleDureeMois; // Le gain se matérialise à la fin du nouveau prêt
-                        } else {
-                            breakEvenMois = Infinity;
-                        }
+                        breakEvenMois = moisEconomises > 0 ? nouvelleDureeMois : Infinity;
                     }
                 } else {
                     breakEvenMois = Infinity;
                 }
             }
 
+            // === Évolution annuelle du gain net (pour graphique + tableau) ===
+            const mensualiteGlobaleAncienne = mensualiteActuelle + assuranceActuelle;
+            const mensualiteGlobaleNouvelle = nouvelleMensualite + nouvelleAssurance;
+            const maxDureeMois = Math.max(dureeRestanteMois, nouvelleDureeMois);
+            const maxAnnees = Math.ceil(maxDureeMois / 12);
+            const renegoYearlyData = [];
+
+            for (let a = 1; a <= maxAnnees; a++) {
+                const moisFin = a * 12;
+                // Coût cumulé ancien prêt jusqu'à ce mois (plafonné à la durée restante)
+                const moisAncien = Math.min(moisFin, dureeRestanteMois);
+                const coutAncienCumule = mensualiteGlobaleAncienne * moisAncien;
+                // Coût cumulé nouveau prêt jusqu'à ce mois (plafonné à la nouvelle durée)
+                const moisNouveau = Math.min(moisFin, nouvelleDureeMois);
+                const coutNouveauCumule = mensualiteGlobaleNouvelle * moisNouveau + fraisTotal;
+                const gainCumule = coutAncienCumule - coutNouveauCumule;
+                renegoYearlyData.push({ annee: a, coutAncienCumule: Math.round(coutAncienCumule), coutNouveauCumule: Math.round(coutNouveauCumule), gainNet: Math.round(gainCumule) });
+            }
+
             // === Affichage ===
             if (resultsEl) resultsEl.style.display = 'block';
-
             const fmt = v => formatCurrency(Math.round(v)) + ' €';
 
             setText('renego_mens_actuelle', fmt(mensualiteActuelle + assuranceActuelle));
             setText('renego_mens_nouvelle', fmt(nouvelleMensualite + nouvelleAssurance));
 
-            // Affichage durée si stratégie B
             const durationRow = getEl('renego_new_duration_row');
             if (strategie === 'B' && durationRow) {
                 durationRow.style.display = 'flex';
@@ -3514,33 +3511,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 durationRow.style.display = 'none';
             }
 
-            // Frais
             setText('renego_frais_total', fmt(fraisTotal));
             setText('renego_frais_detail', `IRA : ${fmt(ira)} · Garantie : ${fmt(fraisGarantie)} · Dossier : ${fmt(fraisDossier)}`);
 
-            // Gain net
             setText('renego_gain_net', (gainNet >= 0 ? '+' : '') + fmt(gainNet));
             setText('renego_gain_detail', `Coût ancien : ${fmt(coutAncienPret)} → Coût nouveau : ${fmt(coutNouveauPret)}`);
             const gainCard = document.querySelector('.renego-kpi--gain');
-            if (gainCard) {
-                gainCard.classList.toggle('renego-kpi--negative', gainNet < 0);
-            }
+            if (gainCard) gainCard.classList.toggle('renego-kpi--negative', gainNet < 0);
 
-            // Break-even
             if (breakEvenMois === Infinity || !isFinite(breakEvenMois) || breakEvenMois <= 0) {
                 setText('renego_breakeven', 'Non rentable');
                 setText('renego_breakeven_detail', 'La renégociation ne génère pas d\'économie');
             } else {
                 const beAnnees = Math.floor(breakEvenMois / 12);
                 const beMois = breakEvenMois % 12;
-                const beText = beAnnees > 0
-                    ? `${beAnnees} an${beAnnees > 1 ? 's' : ''} et ${beMois} mois`
-                    : `${beMois} mois`;
+                const beText = beAnnees > 0 ? `${beAnnees} an${beAnnees > 1 ? 's' : ''} et ${beMois} mois` : `${beMois} mois`;
                 setText('renego_breakeven', beText);
                 setText('renego_breakeven_detail', `L'opération devient rentable dans ${beText}`);
             }
 
-            // Verdict
             const verdictEl = getEl('renego_verdict');
             if (verdictEl) {
                 if (gainNet > 0 && breakEvenMois < dureeRestanteMois) {
@@ -3554,6 +3543,65 @@ document.addEventListener('DOMContentLoaded', () => {
                     verdictEl.textContent = '❌ Renégociation non rentable. Le nouveau taux ne compense pas les frais de rachat.';
                 }
             }
+
+            // === Graphique annuel Renégo ===
+            renderRenegoChart(renegoYearlyData);
+            renderRenegoTable(renegoYearlyData);
+        }
+
+        function renderRenegoChart(data) {
+            const canvas = getEl('renegoChartCanvas');
+            if (!canvas) return;
+            const labels = data.map(d => `An ${d.annee}`);
+            const gainData = data.map(d => d.gainNet);
+            const ancienData = data.map(d => d.coutAncienCumule);
+            const nouveauData = data.map(d => d.coutNouveauCumule);
+
+            if (renegoChart) {
+                renegoChart.data.labels = labels;
+                renegoChart.data.datasets[0].data = ancienData;
+                renegoChart.data.datasets[1].data = nouveauData;
+                renegoChart.data.datasets[2].data = gainData;
+                renegoChart.update('active');
+            } else {
+                renegoChart = new Chart(canvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            { label: 'Coût cumulé ancien prêt', data: ancienData, backgroundColor: 'rgba(220,38,38,.55)', borderColor: '#DC2626', borderWidth: 1, yAxisID: 'y', order: 2 },
+                            { label: 'Coût cumulé nouveau prêt', data: nouveauData, backgroundColor: 'rgba(5,150,105,.55)', borderColor: '#059669', borderWidth: 1, yAxisID: 'y', order: 3 },
+                            { type: 'line', label: 'Gain net cumulé', data: gainData, borderColor: '#1E40AF', backgroundColor: 'rgba(30,64,175,.1)', borderWidth: 2.5, pointRadius: 3, tension: 0.3, yAxisID: 'y2', order: 1, fill: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: { duration: 300 },
+                        plugins: {
+                            legend: { labels: { font: { size: 10 } } },
+                            tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)} €` } }
+                        },
+                        scales: {
+                            y:  { position: 'left',  title: { display: true, text: 'Coût cumulé (€)', font: { size: 10 } }, ticks: { font: { size: 9 }, callback: v => formatCurrency(v) + ' €' } },
+                            y2: { position: 'right', title: { display: true, text: 'Gain net (€)', font: { size: 10 } }, ticks: { font: { size: 9 }, callback: v => formatCurrency(v) + ' €' }, grid: { drawOnChartArea: false } },
+                            x:  { ticks: { font: { size: 9 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderRenegoTable(data) {
+            const container = getEl('renego_yearly_table_container');
+            if (!container) return;
+            const fmt = v => formatCurrency(v) + ' €';
+            let html = '<table class="yearly-evolution-table"><thead><tr><th>Année</th><th>Coût ancien (cumulé)</th><th>Coût nouveau (cumulé)</th><th>Gain net</th></tr></thead><tbody>';
+            for (const d of data) {
+                const cls = d.gainNet >= 0 ? 'positive' : 'negative';
+                html += `<tr><td>An ${d.annee}</td><td>${fmt(d.coutAncienCumule)}</td><td>${fmt(d.coutNouveauCumule)}</td><td class="yearly-${cls}">${d.gainNet >= 0 ? '+' : ''}${fmt(d.gainNet)}</td></tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
 
         function afficherRenegociationImpossible(resultsEl, fraisTotal) {
@@ -3570,11 +3618,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 verdictEl.className = 'renego-verdict renego-verdict--negative';
                 verdictEl.textContent = '❌ Opération impossible : la mensualité actuelle est insuffisante pour rembourser le nouveau capital à ce taux.';
             }
+            if (renegoChart) { renegoChart.destroy(); renegoChart = null; }
+            const tc = getEl('renego_yearly_table_container');
+            if (tc) tc.innerHTML = '';
         }
 
         getEl('btn-run-renego')?.addEventListener('click', calculerRenegociation);
 
-        // === MODULE LOI LEMOINE — Switch Assurance ===
+        // === ONGLET 5 — Assurance Loi Lemoine ===
         getEl('lemoine_source')?.addEventListener('change', () => {
             const manual = getEl('lemoine_source').value === 'manual';
             const fields = getEl('lemoine_manual_fields');
@@ -3582,7 +3633,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         function calculerSwitchAssurance() {
-            // 1. Récupérer les paramètres du prêt (Tab 1 ou manuel)
             const source = getEl('lemoine_source')?.value || 'tab1';
             let capitalEmprunte, tauxNominal, dureeTotaleMois;
 
@@ -3613,36 +3663,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 2. Scénario de base : assurance banque fixe sur toute la durée
+            // Scénario de base : assurance banque fixe sur toute la durée
             const primeMensuelleBanque = (capitalEmprunte * (tauxBanque / 100)) / 12;
             const coutTotalBase = primeMensuelleBanque * dureeTotaleMois;
 
-            // 3. Scénario optimisé Loi Lemoine
-            // Phase 1 : assurance banque pendant les premiers mois
+            // Scénario optimisé : Phase 1 (banque) + Phase 2 (externe sur CRD)
             const moisPhase1 = Math.min(moisSwitch, dureeTotaleMois);
             const coutPhase1 = primeMensuelleBanque * moisPhase1;
 
-            // Phase 2 : assurance externe sur CRD, mois par mois
             const tauxMensuel = toMonthlyRate(tauxNominal);
             const mensualiteCredit = calculerMensualiteCredit(capitalEmprunte, tauxNominal, dureeTotaleMois);
-            let coutPhase2 = 0;
-            let crdCourant = calculerCapitalRestantDu(capitalEmprunte, tauxNominal, dureeTotaleMois, moisPhase1);
 
-            for (let m = moisPhase1 + 1; m <= dureeTotaleMois; m++) {
-                const primeExterne = (crdCourant * (tauxExterne / 100)) / 12;
-                coutPhase2 += primeExterne;
+            // Boucle mois par mois pour calculer les coûts et capturer les snapshots annuels
+            let coutBaseCumule = 0;
+            let coutOptimiseCumule = fraisCourtage; // on intègre les frais dès le départ
+            let crdCourant = capitalEmprunte;
+            const lemoineYearlyData = [];
+            let coutPhase2 = 0;
+
+            for (let m = 1; m <= dureeTotaleMois; m++) {
+                // Coût base ce mois
+                coutBaseCumule += primeMensuelleBanque;
+
+                // Coût optimisé ce mois
+                if (m <= moisPhase1) {
+                    coutOptimiseCumule += primeMensuelleBanque;
+                } else {
+                    const primeExterne = (crdCourant * (tauxExterne / 100)) / 12;
+                    coutOptimiseCumule += primeExterne;
+                    coutPhase2 += primeExterne;
+                }
+
                 // Amortir le CRD d'un mois
                 const interetMois = crdCourant * tauxMensuel;
                 const capitalRembourse = mensualiteCredit - interetMois;
                 crdCourant = Math.max(0, crdCourant - capitalRembourse);
+
+                // Snapshot annuel
+                if (m % 12 === 0 || m === dureeTotaleMois) {
+                    const annee = Math.ceil(m / 12);
+                    lemoineYearlyData.push({
+                        annee,
+                        coutBase: Math.round(coutBaseCumule),
+                        coutOptimise: Math.round(coutOptimiseCumule),
+                        gainNet: Math.round(coutBaseCumule - coutOptimiseCumule)
+                    });
+                }
             }
 
-            // 4. Gain net
+            // Totaux
             const coutTotalOptimise = coutPhase1 + coutPhase2 + fraisCourtage;
             const gainNet = coutTotalBase - coutTotalOptimise;
             const gainPct = coutTotalBase > 0 ? (gainNet / coutTotalBase) * 100 : 0;
 
-            // 5. Affichage
+            // Affichage KPI
             if (resultatEl) resultatEl.style.display = 'block';
             const fmt = v => formatCurrency(Math.round(v)) + ' €';
 
@@ -3664,6 +3738,65 @@ document.addEventListener('DOMContentLoaded', () => {
                     verdictEl.textContent = `❌ Le changement d'assurance ne génère pas d'économie avec ces paramètres. Le coût de la délégation externe dépasse celui de l'assurance banque.`;
                 }
             }
+
+            // Graphique + Tableau annuel
+            renderLemoineChart(lemoineYearlyData);
+            renderLemoineTable(lemoineYearlyData);
+        }
+
+        function renderLemoineChart(data) {
+            const canvas = getEl('lemoineChartCanvas');
+            if (!canvas) return;
+            const labels = data.map(d => `An ${d.annee}`);
+            const baseData = data.map(d => d.coutBase);
+            const optiData = data.map(d => d.coutOptimise);
+            const gainData = data.map(d => d.gainNet);
+
+            if (lemoineChart) {
+                lemoineChart.data.labels = labels;
+                lemoineChart.data.datasets[0].data = baseData;
+                lemoineChart.data.datasets[1].data = optiData;
+                lemoineChart.data.datasets[2].data = gainData;
+                lemoineChart.update('active');
+            } else {
+                lemoineChart = new Chart(canvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [
+                            { label: 'Assurance banque (cumulé)', data: baseData, backgroundColor: 'rgba(220,38,38,.5)', borderColor: '#DC2626', borderWidth: 1, yAxisID: 'y', order: 2 },
+                            { label: 'Assurance optimisée (cumulé)', data: optiData, backgroundColor: 'rgba(5,150,105,.5)', borderColor: '#059669', borderWidth: 1, yAxisID: 'y', order: 3 },
+                            { type: 'line', label: 'Économie cumulée', data: gainData, borderColor: '#D97706', backgroundColor: 'rgba(217,119,6,.1)', borderWidth: 2.5, pointRadius: 3, tension: 0.3, yAxisID: 'y2', order: 1, fill: false }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: { duration: 300 },
+                        plugins: {
+                            legend: { labels: { font: { size: 10 } } },
+                            tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)} €` } }
+                        },
+                        scales: {
+                            y:  { position: 'left',  title: { display: true, text: 'Coût cumulé (€)', font: { size: 10 } }, ticks: { font: { size: 9 }, callback: v => formatCurrency(v) + ' €' } },
+                            y2: { position: 'right', title: { display: true, text: 'Économie (€)', font: { size: 10 } }, ticks: { font: { size: 9 }, callback: v => formatCurrency(v) + ' €' }, grid: { drawOnChartArea: false } },
+                            x:  { ticks: { font: { size: 9 } } }
+                        }
+                    }
+                });
+            }
+        }
+
+        function renderLemoineTable(data) {
+            const container = getEl('lemoine_yearly_table_container');
+            if (!container) return;
+            const fmt = v => formatCurrency(v) + ' €';
+            let html = '<table class="yearly-evolution-table"><thead><tr><th>Année</th><th>Assurance banque (cumulé)</th><th>Assurance optimisée (cumulé)</th><th>Économie nette</th></tr></thead><tbody>';
+            for (const d of data) {
+                const cls = d.gainNet >= 0 ? 'positive' : 'negative';
+                html += `<tr><td>An ${d.annee}</td><td>${fmt(d.coutBase)}</td><td>${fmt(d.coutOptimise)}</td><td class="yearly-${cls}">${d.gainNet >= 0 ? '+' : ''}${fmt(d.gainNet)}</td></tr>`;
+            }
+            html += '</tbody></table>';
+            container.innerHTML = html;
         }
 
         getEl('btn-run-lemoine')?.addEventListener('click', calculerSwitchAssurance);

@@ -733,6 +733,26 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
 .lemoine-kpi--pct { background: var(--secondary-light); }
 .lemoine-kpi--pct .renego-kpi-value { color: var(--secondary-color); font-size: 1.3rem; }
 
+/* Tableau évolution annuelle (Renégo + Lemoine) */
+.yearly-evolution-table {
+    width: 100%; border-collapse: collapse; font-size: .8rem;
+}
+.yearly-evolution-table thead { position: sticky; top: 0; z-index: 1; }
+.yearly-evolution-table th {
+    background: var(--surface-subtle); padding: .45rem .6rem; text-align: right;
+    font-weight: 600; font-size: .72rem; color: var(--text-light-color);
+    text-transform: uppercase; letter-spacing: .3px; border-bottom: 2px solid var(--border-color);
+}
+.yearly-evolution-table th:first-child { text-align: left; }
+.yearly-evolution-table td {
+    padding: .4rem .6rem; text-align: right; border-bottom: 1px solid var(--border-color);
+    font-variant-numeric: tabular-nums;
+}
+.yearly-evolution-table td:first-child { text-align: left; font-weight: 600; }
+.yearly-evolution-table tbody tr:hover { background: var(--surface-subtle); }
+.yearly-positive { color: var(--primary-color); font-weight: 700; }
+.yearly-negative { color: var(--danger-color); font-weight: 700; }
+
 @media (max-width: 700px) {
     .lemoine-grid { grid-template-columns: 1fr; }
     .lemoine-manual-grid { grid-template-columns: 1fr; }

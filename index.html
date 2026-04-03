@@ -17,7 +17,8 @@
             <button class="tab-btn active" data-tab="tab-projet">📋 Mon Projet</button>
             <button class="tab-btn" data-tab="tab-solver">🎯 Solveur Stratégique</button>
             <button class="tab-btn" data-tab="tab-comparator">⚖️ Comparateur d'Offres</button>
-            <button class="tab-btn" data-tab="tab-renego">🔄 Renégociation</button>
+            <button class="tab-btn" data-tab="tab-renego">🔄 Renégo. Taux</button>
+            <button class="tab-btn" data-tab="tab-assurance">🛡️ Assurance Lemoine</button>
         </div>
 
         <div id="validation-alerts" class="validation-alerts" style="display:none;">
@@ -1033,11 +1034,22 @@
 
                     <!-- Verdict -->
                     <div id="renego_verdict" class="renego-verdict"></div>
+
+                    <!-- Graphique évolution annuelle gain renégo -->
+                    <div id="renego_chart_section" style="margin-top:1.2rem;">
+                        <h4 style="margin:0 0 .5rem 0;">📈 Gain cumulé par année (en cas de revente anticipée)</h4>
+                        <div style="position:relative; height:300px;">
+                            <canvas id="renegoChartCanvas"></canvas>
+                        </div>
+                        <div id="renego_yearly_table_container" style="margin-top:.8rem; max-height:300px; overflow-y:auto;"></div>
+                    </div>
                 </div>
             </section>
+        </div>
 
-            <!-- ===== Module Loi Lemoine — Switch Assurance ===== -->
-            <section class="card" style="margin-top:1.2rem;">
+        <!-- ===== ONGLET 5 : ASSURANCE LOI LEMOINE ===== -->
+        <div id="tab-assurance" class="tab-pane">
+            <section class="card">
                 <h3 style="margin:0 0 .3rem 0;">🛡️ Optimisation de l'Assurance (Loi Lemoine)</h3>
                 <p class="section-description">Simulez le gain d'un changement d'assurance emprunteur : acceptez l'assurance banque au départ, puis basculez vers une délégation externe sur le Capital Restant Dû.</p>
 
@@ -1126,6 +1138,15 @@
                     </div>
 
                     <div id="lemoine_verdict" class="renego-verdict" style="margin-top:.8rem;"></div>
+
+                    <!-- Graphique évolution annuelle gain assurance -->
+                    <div id="lemoine_chart_section" style="margin-top:1.2rem;">
+                        <h4 style="margin:0 0 .5rem 0;">📈 Économie cumulée par année</h4>
+                        <div style="position:relative; height:300px;">
+                            <canvas id="lemoineChartCanvas"></canvas>
+                        </div>
+                        <div id="lemoine_yearly_table_container" style="margin-top:.8rem; max-height:300px; overflow-y:auto;"></div>
+                    </div>
                 </div>
             </section>
         </div>
