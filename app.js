@@ -1934,6 +1934,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let avlChart = null;
     let renegoChart = null;
     let lemoineChart = null;
+    let lissageChart = null;
 
     function calculerAchatVsLocation(state, uiState, mensualiteTotale, prixFAI, coutTotalOperation, pib, ptb, scenData) {
         const horizon = uiState.resale.horizon || 0;
@@ -2955,6 +2956,391 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // === 5. INITIALISATION (Start App) ===
+    // === LISSAGE DE PRÊTS ===
+
+    function mettreAJourRecapLissage() {
+        const { state } = lireEtatFormulaire(ui);
+        let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { pib, ptb, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+
+        const hasPTB = ptb.amount > 0;
+        const hasPIB = pib.amount > 0;
+        const fc = formatCurrency;
+        const fp = (v, d) => (v || 0).toFixed(d) + ' %';
+
+        setDisplayEl(getEl('lissage_recap_ptb'), hasPTB ? 'block' : 'none');
+        setDisplayEl(getEl('lissage_recap_pib'), hasPIB ? 'block' : 'none');
+        setTextEl(getEl('lissage_ptb_amount'), hasPTB ? fc(ptb.amount) + ' €' : '—');
+        setTextEl(getEl('lissage_ptb_duration'), hasPTB ? ptb.duration + ' ans (' + (ptb.duration * 12) + ' mois)' : '—');
+        setTextEl(getEl('lissage_ptb_rate'), hasPTB ? fp(ptb.interestRate, 2) : '—');
+        setTextEl(getEl('lissage_ptb_monthly'), hasPTB ? fc(ptb.monthlyPayment, 2) + ' €' : '—');
+        setTextEl(getEl('lissage_pib_amount'), hasPIB ? fc(pib.amount) + ' €' : '—');
+        setTextEl(getEl('lissage_pib_duration'), hasPIB ? pib.duration + ' ans (' + (pib.duration * 12) + ' mois)' : '—');
+        setTextEl(getEl('lissage_pib_rate'), hasPIB ? fp(pib.interestRate, 2) : '—');
+        setTextEl(getEl('lissage_pib_monthly'), hasPIB ? fc(pib.monthlyPayment, 2) + ' €' : '—');
+        setTextEl(getEl('lissage_classic_amount'), fc(besoinCreditFinalClassique) + ' €');
+        setTextEl(getEl('lissage_classic_rate'), fp(state.TE, 2));
+        setTextEl(getEl('lissage_classic_ins_rate'), fp(state.TA, 2));
+
+        setDisplayEl(getEl('lissage_no_bonified'), (!hasPTB && !hasPIB) ? 'block' : 'none');
+
+        // Pré-remplir la cible avec la mensualité totale actuelle si la cible est encore à la valeur par défaut
+        const cibleSlider = getEl('lissageCible');
+        const cibleNum = getEl('lissageCible_num');
+        if (cibleSlider && cibleNum && (hasPTB || hasPIB)) {
+            const profil = calculerProfilEmprunteur(state);
+            const scenData = calculerScenarioClassique(state, pib, ptb, besoinCreditFinalClassique, 0, 0, { montant: 0 }, { cout: 0 }, profil);
+            const mensTotale = Math.round(scenData.scenario.mensTotaleGlobale);
+            if (mensTotale > 0) {
+                cibleSlider.max = Math.max(10000, mensTotale * 2);
+                cibleNum.max = cibleSlider.max;
+            }
+        }
+    }
+
+    function calculerLissage() {
+        const { state } = lireEtatFormulaire(ui);
+        let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { pib, ptb, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+
+        const cibleLissee = numFrom(getEl('lissageCible_num'));
+        const hasPTB = ptb.amount > 0;
+        const hasPIB = pib.amount > 0;
+
+        // Mise à jour des recap cards
+        mettreAJourRecapLissage();
+
+        if (!hasPTB && !hasPIB) {
+            setDisplayEl(getEl('lissage_results'), 'none');
+            return;
+        }
+
+        if (besoinCreditFinalClassique <= 0 || cibleLissee <= 0) {
+            setDisplayEl(getEl('lissage_results'), 'none');
+            return;
+        }
+
+        // --- Mensualités fixes des prêts bonifiés (int. + ass.) ---
+        const mensPTB = hasPTB ? ptb.monthlyPayment : 0;
+        const mensPIB = hasPIB ? pib.monthlyPayment : 0;
+        const dureePTBmois = hasPTB ? ptb.duration * 12 : 0;
+        const dureePIBmois = hasPIB ? pib.duration * 12 : 0;
+
+        // Assurance du prêt principal (sur capital initial, mensuelle constante)
+        const assurancePrincipaleMensuelle = besoinCreditFinalClassique * (state.TA / 100) / 12;
+
+        // --- Boucle d'amortissement mois par mois ---
+        const tauxMensuelPrincipal = toMonthlyRate(state.TE);
+        let crdPrincipal = besoinCreditFinalClassique;
+        let crdPTB = hasPTB ? ptb.amount : 0;
+        let crdPIB = hasPIB ? pib.amount : 0;
+        const tauxMensuelPTB = toMonthlyRate(ptb.interestRate);
+        const tauxMensuelPIB = toMonthlyRate(pib.interestRate);
+        const mensPTBintOnly = hasPTB ? calculerMensualiteCredit(ptb.amount, ptb.interestRate, dureePTBmois) : 0;
+        const mensPIBintOnly = hasPIB ? calculerMensualiteCredit(pib.amount, pib.interestRate, dureePIBmois) : 0;
+        const assPTBmens = hasPTB ? (ptb.amount * (ptb.insuranceRate / 100)) / 12 : 0;
+        const assPIBmens = hasPIB ? (pib.amount * (pib.insuranceRate / 100)) / 12 : 0;
+
+        const schedule = [];
+        let warnings = [];
+        const MAX_MONTHS = 480; // Sécurité : 40 ans max
+        let totalInteretsPrincipal = 0;
+        let totalAssurancePrincipal = 0;
+        let totalInteretsPTB = 0;
+        let totalAssurancePTB = 0;
+        let totalInteretsPIB = 0;
+        let totalAssurancePIB = 0;
+
+        for (let m = 1; m <= MAX_MONTHS; m++) {
+            if (crdPrincipal <= 0.01) break;
+
+            // Mensualités PTB/PIB actives ce mois-ci
+            const ptbActiveThisMonth = hasPTB && m <= dureePTBmois;
+            const pibActiveThisMonth = hasPIB && m <= dureePIBmois;
+            const mensPTBceMois = ptbActiveThisMonth ? mensPTB : 0;
+            const mensPIBceMois = pibActiveThisMonth ? mensPIB : 0;
+
+            // Assurances totales ce mois
+            const assPTBceMois = ptbActiveThisMonth ? assPTBmens : 0;
+            const assPIBceMois = pibActiveThisMonth ? assPIBmens : 0;
+            const assurancesTotales = assurancePrincipaleMensuelle + assPTBceMois + assPIBceMois;
+
+            // Mensualité disponible pour le prêt principal (hors assurance principal qui est dans assurancesTotales)
+            const mensDisponiblePrincipal = cibleLissee - mensPTBceMois - mensPIBceMois - assurancePrincipaleMensuelle;
+
+            // Intérêts du prêt principal ce mois
+            const interetsPrincipal = crdPrincipal * tauxMensuelPrincipal;
+
+            // Capital amorti du prêt principal
+            let capitalAmortiPrincipal = mensDisponiblePrincipal - interetsPrincipal;
+
+            // Sécurité : amortissement négatif
+            if (capitalAmortiPrincipal < 0) {
+                if (warnings.length === 0) {
+                    warnings.push(`⚠️ Mois ${m} : la cible (${fc(cibleLissee)} €) est trop basse pour couvrir les intérêts du prêt principal (${fc(interetsPrincipal, 2)} €). Capital amorti forcé à 0 (différé partiel).`);
+                }
+                capitalAmortiPrincipal = 0;
+            }
+
+            // Dernier mois : solder le CRD
+            if (capitalAmortiPrincipal >= crdPrincipal) {
+                capitalAmortiPrincipal = crdPrincipal;
+            }
+
+            crdPrincipal -= capitalAmortiPrincipal;
+            if (Math.abs(crdPrincipal) < 0.01) crdPrincipal = 0;
+
+            // Amortissement PTB/PIB (classique)
+            let interetsPTBceMois = 0, capitalPTBceMois = 0;
+            if (ptbActiveThisMonth) {
+                interetsPTBceMois = crdPTB * tauxMensuelPTB;
+                capitalPTBceMois = mensPTBintOnly - interetsPTBceMois;
+                if (m === dureePTBmois) capitalPTBceMois = crdPTB;
+                crdPTB = Math.max(0, crdPTB - capitalPTBceMois);
+            }
+
+            let interetsPIBceMois = 0, capitalPIBceMois = 0;
+            if (pibActiveThisMonth) {
+                interetsPIBceMois = crdPIB * tauxMensuelPIB;
+                capitalPIBceMois = mensPIBintOnly - interetsPIBceMois;
+                if (m === dureePIBmois) capitalPIBceMois = crdPIB;
+                crdPIB = Math.max(0, crdPIB - capitalPIBceMois);
+            }
+
+            // Mensualité réelle payée ce mois (peut être < cible si on solde le CRD)
+            const mensPrincipalCeMois = capitalAmortiPrincipal + interetsPrincipal;
+            const totalPayeCeMois = mensPrincipalCeMois + assurancePrincipaleMensuelle + mensPTBceMois + mensPIBceMois;
+
+            totalInteretsPrincipal += interetsPrincipal;
+            totalAssurancePrincipal += assurancePrincipaleMensuelle;
+            totalInteretsPTB += interetsPTBceMois;
+            totalAssurancePTB += assPTBceMois;
+            totalInteretsPIB += interetsPIBceMois;
+            totalAssurancePIB += assPIBceMois;
+
+            schedule.push({
+                month: m,
+                mensPTB: mensPTBceMois,
+                mensPIB: mensPIBceMois,
+                mensPrincipal: mensPrincipalCeMois + assurancePrincipaleMensuelle,
+                assurancesTotales: assurancesTotales,
+                interetsPrincipal,
+                capitalAmortiPrincipal,
+                totalPaye: totalPayeCeMois,
+                crdPrincipal,
+                crdPTB: ptbActiveThisMonth ? crdPTB : 0,
+                crdPIB: pibActiveThisMonth ? crdPIB : 0,
+                // Pour le graphique aires empilées
+                partPTB: mensPTBceMois,
+                partPIB: mensPIBceMois,
+                partPrincipal: mensPrincipalCeMois + assurancePrincipaleMensuelle
+            });
+        }
+
+        if (crdPrincipal > 0.01) {
+            warnings.push(`❌ Le prêt principal n'est pas remboursé après ${MAX_MONTHS} mois (${(MAX_MONTHS / 12).toFixed(0)} ans). CRD restant : ${fc(crdPrincipal, 2)} €. Augmentez la cible de mensualité.`);
+        }
+
+        const dureeTotaleMois = schedule.length;
+        const dureeAns = Math.floor(dureeTotaleMois / 12);
+        const dureeMoisRestant = dureeTotaleMois % 12;
+        const coutTotalCredits = totalInteretsPrincipal + totalAssurancePrincipal
+                               + totalInteretsPTB + totalAssurancePTB
+                               + totalInteretsPIB + totalAssurancePIB;
+
+        // --- Affichage des résultats ---
+        setDisplayEl(getEl('lissage_results'), 'block');
+
+        // Warnings
+        const warningsEl = getEl('lissage_warnings');
+        if (warnings.length > 0) {
+            setHTMLEl(warningsEl, warnings.join('<br>'));
+            setDisplayEl(warningsEl, 'block');
+        } else {
+            setDisplayEl(warningsEl, 'none');
+        }
+
+        // KPIs
+        setTextEl(getEl('lissage_kpi_mensualite'), fc(cibleLissee) + ' €/mois');
+        setTextEl(getEl('lissage_kpi_duree'), dureeAns + ' ans' + (dureeMoisRestant > 0 ? ' ' + dureeMoisRestant + ' mois' : ''));
+        const dureeClassiqueInitiale = state.duree;
+        const diffMois = dureeTotaleMois - dureeClassiqueInitiale * 12;
+        if (diffMois > 0) {
+            setTextEl(getEl('lissage_kpi_duree_detail'), `+${Math.ceil(diffMois / 12)} an(s) vs durée initiale de ${dureeClassiqueInitiale} ans`);
+        } else {
+            setTextEl(getEl('lissage_kpi_duree_detail'), `${Math.abs(Math.floor(diffMois / 12))} an(s) de moins vs ${dureeClassiqueInitiale} ans`);
+        }
+        setTextEl(getEl('lissage_kpi_cout'), fc(coutTotalCredits) + ' €');
+
+        // --- Tableau des phases ---
+        // Identifier les phases (changements de structure mensualité)
+        const phases = [];
+        let phaseStart = 1;
+        const phaseKey = (row) => `${row.mensPTB > 0 ? 1 : 0}_${row.mensPIB > 0 ? 1 : 0}`;
+        let currentPhaseKey = phaseKey(schedule[0]);
+
+        for (let i = 1; i < schedule.length; i++) {
+            const key = phaseKey(schedule[i]);
+            if (key !== currentPhaseKey) {
+                phases.push({ start: phaseStart, end: schedule[i - 1].month, sample: schedule[i - 1] });
+                phaseStart = schedule[i].month;
+                currentPhaseKey = key;
+            }
+        }
+        phases.push({ start: phaseStart, end: schedule[schedule.length - 1].month, sample: schedule[schedule.length - 1] });
+
+        // Rendre le tableau des phases
+        const phasesTbody = getEl('lissage_phases_tbody');
+        if (phasesTbody) {
+            const firstRowOf = (startMonth) => schedule.find(r => r.month === startMonth);
+            phasesTbody.innerHTML = phases.map((p, idx) => {
+                const row = firstRowOf(p.start);
+                const assTotal = row.assurancesTotales;
+                const dispoPrincipal = cibleLissee - row.mensPTB - row.mensPIB - (besoinCreditFinalClassique * (state.TA / 100) / 12);
+                const interets = row.interetsPrincipal;
+                return `<tr>
+                    <td>Phase ${idx + 1}</td>
+                    <td>Mois ${p.start}→${p.end}</td>
+                    <td>${row.mensPTB > 0 ? fc(row.mensPTB, 2) + ' €' : '—'}</td>
+                    <td>${row.mensPIB > 0 ? fc(row.mensPIB, 2) + ' €' : '—'}</td>
+                    <td>${fc(assTotal, 2)} €</td>
+                    <td>${fc(dispoPrincipal, 2)} €</td>
+                    <td>${fc(interets, 2)} €</td>
+                    <td>${fc(dispoPrincipal - interets, 2)} €</td>
+                </tr>`;
+            }).join('');
+        }
+
+        // --- Tableau d'amortissement complet ---
+        const amortTbody = getEl('lissage_amort_tbody');
+        if (amortTbody) {
+            amortTbody.innerHTML = schedule.map(r =>
+                `<tr><td>${r.month}</td><td>${r.mensPTB > 0 ? fc(r.mensPTB, 2) : '—'}</td><td>${r.mensPIB > 0 ? fc(r.mensPIB, 2) : '—'}</td><td>${fc(r.mensPrincipal, 2)}</td><td>${fc(r.assurancesTotales, 2)}</td><td>${fc(r.totalPaye, 2)}</td><td>${fc(r.crdPrincipal, 2)}</td><td>${r.crdPTB > 0 ? fc(r.crdPTB, 2) : '—'}</td><td>${r.crdPIB > 0 ? fc(r.crdPIB, 2) : '—'}</td></tr>`
+            ).join('');
+        }
+
+        // --- Graphique aires empilées ---
+        renderLissageChart(schedule, cibleLissee);
+    }
+
+    function renderLissageChart(schedule, cibleLissee) {
+        const canvas = getEl('lissageChartCanvas');
+        if (!canvas || typeof Chart === 'undefined' || !schedule?.length) return;
+        if (lissageChart) { lissageChart.destroy(); lissageChart = null; }
+
+        // Agrégation mensuelle → affichage par mois (si < 120 mois) ou par année sinon
+        const useMonthly = schedule.length <= 120;
+        let labels, dataPTB, dataPIB, dataPrincipal, dataTarget;
+
+        if (useMonthly) {
+            labels = schedule.map(r => r.month);
+            dataPTB = schedule.map(r => Math.round(r.partPTB * 100) / 100);
+            dataPIB = schedule.map(r => Math.round(r.partPIB * 100) / 100);
+            dataPrincipal = schedule.map(r => Math.round(r.partPrincipal * 100) / 100);
+            dataTarget = schedule.map(() => cibleLissee);
+        } else {
+            // Agrégation par année (mensualité moyenne)
+            const years = Math.ceil(schedule.length / 12);
+            labels = Array.from({ length: years }, (_, i) => `A${i + 1}`);
+            dataPTB = []; dataPIB = []; dataPrincipal = []; dataTarget = [];
+            for (let y = 0; y < years; y++) {
+                const monthsInYear = schedule.slice(y * 12, (y + 1) * 12);
+                const n = monthsInYear.length;
+                dataPTB.push(Math.round(monthsInYear.reduce((s, r) => s + r.partPTB, 0) / n * 100) / 100);
+                dataPIB.push(Math.round(monthsInYear.reduce((s, r) => s + r.partPIB, 0) / n * 100) / 100);
+                dataPrincipal.push(Math.round(monthsInYear.reduce((s, r) => s + r.partPrincipal, 0) / n * 100) / 100);
+                dataTarget.push(cibleLissee);
+            }
+        }
+
+        lissageChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'PTB',
+                        data: dataPTB,
+                        backgroundColor: 'rgba(255, 152, 0, 0.7)',
+                        borderColor: 'rgba(255, 152, 0, 1)',
+                        borderWidth: 1,
+                        fill: 'origin',
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'PIB',
+                        data: dataPIB.map((v, i) => v + dataPTB[i]),
+                        backgroundColor: 'rgba(33, 150, 243, 0.7)',
+                        borderColor: 'rgba(33, 150, 243, 1)',
+                        borderWidth: 1,
+                        fill: '-1',
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Prêt Principal (+ ass.)',
+                        data: dataPrincipal.map((v, i) => v + dataPIB[i] + dataPTB[i]),
+                        backgroundColor: 'rgba(76, 175, 80, 0.7)',
+                        borderColor: 'rgba(76, 175, 80, 1)',
+                        borderWidth: 1,
+                        fill: '-1',
+                        pointRadius: 0,
+                        tension: 0.1
+                    },
+                    {
+                        label: 'Cible Lissée',
+                        data: dataTarget,
+                        borderColor: '#E53935',
+                        borderWidth: 2,
+                        borderDash: [6, 3],
+                        fill: false,
+                        pointRadius: 0,
+                        tension: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 10 }, boxWidth: 12 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => {
+                                // Afficher les valeurs individuelles (non cumulées) dans le tooltip
+                                const idx = ctx.dataIndex;
+                                const label = ctx.dataset.label;
+                                if (label === 'Cible Lissée') return `${label} : ${ctx.parsed.y.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+                                const ptbVal = dataPTB[idx] || 0;
+                                const pibVal = dataPIB[idx] || 0;
+                                const princVal = dataPrincipal[idx] || 0;
+                                let val = 0;
+                                if (label === 'PTB') val = ptbVal;
+                                else if (label === 'PIB') val = pibVal;
+                                else val = princVal;
+                                return `${label} : ${val.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+                            }
+                        }
+                    },
+                    filler: { propagate: false }
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: useMonthly ? 'Mois' : 'Année', font: { size: 10 } },
+                        ticks: { font: { size: 9 }, maxRotation: 45, maxTicksLimit: 30 }
+                    },
+                    y: {
+                        title: { display: true, text: 'Mensualité (€)', font: { size: 10 } },
+                        ticks: { font: { size: 9 }, callback: v => v.toLocaleString('fr-FR') + ' €' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
     function startApp() {
         ui = buildUI();
         const inputIds = [
@@ -2970,7 +3356,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'raMois', 'raMontant',
             // Phase 5
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
-            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement'
+            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement',
+            // Lissage
+            'lissageCible'
         ];
 
         inputIds.forEach(id => {
@@ -3325,6 +3713,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (target === 'tab-comparator') {
                     // Initialiser les offres si le conteneur est vide
                     if (!getEl('comp_offers_container')?.children.length) initOffresComparateur();
+                }
+                if (target === 'tab-lissage') {
+                    mettreAJourRecapLissage();
                 }
             });
         });
@@ -3800,6 +4191,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         getEl('btn-run-lemoine')?.addEventListener('click', calculerSwitchAssurance);
+
+        // Lissage
+        getEl('btn-run-lissage')?.addEventListener('click', calculerLissage);
 
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();

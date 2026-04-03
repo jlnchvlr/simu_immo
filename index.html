@@ -19,6 +19,7 @@
             <button class="tab-btn" data-tab="tab-comparator">⚖️ Comparateur d'Offres</button>
             <button class="tab-btn" data-tab="tab-renego">🔄 Renégo. Taux</button>
             <button class="tab-btn" data-tab="tab-assurance">🛡️ Assurance Lemoine</button>
+            <button class="tab-btn" data-tab="tab-lissage">📐 Lissage</button>
         </div>
 
         <div id="validation-alerts" class="validation-alerts" style="display:none;">
@@ -1150,6 +1151,145 @@
                 </div>
             </section>
         </div>
+
+        <!-- ===== ONGLET 6 : LISSAGE DE PRÊTS ===== -->
+        <div id="tab-lissage" class="tab-pane">
+            <section class="card">
+                <h3 style="margin:0 0 .3rem 0;">📐 Lissage de Prêts (Amortissement Lissé)</h3>
+                <p class="section-description">Calculez une mensualité totale constante en ajustant dynamiquement le remboursement du prêt principal en fonction des prêts complémentaires (PTB/PIB). Les données PTB/PIB sont reprises automatiquement depuis l'onglet "Mon Projet".</p>
+
+                <div class="lissage-alert" id="lissage_no_bonified" style="display:none;">
+                    ⚠️ Aucun prêt bonifié (PTB ou PIB) n'est activé dans l'onglet "Mon Projet". Le lissage nécessite au moins un prêt complémentaire.
+                </div>
+
+                <!-- Recap prêts complémentaires -->
+                <div class="lissage-recap-grid" id="lissage_recap_container">
+                    <div class="lissage-recap-card" id="lissage_recap_ptb" style="display:none;">
+                        <h4>🛠️ PTB</h4>
+                        <table>
+                            <tr><td>Montant</td><td id="lissage_ptb_amount">—</td></tr>
+                            <tr><td>Durée</td><td id="lissage_ptb_duration">—</td></tr>
+                            <tr><td>Taux</td><td id="lissage_ptb_rate">—</td></tr>
+                            <tr><td>Mensualité (int.+ass.)</td><td id="lissage_ptb_monthly">—</td></tr>
+                        </table>
+                    </div>
+                    <div class="lissage-recap-card" id="lissage_recap_pib" style="display:none;">
+                        <h4>💸 PIB</h4>
+                        <table>
+                            <tr><td>Montant</td><td id="lissage_pib_amount">—</td></tr>
+                            <tr><td>Durée</td><td id="lissage_pib_duration">—</td></tr>
+                            <tr><td>Taux</td><td id="lissage_pib_rate">—</td></tr>
+                            <tr><td>Mensualité (int.+ass.)</td><td id="lissage_pib_monthly">—</td></tr>
+                        </table>
+                    </div>
+                    <div class="lissage-recap-card">
+                        <h4>🏦 Prêt Principal</h4>
+                        <table>
+                            <tr><td>Montant</td><td id="lissage_classic_amount">—</td></tr>
+                            <tr><td>Taux nominal</td><td id="lissage_classic_rate">—</td></tr>
+                            <tr><td>Taux assurance</td><td id="lissage_classic_ins_rate">—</td></tr>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Cible de mensualité lissée -->
+                <div class="lissage-target-section">
+                    <div class="input-item">
+                        <label for="lissageCible_num">🎯 Cible de Mensualité Lissée (€/mois, assurance incluse) :</label>
+                        <input type="range" id="lissageCible" min="100" max="10000" value="1500" step="10">
+                        <input type="number" id="lissageCible_num" min="100" max="10000" value="1500" step="10">
+                    </div>
+                    <p class="section-description" style="margin-top:.3rem;">Montant total fixe souhaité chaque mois (tous prêts + assurances confondus). La mensualité du prêt principal s'ajuste automatiquement.</p>
+                    <button id="btn-run-lissage" class="btn-scenario" style="width:100%; margin-top:.6rem;">📐 Calculer le Lissage</button>
+                </div>
+
+                <!-- Résultats -->
+                <div id="lissage_results" style="display:none; margin-top:1.2rem;">
+                    <h4 style="margin:0 0 .8rem 0;">📊 Résultat du Lissage</h4>
+
+                    <!-- Alertes -->
+                    <div id="lissage_warnings" class="lissage-alert" style="display:none;"></div>
+
+                    <!-- KPI -->
+                    <div class="renego-kpi-grid">
+                        <div class="renego-kpi-card lissage-kpi--mensualite">
+                            <div class="renego-kpi-icon">💶</div>
+                            <div class="renego-kpi-label">Mensualité Lissée</div>
+                            <div class="renego-kpi-value" id="lissage_kpi_mensualite">—</div>
+                            <div class="renego-kpi-detail">Constante chaque mois</div>
+                        </div>
+                        <div class="renego-kpi-card lissage-kpi--duree">
+                            <div class="renego-kpi-icon">📅</div>
+                            <div class="renego-kpi-label">Durée Totale</div>
+                            <div class="renego-kpi-value" id="lissage_kpi_duree">—</div>
+                            <div class="renego-kpi-detail" id="lissage_kpi_duree_detail">Durée effective du prêt principal</div>
+                        </div>
+                        <div class="renego-kpi-card lissage-kpi--cout">
+                            <div class="renego-kpi-icon">📈</div>
+                            <div class="renego-kpi-label">Coût Total Crédits</div>
+                            <div class="renego-kpi-value" id="lissage_kpi_cout">—</div>
+                            <div class="renego-kpi-detail">Intérêts + assurances (tous prêts)</div>
+                        </div>
+                    </div>
+
+                    <!-- Détail mensualités -->
+                    <div class="lissage-detail-table" style="margin-top:1rem;">
+                        <h4 style="margin:0 0 .5rem 0;">Décomposition des phases</h4>
+                        <div style="overflow-x:auto;">
+                            <table id="lissage_phases_table" class="amortization-data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Phase</th>
+                                        <th>Mois</th>
+                                        <th>Mens. PTB</th>
+                                        <th>Mens. PIB</th>
+                                        <th>Ass. totales</th>
+                                        <th>Dispo. Principal</th>
+                                        <th>Intérêts Principal</th>
+                                        <th>Capital Principal</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="lissage_phases_tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Graphique aires empilées -->
+                    <div style="margin-top:1.2rem;">
+                        <h4 style="margin:0 0 .5rem 0;">📊 Graphique — Mensualité Lissée (Aires Empilées)</h4>
+                        <div style="position:relative; height:350px;">
+                            <canvas id="lissageChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Tableau d'amortissement lissé -->
+                    <div style="margin-top:1rem;">
+                        <details>
+                            <summary style="cursor:pointer; font-weight:600; font-size:.85rem; color:var(--primary-color);">📋 Voir le tableau d'amortissement complet (mois par mois)</summary>
+                            <div style="max-height:400px; overflow-y:auto; margin-top:.5rem;">
+                                <table id="lissage_amort_table" class="amortization-data-table" style="font-size:.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Mois</th>
+                                            <th>Mens. PTB</th>
+                                            <th>Mens. PIB</th>
+                                            <th>Mens. Principal</th>
+                                            <th>Ass. Totales</th>
+                                            <th>Total Payé</th>
+                                            <th>CRD Principal</th>
+                                            <th>CRD PTB</th>
+                                            <th>CRD PIB</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="lissage_amort_tbody"></tbody>
+                                </table>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <!-- ===== /ONGLET 6 ===== -->
 
     </main>
 
