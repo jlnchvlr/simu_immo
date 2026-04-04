@@ -569,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return (t.fixe) + (base - seuil) * t.taux;
     }
 
-    function evaluerFraisGarantie(typeGarantie, montantPret, isAncien, valeurManuelle) {
+    function evaluerFraisGarantie(typeGarantie, montantPret, isAncien, valeurManuelle, cautionRatePct) {
         if (montantPret <= 0) return { cout: 0, description: "Aucune garantie nécessaire." };
         if (typeGarantie === 'manual_guarantee') return { cout: valeurManuelle || 0, description: "Garantie manuelle." };
 
@@ -581,11 +581,12 @@ document.addEventListener('DOMContentLoaded', () => {
             return t.fixe + (b - (prev?.seuil ?? 0)) * t.taux;
         };
 
+        const cautionRate = (cautionRatePct > 0) ? cautionRatePct / 100 : CONFIG.CAUTION_RATE;
         let cout = 0, description = "";
         switch (typeGarantie) {
             case 'caution':
-                cout = montantPret * CONFIG.CAUTION_RATE;
-                description = `Caution prêt classique (environ ${(CONFIG.CAUTION_RATE * 100).toFixed(1)}% de ${formatCurrency(montantPret)}).`;
+                cout = montantPret * cautionRate;
+                description = `Caution prêt classique (environ ${(cautionRate * 100).toFixed(2)}% de ${formatCurrency(montantPret)}).`;
                 break;
             case 'hypotheque': {
                 const tpf  = montantPret * CONFIG.HYPOTHEQUE_TPF_RATE;
@@ -837,6 +838,12 @@ document.addEventListener('DOMContentLoaded', () => {
             T: numFrom(f.T_num),
             A: numFrom(f.A_num),
             FG_manual: numFrom(f.FG_manual_num),
+            cautionRate: numFrom(getEl('cautionRate_pct_num')) || CONFIG.CAUTION_RATE * 100,
+            fnTaxeDept: (() => {
+                const sel = getEl('fnTaxeDept')?.value;
+                if (sel === 'custom') return numFrom(getEl('fnTaxeDept_custom_num')) || 4.5;
+                return parseFloat(sel) || 4.5;
+            })(),
             S: numFrom(f.S_num),
             AutresCredits: numFrom(f.AutresCredits_num),
             AutresCharges: numFrom(f.AutresCharges_num),
@@ -895,8 +902,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 ptbPc: numFrom(f.ira_ptb_num)
             },
             ra: {
-                mois: Math.max(1, Math.round(numFrom(f.raMois_num) || 60)),
-                montant: numFrom(f.raMontant_num)
+                mois: Math.max(1, Math.round(numFrom(getEl('rapMois_num')) || 60)),
+                montant: numFrom(getEl('rapMontant_num'))
             },
             avl: {
                 loyer: numFrom(f.loyer_num),
@@ -924,8 +931,11 @@ document.addEventListener('DOMContentLoaded', () => {
         let fn_display = {};
 
         if (state.FN_mode === 'auto') {
+            // Taux total droits de mutation : département (configurable) + communal 1,2 % + CSI 0,1 %
+            const fnTaxeDeptPct = state.typeBien === 'ancien' ? (state.fnTaxeDept || 4.5) : (CONFIG.FN_TAXES_NEUF * 100);
+            const fnTauxTotal = state.typeBien === 'ancien' ? (fnTaxeDeptPct + 1.2 + 0.1) / 100 : CONFIG.FN_TAXES_NEUF;
             fn_details.baseCalcul   = state.typeBien === 'ancien' ? Math.max(0, baseNotaireBrute - state.M) : baseNotaireBrute;
-            fn_details.taxes        = fn_details.baseCalcul * (state.typeBien === 'ancien' ? CONFIG.FN_TAXES_ANCIEN : CONFIG.FN_TAXES_NEUF);
+            fn_details.taxes        = fn_details.baseCalcul * fnTauxTotal;
             const emolHT            = calculerEmolumentsNotaire(state.typeBien === 'ancien' ? fn_details.baseCalcul : baseNotaireBrute);
             fn_details.emolumentsTTC = emolHT * CONFIG.EMOLUMENTS_TVA;
             fn_details.debours      = CONFIG.FN_DEBOURS;
@@ -938,7 +948,7 @@ document.addEventListener('DOMContentLoaded', () => {
             fn_display.taxes        = formatCurrency(fn_details.taxes) + " €";
             fn_display.emoluments   = formatCurrency(fn_details.emolumentsTTC) + " €";
             fn_display.debours      = formatCurrency(fn_details.debours) + " €";
-            fn_display.taxesPc      = `${formatNumber(state.typeBien === 'ancien' ? 5.80665 : 0.715, 3)} %`;
+            fn_display.taxesPc      = `${formatNumber(fnTauxTotal * 100, 3)} %`;
             fn_display.emolumentsPc = `${formatNumber(fn_details.baseCalcul > 0 ? (fn_details.emolumentsTTC / fn_details.baseCalcul) * 100 : 0, 3)} %`;
             fn_display.debourssPc   = baseNotaireBrute > 0 ? `${formatNumber((fn_details.debours / baseNotaireBrute) * 100, 3)} %` : '0 %';
         } else {
@@ -986,7 +996,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Évaluation de la garantie APRES avoir déduit PTB/PIB
-        const garDetails = evaluerFraisGarantie(state.typeGarantie, besoinCreditInitial, state.typeBien === 'ancien', state.FG_manual);
+        const garDetails = evaluerFraisGarantie(state.typeGarantie, besoinCreditInitial, state.typeBien === 'ancien', state.FG_manual, state.cautionRate);
         const coutTotalOperation = coutAvantGar + garDetails.cout;
         const besoinCreditFinalClassique = Math.max(0, coutTotalOperation - state.A - ptb.amount - pib.amount);
 
@@ -1095,7 +1105,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Coût si 100 % classique (pour calcul économie prêts bonifiés)
         let coutOpPourClassicOnly = coutTotalOperation;
         if ((coutTotalOperation - state.A) > 0) {
-            const fraisGarCO = evaluerFraisGarantie(state.typeGarantie, coutTotalOperation - state.A, state.typeBien === 'ancien', state.FG_manual).cout;
+            const fraisGarCO = evaluerFraisGarantie(state.typeGarantie, coutTotalOperation - state.A, state.typeBien === 'ancien', state.FG_manual, state.cautionRate).cout;
             const ctoBeforeCO = prixFAI + fn_details.montant + state.T + state.FD + state.Courtier + fraisGarCO;
             const vraiCreditCO = Math.max(0, ctoBeforeCO - state.A);
             const mensIntCO  = calculerMensualiteCredit(vraiCreditCO, state.TE, duree * 12);
@@ -1105,7 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         s.coutOpPourClassicOnly = coutOpPourClassicOnly;
         s.savings = (pib.amount === 0 && ptb.amount === 0) ? 0 : coutOpPourClassicOnly - (coutTotalOperation + s.coutCreditGlobal);
 
-        return { scenario: s, mensualiteMaxTdtGlobale, mensualiteMaxRavGlobale, mensualiteMaxRetenueGlobale, capEmpruntMax };
+        return { scenario: s, mensualiteMaxTdtGlobale, mensualiteMaxRavGlobale, mensualiteMaxRetenueGlobale, capEmpruntMax, mensualiteMaxPourPretClassique };
     }
 
     // Calcule mensualité + coût crédit classique pour n'importe quelle durée (sans toucher au DOM)
@@ -1199,10 +1209,37 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.mensualitemax_rav, formatCurrency(scenData.mensualiteMaxRavGlobale) + " €");
         setTextEl(ui.mensualitemax_retenue, formatCurrency(scenData.mensualiteMaxRetenueGlobale) + " €");
 
-        setTextEl(ui.capEmpruntMax, formatCurrency(scenData.capEmpruntMax) + " €");
-        setTextEl(ui.current_duree_val, state.duree);
-        setTextEl(ui.current_TE_val, formatNumber(state.TE, 2));
-        setTextEl(ui.current_TA_val, formatNumber(state.TA, 2));
+        // Capacité d'emprunt multi-durées
+        const mensMaxCap = scenData.mensualiteMaxPourPretClassique;
+        const recalcCapEmp = () => {
+            const te20 = parseFloat(getEl('capEmp20_TE')?.value) || state.TE;
+            const ta20 = parseFloat(getEl('capEmp20_TA')?.value) || state.TA;
+            const te25 = parseFloat(getEl('capEmp25_TE')?.value) || state.TE;
+            const ta25 = parseFloat(getEl('capEmp25_TA')?.value) || state.TA;
+            setTextEl(getEl('capEmp20_val'), formatCurrency(calculerCapaciteEmprunt(mensMaxCap, te20, ta20, 240)) + " €");
+            setTextEl(getEl('capEmp25_val'), formatCurrency(calculerCapaciteEmprunt(mensMaxCap, te25, ta25, 300)) + " €");
+            const projDuree = state.duree;
+            if (projDuree !== 20 && projDuree !== 25) {
+                setDisplayEl(getEl('capEmpProj_row'), 'table-row');
+                setTextEl(getEl('capEmpProj_duree'), projDuree);
+                const teP = parseFloat(getEl('capEmpProj_TE')?.value) || state.TE;
+                const taP = parseFloat(getEl('capEmpProj_TA')?.value) || state.TA;
+                setTextEl(getEl('capEmpProj_val'), formatCurrency(calculerCapaciteEmprunt(mensMaxCap, teP, taP, projDuree * 12)) + " €");
+            } else {
+                setDisplayEl(getEl('capEmpProj_row'), 'none');
+            }
+        };
+        // Initialiser les inputs avec les valeurs du projet (uniquement si pas encore modifiés par l'utilisateur)
+        const initCapEmpInput = (id, v) => {
+            const el = getEl(id);
+            if (el && !el.__capEmpUserEdited) el.value = formatNumber(v, 2);
+        };
+        initCapEmpInput('capEmp20_TE', state.TE); initCapEmpInput('capEmp20_TA', state.TA);
+        initCapEmpInput('capEmp25_TE', state.TE); initCapEmpInput('capEmp25_TA', state.TA);
+        initCapEmpInput('capEmpProj_TE', state.TE); initCapEmpInput('capEmpProj_TA', state.TA);
+        recalcCapEmp();
+        // Stocker recalc pour usage par les listeners live
+        window._recalcCapEmp = recalcCapEmp;
     };
 
     const updateScenarioValues = (ui, state, scenData, coutTotalOperation) => {
@@ -1825,9 +1862,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (classicAmount <= 0 || raMontant <= 0 || raMois >= dureeMois) return null;
 
         const crd = calculerCapitalRestantDu(classicAmount, tauxClassique, dureeMois, raMois);
-        // Mettre à jour le max du slider RA dynamiquement
-        const raMontantEl = getEl('raMontant');
-        const raMontantNumEl = getEl('raMontant_num');
+        // Mettre à jour le max du slider RA dynamiquement (maintenant dans l'onglet RAP)
+        const raMontantEl = getEl('rapMontant');
+        const raMontantNumEl = getEl('rapMontant_num');
         if (raMontantEl && raMontantNumEl && crd > 0) {
             const newMax = Math.max(200000, Math.ceil(crd / 1000) * 1000);
             raMontantEl.max = newMax;
@@ -2278,8 +2315,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // 7. PHASE 4 — Remboursement Anticipé Partiel
         const raData = calculerRemboursementAnticipe(state, scenData.scenario.classic_amount, uiState);
         renderRemboursementAnticipe(ui, raData);
-        // Sync max du slider raMois avec la durée courante
-        const raMoisSlider = getEl('raMois'), raMoisNum = getEl('raMois_num');
+        // Sync max du slider rapMois avec la durée courante (maintenant dans l'onglet RAP)
+        const raMoisSlider = getEl('rapMois'), raMoisNum = getEl('rapMois_num');
         if (raMoisSlider && raMoisNum) {
             const maxMois = Math.max(12, state.duree * 12 - 1);
             raMoisSlider.max = maxMois; raMoisNum.max = maxMois;
@@ -3004,6 +3041,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function calculerLissage() {
+        const fc = formatCurrency;
         const { state } = lireEtatFormulaire(ui);
         let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
         let { pib, ptb, besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
@@ -3940,11 +3978,15 @@ document.addEventListener('DOMContentLoaded', () => {
             'resalePriceManual', 'inflationCumulative', 'ira_manual', 'ira_classic', 'ira_pib', 'ira_ptb',
             // Phase 3
             'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'revenuEvolution',
-            // Phase 4
-            'raMois', 'raMontant',
+            // RAP — mis à jour en temps réel pour la comparaison rapide A/B
+            'rapMontant', 'rapMois',
             // Phase 5
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
             'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement',
+            // Frais notaire taux département personnalisé
+            'fnTaxeDept_custom',
+            // Garantie caution
+            'cautionRate_pct',
             // Lissage
             'lissageCible',
             // Modulation
@@ -3967,11 +4009,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const breakdown = getEl('fn_breakdown');
             const trigger = getEl('fnDetailsToggleTrigger');
             
+            setDisplayEl(getEl('fnTaxeDeptContainer'), isManual ? 'none' : 'flex');
+            setDisplayEl(getEl('fnTaxeDeptCustomContainer'), (!isManual && getEl('fnTaxeDept')?.value === 'custom') ? 'flex' : 'none');
             if (isManual) {
                 // 1. On récupère le montant en euros actuel (caché dans le résumé)
                 const currentEurosText = getEl('res_FN_montant')?.textContent || '0';
                 const currentEuros = parseFloat(currentEurosText.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
-                
+
                 // 2. On passe le champ en mode "Euros" (Min 0, Max 100 000)
                 setInputState('FN', true, { min: 0, max: 100000, step: 100 });
                 
@@ -4001,6 +4045,15 @@ document.addEventListener('DOMContentLoaded', () => {
             // On relance le calcul global pour que le pourcentage à droite s'ajuste immédiatement
             calculateAll();
         });
+
+        // Listener taux département frais notaire
+        getEl('fnTaxeDept')?.addEventListener('change', (e) => {
+            const isCustom = e.target.value === 'custom';
+            setDisplayEl(getEl('fnTaxeDeptCustomContainer'), isCustom ? 'flex' : 'none');
+            calculateAll();
+        });
+        // Slider personnalisé taux département (enregistré dans inputIds → setupSliderAndNumber)
+
         [
             ui.form.typeBien,
             ui.form.typeGarantie,
@@ -4061,7 +4114,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         ui.form.typeGarantie?.addEventListener('change', (e) => {
             const isManualGuarantee = e.target.value === 'manual_guarantee';
+            const isCaution = e.target.value === 'caution';
             setDisplayEl(ui.manualGuaranteeInput, isManualGuarantee ? 'flex' : 'none');
+            setDisplayEl(getEl('cautionRateContainer'), isCaution ? 'flex' : 'none');
             const details = ui.FG_details;
             const trigger = ui.fgDetailsToggleTrigger;
             if (details && trigger) {
@@ -4157,6 +4212,7 @@ document.addEventListener('DOMContentLoaded', () => {
             setDisplayEl(ui.fgDetailsToggleTrigger, 'none');
             setDisplayEl(ui.manualGuaranteeInput, 'flex');
         }
+        if(modeGar === 'caution') setDisplayEl(getEl('cautionRateContainer'), 'flex');
 
         // Bouton de réinitialisation
         ui.btn_reset?.addEventListener('click', () => {
@@ -4788,6 +4844,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         getEl('btn-run-lemoine')?.addEventListener('click', calculerSwitchAssurance);
 
+        // Capacité d'emprunt — inputs live
+        ['capEmp20_TE', 'capEmp20_TA', 'capEmp25_TE', 'capEmp25_TA', 'capEmpProj_TE', 'capEmpProj_TA'].forEach(id => {
+            getEl(id)?.addEventListener('input', () => {
+                getEl(id).__capEmpUserEdited = true;
+                if (window._recalcCapEmp) window._recalcCapEmp();
+            });
+        });
+        getEl('capEmp_reset')?.addEventListener('click', () => {
+            ['capEmp20_TE', 'capEmp20_TA', 'capEmp25_TE', 'capEmp25_TA', 'capEmpProj_TE', 'capEmpProj_TA'].forEach(id => {
+                const el = getEl(id);
+                if (el) el.__capEmpUserEdited = false;
+            });
+            calculateAll(); // relance le calcul principal qui réinitialise les valeurs
+        });
+
         // Lissage
         getEl('btn-run-lissage')?.addEventListener('click', calculerLissage);
 
@@ -4807,7 +4878,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ui.pibInputsContainer?.classList.toggle('disabled-section', !ui.form.enablePIB?.checked);
             ui.ptbInputsContainer?.classList.toggle('disabled-section', !ui.form.enablePTB?.checked);
             if (ui.form.typeGarantie?.value === 'manual_guarantee') setDisplayEl(ui.manualGuaranteeInput, 'flex');
+            if (ui.form.typeGarantie?.value === 'caution') setDisplayEl(getEl('cautionRateContainer'), 'flex');
             if (ui.form.ptbAgentStatus?.value === 'retraite' && ui.form.ptbZone) ui.form.ptbZone.disabled = true;
+            const fnModeVal = getEl('FN_mode')?.value;
+            setDisplayEl(getEl('fnTaxeDeptContainer'), fnModeVal !== 'manual' ? 'flex' : 'none');
+            if (getEl('fnTaxeDept')?.value === 'custom') setDisplayEl(getEl('fnTaxeDeptCustomContainer'), 'flex');
         };
         restaurerEtatsVisuels();
 

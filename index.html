@@ -80,6 +80,20 @@
                             <input type="number" id="FN_num" min="0" max="50000" value="7.5" step="0.1">
                             <span class="calculated-value"><strong id="FN_montant">0</strong><span id="FN_pc_manual" style="display:none;"> (<span id="FN_montant_pc">0</span> %)</span></span>
                         </div>
+                        <div class="input-item" id="fnTaxeDeptContainer">
+                            <label for="fnTaxeDept">Taux département (droits mutation) : <span class="info-icon" data-info-key="fnTaxeDept_info">ⓘ</span></label>
+                            <select id="fnTaxeDept">
+                                <option value="3.80">3,80 % (réduit)</option>
+                                <option value="4.50" selected>4,50 % (standard)</option>
+                                <option value="4.90">4,90 % (max 2021+)</option>
+                                <option value="custom">Personnalisé</option>
+                            </select>
+                        </div>
+                        <div class="input-item" id="fnTaxeDeptCustomContainer" style="display:none;">
+                            <label for="fnTaxeDept_custom">Taux département personnalisé (%) :</label>
+                            <input type="range" id="fnTaxeDept_custom" min="3.5" max="5.0" value="4.5" step="0.05">
+                            <input type="number" id="fnTaxeDept_custom_num" min="3.5" max="5.0" value="4.5" step="0.05">
+                        </div>
                         <div class="details-toggle" id="fnDetailsToggleTrigger">Cacher détails calcul auto. frais notaire ▲</div>
                         <div id="fn_breakdown" class="details-content visible">
                             <p>Base de calcul : <strong id="fn_base_calc">0</strong> € (<span id="fn_type_bien_label">ancien</span>)</p>
@@ -95,6 +109,11 @@
                                 <option value="ppd">PPD</option>
                                 <option value="manual_guarantee">Manuel</option> 
                             </select>
+                        </div>
+                        <div class="input-item" id="cautionRateContainer" style="display:none;">
+                            <label for="cautionRate_pct">Taux de caution estimé (%) : <span class="info-icon" data-info-key="cautionRate_info">ⓘ</span></label>
+                            <input type="range" id="cautionRate_pct" min="0.5" max="2.5" value="1.2" step="0.05">
+                            <input type="number" id="cautionRate_pct_num" min="0.5" max="2.5" value="1.2" step="0.05">
                         </div>
                         <div class="input-item" id="manualGuaranteeInput" style="display:none;">
                             <label for="FG_manual">Coût garantie manuel (€) : <span class="info-icon" data-info-key="FG_manual_info">ⓘ</span></label>
@@ -385,9 +404,29 @@
                             <tr><th>Mensualité Max (Reste à vivre)</th><td id="mensualitemax_rav">0 €</td></tr>
                             <tr class="highlight-row"><th>Mensualité Max Retenue</th><td id="mensualitemax_retenue">0 €</td></tr>
                         </table>
-                        <h4>Capacité emprunt max. Prêt Classique (après PIB/PTB) :</h4>
-                        <table>
-                            <tr><th>Sur <span id="current_duree_val">20</span> ans (<span id="current_TE_val">0</span>% / <span id="current_TA_val">0</span>% Ass.)</th><td id="capEmpruntMax">0 €</td></tr>
+                        <h4>Capacité emprunt max. Prêt Classique (après PIB/PTB) : <button id="capEmp_reset" title="Réinitialiser les taux" style="font-size:.7rem;padding:2px 6px;cursor:pointer;margin-left:4px;">↺</button></h4>
+                        <table id="capEmp_table">
+                            <thead><tr><th>Durée</th><th>Taux (%)</th><th>Ass. (%)</th><th>Capacité max</th></tr></thead>
+                            <tbody>
+                                <tr>
+                                    <td>20 ans</td>
+                                    <td><input type="number" id="capEmp20_TE" min="0" max="10" step="0.01" style="width:55px;"></td>
+                                    <td><input type="number" id="capEmp20_TA" min="0" max="2" step="0.01" style="width:50px;"></td>
+                                    <td id="capEmp20_val">0 €</td>
+                                </tr>
+                                <tr>
+                                    <td>25 ans</td>
+                                    <td><input type="number" id="capEmp25_TE" min="0" max="10" step="0.01" style="width:55px;"></td>
+                                    <td><input type="number" id="capEmp25_TA" min="0" max="2" step="0.01" style="width:50px;"></td>
+                                    <td id="capEmp25_val">0 €</td>
+                                </tr>
+                                <tr id="capEmpProj_row" style="display:none;">
+                                    <td><span id="capEmpProj_duree">20</span> ans <em style="font-size:.7rem;color:var(--text-light-color);">(projet)</em></td>
+                                    <td><input type="number" id="capEmpProj_TE" min="0" max="10" step="0.01" style="width:55px;"></td>
+                                    <td><input type="number" id="capEmpProj_TA" min="0" max="2" step="0.01" style="width:50px;"></td>
+                                    <td id="capEmpProj_val">0 €</td>
+                                </tr>
+                            </tbody>
                         </table>
                     </div>
                     <div class="result-group">
@@ -548,39 +587,6 @@
             </section>
             <!-- ===== /PHASE 3 ===== -->
 
-            <!-- ===== PHASE 4: Remboursement Anticipé Partiel ===== -->
-            <section id="ra-section" class="card two-columns">
-                <div class="input-column">
-                    <div class="input-group">
-                        <h3>⏩ Remboursement Anticipé Partiel (RA)</h3>
-                        <p class="section-description">Vous disposez d'une somme et souhaitez rembourser une partie de votre prêt avant son terme ? Deux options s'offrent à vous : <strong>finir de rembourser plus vite</strong> (même mensualité) ou <strong>alléger vos mensualités</strong> (même durée). Cette section compare ces deux stratégies et calcule l'éventuelle pénalité bancaire (IRA).</p>
-                        <div class="input-item">
-                            <label for="raMois">Mois du remboursement (n°) :</label>
-                            <input type="range" id="raMois" min="1" max="360" value="60" step="1">
-                            <input type="number" id="raMois_num" min="1" max="360" value="60" step="1">
-                        </div>
-                        <div class="input-item">
-                            <label for="raMontant">Montant du RA (€) :</label>
-                            <input type="range" id="raMontant" min="0" max="200000" value="20000" step="1000">
-                            <input type="number" id="raMontant_num" min="0" max="200000" value="20000" step="1000">
-                        </div>
-                        <div id="ra_info_box" style="background:#f0f8ff; padding:8px; border-radius:4px; font-size:.75rem; color:var(--text-light-color); margin-top:4px; display:none;">
-                            <p style="margin:2px 0;">Capital restant dû <span class="info-icon" data-info-key="ra_crd_info">ⓘ</span> au mois <strong id="ra_mois_display">60</strong> : <strong id="ra_crd_display">—</strong> €</p>
-                            <p style="margin:2px 0;">Pénalité bancaire (IRA) <span class="info-icon" data-info-key="ra_ira_info_ra">ⓘ</span> : <strong id="ra_ira_display" style="color:var(--danger-color)">—</strong> €</p>
-                            <p style="margin:2px 0;">Montant net investi (RA + IRA) : <strong id="ra_net_invested">—</strong> €</p>
-                        </div>
-                    </div>
-                </div>
-                <div class="result-column">
-                    <div class="result-group">
-                        <h3>⏩ Que faire après un remboursement anticipé ?</h3>
-                        <div id="ra_table_container">
-                            <p style="color:var(--text-light-color);font-size:.75rem;">Configurez un montant de prêt classique non nul pour activer cette analyse.</p>
-                        </div>
-                    </div>
-                </div>
-            </section>
-            <!-- ===== /PHASE 4 ===== -->
 
             <section id="resale-section" class="card two-columns">
                 <div class="input-column">
@@ -1427,7 +1433,20 @@
                     </div>
                 </div>
 
-                <button id="btn-run-rap" class="btn-scenario" style="width:100%; margin-top:.6rem;">💰 Simuler l'Injection</button>
+                <!-- Comparaison rapide A/B (mise à jour automatique) -->
+                <div style="margin-top:1rem; padding:1rem; background:var(--bg-alt-color,#f8f9fa); border-radius:var(--border-radius-medium); border:1px solid var(--border-color);">
+                    <h4 style="margin:0 0 .5rem 0;">⚡ Comparaison rapide — Que faire après ce RA ?</h4>
+                    <div id="ra_info_box" style="background:#f0f8ff; padding:8px; border-radius:4px; font-size:.75rem; color:var(--text-light-color); margin-bottom:.5rem; display:none;">
+                        <p style="margin:2px 0;">Capital restant dû <span class="info-icon" data-info-key="ra_crd_info">ⓘ</span> au mois <strong id="ra_mois_display">60</strong> : <strong id="ra_crd_display">—</strong> €</p>
+                        <p style="margin:2px 0;">Pénalité bancaire (IRA) <span class="info-icon" data-info-key="ra_ira_info_ra">ⓘ</span> : <strong id="ra_ira_display" style="color:var(--danger-color)">—</strong> €</p>
+                        <p style="margin:2px 0;">Montant net investi (RA + IRA) : <strong id="ra_net_invested">—</strong> €</p>
+                    </div>
+                    <div id="ra_table_container">
+                        <p style="color:var(--text-light-color);font-size:.75rem;">Configurez un montant de prêt classique non nul pour activer cette analyse.</p>
+                    </div>
+                </div>
+
+                <button id="btn-run-rap" class="btn-scenario" style="width:100%; margin-top:.6rem;">💰 Simuler l'Injection (détail)</button>
 
                 <!-- Résultats -->
                 <div id="rap_results" style="display:none; margin-top:1.2rem;">
