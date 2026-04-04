@@ -786,3 +786,34 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
     .lissage-recap-grid { grid-template-columns: 1fr; }
 }
 
+/* ─── Modulation d'Échéance ─────────────────────────────────── */
+.modulation-inputs-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+    margin-top: .8rem;
+}
+@media (max-width: 700px) {
+    .modulation-inputs-grid { grid-template-columns: 1fr; }
+}
+.modulation-kpi--duree { border-left: 4px solid var(--primary-color); background: var(--primary-light); }
+.modulation-kpi--duree .renego-kpi-value { color: var(--primary-color); }
+.modulation-kpi--interets { border-left: 4px solid var(--accent-color); background: var(--accent-light); }
+.modulation-kpi--interets .renego-kpi-value { color: var(--accent-color); }
+.modulation-kpi--mensualite { border-left: 4px solid var(--secondary-color); background: var(--secondary-light); }
+.modulation-kpi--mensualite .renego-kpi-value { color: var(--secondary-color); }
+.modulation-kpi--fin { border-left: 4px solid var(--info-color); }
+.modulation-kpi--fin .renego-kpi-value { color: var(--info-color); }
+.modulation-row-active { background-color: var(--primary-light); font-weight: 500; }
+
+/* ─── RAP (Remboursement Anticipé Partiel) ─── */
+.rap-kpi--ira { border-left: 4px solid var(--danger-color); background: var(--danger-light); }
+.rap-kpi--ira .renego-kpi-value { color: var(--danger-color); }
+.rap-kpi--capital { border-left: 4px solid var(--secondary-color); background: var(--secondary-light); }
+.rap-kpi--capital .renego-kpi-value { color: var(--secondary-color); }
+.rap-kpi--result { border-left: 4px solid var(--info-color); background: #ecfeff; }
+.rap-kpi--result .renego-kpi-value { color: var(--info-color); }
+.rap-kpi--gain { border-left: 4px solid var(--primary-color); background: var(--primary-light); }
+.rap-kpi--gain .renego-kpi-value { color: var(--primary-color); }
+.rap-event-row { background-color: #d1fae5 !important; font-weight: 700; }
+.rap-event-row td { border-top: 2px solid var(--primary-color); border-bottom: 2px solid var(--primary-color); }
+.rap-post-injection { background-color: #f0fdfa; }
+

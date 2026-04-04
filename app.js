@@ -286,7 +286,12 @@ document.addEventListener('DOMContentLoaded', () => {
             chargesCopro_num: getEl('chargesCopro_num'),
             provisionTravaux_num: getEl('provisionTravaux_num'),
             assuranceHabitation_num: getEl('assuranceHabitation_num'),
-            autresChargesLogement_num: getEl('autresChargesLogement_num')
+            autresChargesLogement_num: getEl('autresChargesLogement_num'),
+
+            // Phase 8 — RAP
+            rapMontant_num: getEl('rapMontant_num'),
+            rapMois_num: getEl('rapMois_num'),
+            rapStrategie: getEl('rapStrategie')
         }
     });
 
@@ -3341,6 +3346,589 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // === MODULATION D'ÉCHÉANCE ===
+    let modulationChart = null;
+    let rapChart = null;
+
+    function mettreAJourRecapModulation() {
+        const { state } = lireEtatFormulaire(ui);
+        let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+
+        const fc = formatCurrency;
+        const capital = besoinCreditFinalClassique;
+        const dureeMois = state.duree * 12;
+        const mensInt = calculerMensualiteCredit(capital, state.TE, dureeMois);
+
+        setTextEl(getEl('modulation_recap_capital'), fc(capital) + ' €');
+        setTextEl(getEl('modulation_recap_taux'), (state.TE || 0).toFixed(2) + ' %');
+        setTextEl(getEl('modulation_recap_duree'), state.duree + ' ans (' + dureeMois + ' mois)');
+        setTextEl(getEl('modulation_recap_mensualite'), fc(mensInt, 2) + ' €/mois');
+
+        // Ajuster le max du slider moisDepart à la durée du prêt
+        const sliderMois = getEl('modulationMoisDepart');
+        const numMois = getEl('modulationMoisDepart_num');
+        if (sliderMois && numMois) {
+            sliderMois.max = dureeMois;
+            numMois.max = dureeMois;
+            if (parseInt(sliderMois.value) > dureeMois) {
+                sliderMois.value = Math.min(parseInt(sliderMois.value), dureeMois);
+                numMois.value = sliderMois.value;
+            }
+        }
+    }
+
+    function simulerModulation() {
+        const { state } = lireEtatFormulaire(ui);
+        let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+
+        mettreAJourRecapModulation();
+
+        const capital = besoinCreditFinalClassique;
+        const tauxMensuel = toMonthlyRate(state.TE);
+        const dureeMoisInitiale = state.duree * 12;
+        const mensualiteInitiale = calculerMensualiteCredit(capital, state.TE, dureeMoisInitiale);
+        const augmentation = numFrom(getEl('modulationAugmentation_num'));
+        const moisDepart = Math.max(1, Math.round(numFrom(getEl('modulationMoisDepart_num')) || 36));
+
+        if (capital <= 0 || mensualiteInitiale <= 0) {
+            setDisplayEl(getEl('modulation_results'), 'none');
+            return;
+        }
+
+        const fc = formatCurrency;
+        const MAX_MONTHS = 480;
+
+        // --- Scénario STANDARD (sans modulation) ---
+        const scheduleStd = [];
+        let crdStd = capital;
+        let totalInteretsStd = 0;
+        for (let m = 1; m <= MAX_MONTHS; m++) {
+            if (crdStd <= 0.01) break;
+            const interets = crdStd * tauxMensuel;
+            let capitalAmorti = mensualiteInitiale - interets;
+            if (capitalAmorti >= crdStd) {
+                capitalAmorti = crdStd;
+            }
+            crdStd -= capitalAmorti;
+            if (Math.abs(crdStd) < 0.01) crdStd = 0;
+            totalInteretsStd += interets;
+            scheduleStd.push({ month: m, crd: crdStd });
+        }
+        const dureeMoisStd = scheduleStd.length;
+
+        // --- Scénario MODULÉ ---
+        const scheduleMod = [];
+        let crdMod = capital;
+        let totalInteretsMod = 0;
+        for (let m = 1; m <= MAX_MONTHS; m++) {
+            if (crdMod <= 0.01) break;
+            const mensualiteAppliquee = (m >= moisDepart) ? mensualiteInitiale + augmentation : mensualiteInitiale;
+            const interets = crdMod * tauxMensuel;
+            let capitalAmorti = mensualiteAppliquee - interets;
+
+            // Sécurité : si la mensualité ne couvre même pas les intérêts
+            if (capitalAmorti < 0) capitalAmorti = 0;
+
+            // Dernière échéance : solder le CRD exactement
+            if (capitalAmorti >= crdMod) {
+                capitalAmorti = crdMod;
+            }
+            crdMod -= capitalAmorti;
+            if (Math.abs(crdMod) < 0.01) crdMod = 0;
+            totalInteretsMod += interets;
+
+            scheduleMod.push({
+                month: m,
+                mensualite: capitalAmorti + interets,
+                interets,
+                capitalAmorti,
+                crd: crdMod,
+                isModulated: m >= moisDepart
+            });
+        }
+        const dureeMoisMod = scheduleMod.length;
+
+        // --- Calcul des gains ---
+        const gainMois = dureeMoisStd - dureeMoisMod;
+        const gainAns = Math.floor(Math.abs(gainMois) / 12);
+        const gainMoisReste = Math.abs(gainMois) % 12;
+        const gainInterets = totalInteretsStd - totalInteretsMod;
+
+        const dureeModAns = Math.floor(dureeMoisMod / 12);
+        const dureeModMoisReste = dureeMoisMod % 12;
+
+        // --- Affichage KPIs ---
+        setDisplayEl(getEl('modulation_results'), 'block');
+
+        let textGainDuree = '';
+        if (gainMois > 0) {
+            textGainDuree = gainAns > 0 ? gainAns + ' an' + (gainAns > 1 ? 's' : '') : '';
+            if (gainMoisReste > 0) textGainDuree += (textGainDuree ? ' et ' : '') + gainMoisReste + ' mois';
+            textGainDuree += ' gagnés';
+        } else {
+            textGainDuree = 'Aucun gain';
+        }
+        setTextEl(getEl('gain_duree_modulation'), textGainDuree);
+        setTextEl(getEl('gain_duree_modulation_detail'), `${dureeMoisStd} mois → ${dureeMoisMod} mois`);
+
+        setTextEl(getEl('gain_interets_modulation'), fc(Math.max(0, gainInterets)) + ' € économisés');
+        setTextEl(getEl('gain_interets_modulation_detail'), `${fc(totalInteretsStd)} € → ${fc(totalInteretsMod)} €`);
+
+        setTextEl(getEl('modulation_mensualite_apres'), fc(mensualiteInitiale + augmentation, 2) + ' €/mois');
+        setTextEl(getEl('modulation_mensualite_detail'), `${fc(mensualiteInitiale, 2)} € + ${fc(augmentation)} € à partir du mois ${moisDepart}`);
+
+        let textDureeFinale = dureeModAns + ' an' + (dureeModAns > 1 ? 's' : '');
+        if (dureeModMoisReste > 0) textDureeFinale += ' ' + dureeModMoisReste + ' mois';
+        setTextEl(getEl('modulation_duree_finale'), textDureeFinale);
+        setTextEl(getEl('modulation_duree_finale_detail'), `au lieu de ${state.duree} ans`);
+
+        // --- Tableau d'amortissement modulé ---
+        const amortTbody = getEl('modulation_amort_tbody');
+        if (amortTbody) {
+            amortTbody.innerHTML = scheduleMod.map(r => {
+                const cls = r.isModulated ? ' class="modulation-row-active"' : '';
+                return `<tr${cls}><td>${r.month}</td><td>${fc(r.mensualite, 2)}</td><td>${fc(r.interets, 2)}</td><td>${fc(r.capitalAmorti, 2)}</td><td>${fc(r.crd, 2)}</td></tr>`;
+            }).join('');
+        }
+
+        // --- Graphique CRD superposé ---
+        renderModulationChart(scheduleStd, scheduleMod, moisDepart);
+    }
+
+    function renderModulationChart(scheduleStd, scheduleMod, moisDepart) {
+        const canvas = getEl('modulationChartCanvas');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (modulationChart) { modulationChart.destroy(); modulationChart = null; }
+
+        // On affiche par mois si < 120 mois, sinon par année
+        const maxLen = Math.max(scheduleStd.length, scheduleMod.length);
+        const useMonthly = maxLen <= 180;
+
+        let labels, dataStd, dataMod;
+
+        if (useMonthly) {
+            labels = Array.from({ length: maxLen }, (_, i) => i + 1);
+            dataStd = labels.map(m => {
+                const row = scheduleStd.find(r => r.month === m);
+                return row ? Math.round(row.crd * 100) / 100 : 0;
+            });
+            dataMod = labels.map(m => {
+                const row = scheduleMod.find(r => r.month === m);
+                return row ? Math.round(row.crd * 100) / 100 : 0;
+            });
+        } else {
+            const years = Math.ceil(maxLen / 12);
+            labels = Array.from({ length: years }, (_, i) => `A${i + 1}`);
+            dataStd = []; dataMod = [];
+            for (let y = 0; y < years; y++) {
+                const moisFin = (y + 1) * 12;
+                const rowStd = scheduleStd.find(r => r.month === moisFin) || scheduleStd[scheduleStd.length - 1] || { crd: 0 };
+                const rowMod = scheduleMod.find(r => r.month === moisFin) || scheduleMod[scheduleMod.length - 1] || { crd: 0 };
+                dataStd.push(Math.round(rowStd.crd * 100) / 100);
+                dataMod.push(Math.round(rowMod.crd * 100) / 100);
+            }
+        }
+
+        // Annotation pour le mois de départ de la modulation
+        const modulationLabel = useMonthly ? moisDepart : `A${Math.ceil(moisDepart / 12)}`;
+
+        modulationChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'CRD Standard',
+                        data: dataStd,
+                        borderColor: 'rgba(107, 114, 128, 0.8)',
+                        backgroundColor: 'rgba(107, 114, 128, 0.08)',
+                        borderWidth: 2,
+                        borderDash: [6, 3],
+                        fill: true,
+                        pointRadius: 0,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'CRD Modulé',
+                        data: dataMod,
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        backgroundColor: 'rgba(5, 150, 105, 0.12)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        pointRadius: 0,
+                        tension: 0.2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 10 } } },
+                    title: { display: true, text: 'Évolution du Capital Restant Dû', font: { size: 11 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                        }
+                    },
+                    annotation: typeof Chart !== 'undefined' && Chart.registry?.plugins?.get('annotation') ? {
+                        annotations: {
+                            modulationLine: {
+                                type: 'line',
+                                xMin: modulationLabel,
+                                xMax: modulationLabel,
+                                borderColor: 'rgba(217, 119, 6, 0.7)',
+                                borderWidth: 2,
+                                borderDash: [4, 4],
+                                label: {
+                                    display: true,
+                                    content: 'Modulation',
+                                    position: 'start',
+                                    font: { size: 9 }
+                                }
+                            }
+                        }
+                    } : {}
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: useMonthly ? 'Mois' : 'Année', font: { size: 10 } },
+                        ticks: { font: { size: 9 }, maxRotation: 45, maxTicksLimit: 30 }
+                    },
+                    y: {
+                        title: { display: true, text: 'Capital Restant Dû (€)', font: { size: 10 } },
+                        ticks: { font: { size: 9 }, callback: v => v.toLocaleString('fr-FR') + ' €' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
+    // === PHASE 8 — RAP (Remboursement Anticipé Partiel — Injection de Cash) ===
+
+    function mettreAJourRecapRAP() {
+        const { state } = lireEtatFormulaire(ui);
+        let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+        const capital = besoinCreditFinalClassique;
+        const dureeMois = state.duree * 12;
+        const mensInt = calculerMensualiteCredit(capital, state.TE, dureeMois);
+        const fc = formatCurrency;
+        setTextEl(getEl('rap_recap_capital'), fc(capital) + ' €');
+        setTextEl(getEl('rap_recap_taux'), (state.TE || 0).toFixed(2) + ' %');
+        setTextEl(getEl('rap_recap_duree'), state.duree + ' ans (' + dureeMois + ' mois)');
+        setTextEl(getEl('rap_recap_mensualite'), fc(mensInt, 2) + ' €/mois');
+    }
+
+    function simulerRAP() {
+        const { state } = lireEtatFormulaire(ui);
+        let { coutAvantGar, besoinCreditInitial } = gererFraisAcquisition(state);
+        let { besoinCreditFinalClassique } = gererPlanFinancement(state, besoinCreditInitial, coutAvantGar);
+
+        mettreAJourRecapRAP();
+
+        const capital = besoinCreditFinalClassique;
+        const tauxMensuel = toMonthlyRate(state.TE);
+        const tauxAnnuel = state.TE;
+        const dureeMoisInitiale = state.duree * 12;
+        const mensualiteInitiale = calculerMensualiteCredit(capital, tauxAnnuel, dureeMoisInitiale);
+        const montantCash = numFrom(getEl('rapMontant_num'));
+        const moisInjection = Math.max(1, Math.round(numFrom(getEl('rapMois_num')) || 60));
+        const strategie = getEl('rapStrategie')?.value || 'A';
+
+        if (capital <= 0 || mensualiteInitiale <= 0 || montantCash <= 0) {
+            setDisplayEl(getEl('rap_results'), 'none');
+            return;
+        }
+
+        const fc = formatCurrency;
+        const MAX_MONTHS = 600;
+
+        // --- Scénario STANDARD (sans injection) ---
+        const scheduleStd = [];
+        let crdStd = capital;
+        let totalInteretsStd = 0;
+        for (let m = 1; m <= MAX_MONTHS; m++) {
+            if (crdStd <= 0.01) break;
+            const interets = crdStd * tauxMensuel;
+            let capitalAmorti = mensualiteInitiale - interets;
+            if (capitalAmorti >= crdStd) capitalAmorti = crdStd;
+            crdStd -= capitalAmorti;
+            if (Math.abs(crdStd) < 0.01) crdStd = 0;
+            totalInteretsStd += interets;
+            scheduleStd.push({ month: m, mensualite: mensualiteInitiale, interets, capitalAmorti, crd: crdStd });
+        }
+
+        // --- Scénario avec INJECTION ---
+        const scheduleRAP = [];
+        let crdRAP = capital;
+        let totalInteretsRAP = 0;
+        let iraPayee = 0;
+        let capitalEffectifRembourse = 0;
+        let nouvelleMensualite = mensualiteInitiale;
+        let injectionDone = false;
+        let eventRow = null;
+
+        for (let m = 1; m <= MAX_MONTHS; m++) {
+            if (crdRAP <= 0.01) break;
+
+            // --- Le Choc : mois de l'injection ---
+            if (m === moisInjection && !injectionDone) {
+                injectionDone = true;
+
+                // Calcul IRA légale française : Min(3% du CRD, 6 mois d'intérêts sur le capital remboursé par anticipation)
+                const sixMoisInterets = (montantCash * tauxAnnuel / 100) / 2;
+                const troisPourcentCRD = crdRAP * 0.03;
+                iraPayee = Math.min(troisPourcentCRD, sixMoisInterets);
+
+                // Capital effectivement remboursé = cash - IRA
+                capitalEffectifRembourse = montantCash - iraPayee;
+                if (capitalEffectifRembourse > crdRAP) capitalEffectifRembourse = crdRAP;
+                if (capitalEffectifRembourse < 0) capitalEffectifRembourse = 0;
+
+                const crdAvantInjection = crdRAP;
+                crdRAP -= capitalEffectifRembourse;
+                if (Math.abs(crdRAP) < 0.01) crdRAP = 0;
+
+                // Ligne spéciale ÉVÉNEMENT
+                eventRow = {
+                    month: m,
+                    isEvent: true,
+                    crdAvant: crdAvantInjection,
+                    crdApres: crdRAP,
+                    ira: iraPayee,
+                    capitalInjecte: capitalEffectifRembourse,
+                    montantBrut: montantCash
+                };
+                scheduleRAP.push({
+                    month: m, mensualite: 0, interets: 0, capitalAmorti: capitalEffectifRembourse,
+                    crd: crdRAP, isEvent: true, eventData: eventRow
+                });
+
+                if (crdRAP <= 0.01) break;
+
+                // La Bifurcation
+                const moisRestantsInitiaux = dureeMoisInitiale - moisInjection;
+                if (strategie === 'B' && moisRestantsInitiaux > 0) {
+                    // Option B : même durée, recalculer mensualité
+                    nouvelleMensualite = calculerMensualiteCredit(crdRAP, tauxAnnuel, moisRestantsInitiaux);
+                }
+                // Option A : on garde mensualiteInitiale, la boucle se termine naturellement plus tôt
+                continue;
+            }
+
+            // --- Échéance normale ---
+            const mensualiteAppliquee = injectionDone ? (strategie === 'A' ? mensualiteInitiale : nouvelleMensualite) : mensualiteInitiale;
+            const interets = crdRAP * tauxMensuel;
+            let capitalAmorti = mensualiteAppliquee - interets;
+
+            if (capitalAmorti < 0) capitalAmorti = 0;
+
+            // Dernière échéance : solder le CRD
+            let mensualiteReelle = mensualiteAppliquee;
+            if (capitalAmorti >= crdRAP) {
+                capitalAmorti = crdRAP;
+                mensualiteReelle = interets + capitalAmorti;
+            }
+            crdRAP -= capitalAmorti;
+            if (Math.abs(crdRAP) < 0.01) crdRAP = 0;
+            totalInteretsRAP += interets;
+
+            scheduleRAP.push({
+                month: m,
+                mensualite: mensualiteReelle,
+                interets,
+                capitalAmorti,
+                crd: crdRAP,
+                isEvent: false,
+                isPostInjection: injectionDone
+            });
+        }
+
+        // --- Calcul des gains ---
+        const dureeMoisStd = scheduleStd.length;
+        const dureeMoisRAP = scheduleRAP.filter(r => !r.isEvent).length;
+        const gainInterets = totalInteretsStd - totalInteretsRAP;
+        const gainNet = gainInterets - iraPayee;
+
+        // --- Affichage KPIs ---
+        setDisplayEl(getEl('rap_results'), 'block');
+
+        setTextEl(getEl('rap_kpi_ira'), fc(iraPayee, 2) + ' €');
+        setTextEl(getEl('rap_kpi_ira_detail'), `Min(3% CRD = ${fc(eventRow ? eventRow.crdAvant * 0.03 : 0)}, 6 mois int. = ${fc((montantCash * tauxAnnuel / 100) / 2)})`);
+
+        setTextEl(getEl('rap_kpi_capital'), fc(capitalEffectifRembourse) + ' €');
+        setTextEl(getEl('rap_kpi_capital_detail'), `${fc(montantCash)} € brut − ${fc(iraPayee, 2)} € IRA`);
+
+        if (strategie === 'A') {
+            const moisGagnes = dureeMoisStd - dureeMoisRAP;
+            const gainAns = Math.floor(moisGagnes / 12);
+            const gainMoisReste = moisGagnes % 12;
+            let textGain = '';
+            if (moisGagnes > 0) {
+                textGain = gainAns > 0 ? gainAns + ' an' + (gainAns > 1 ? 's' : '') : '';
+                if (gainMoisReste > 0) textGain += (textGain ? ' et ' : '') + gainMoisReste + ' mois';
+                textGain += ' gagnés';
+            } else {
+                textGain = 'Aucun gain de durée';
+            }
+            setTextEl(getEl('rap_kpi_result_icon'), '⏱️');
+            setTextEl(getEl('rap_kpi_result_label'), 'Temps gagné');
+            setTextEl(getEl('rap_kpi_result'), textGain);
+            setTextEl(getEl('rap_kpi_result_detail'), `${dureeMoisStd} mois → ${dureeMoisRAP} mois`);
+        } else {
+            setTextEl(getEl('rap_kpi_result_icon'), '💶');
+            setTextEl(getEl('rap_kpi_result_label'), 'Nouvelle mensualité');
+            setTextEl(getEl('rap_kpi_result'), fc(nouvelleMensualite, 2) + ' €/mois');
+            const economieMensuelle = mensualiteInitiale - nouvelleMensualite;
+            setTextEl(getEl('rap_kpi_result_detail'), `−${fc(economieMensuelle, 2)} €/mois vs ${fc(mensualiteInitiale, 2)} €`);
+        }
+
+        setTextEl(getEl('rap_kpi_gain'), (gainNet >= 0 ? '+' : '') + fc(gainNet) + ' €');
+        setTextEl(getEl('rap_kpi_gain_detail'), `Intérêts sauvés ${fc(gainInterets)} € − IRA ${fc(iraPayee, 2)} €`);
+
+        // --- Tableau d'amortissement ---
+        const amortTbody = getEl('rap_amort_tbody');
+        if (amortTbody) {
+            amortTbody.innerHTML = scheduleRAP.map(r => {
+                if (r.isEvent) {
+                    const ed = r.eventData;
+                    return `<tr class="rap-event-row"><td colspan="5">💰 INJECTION MOIS ${r.month} — Cash brut : ${fc(ed.montantBrut)} € · IRA prélevés : ${fc(ed.ira, 2)} € · Capital remboursé : ${fc(ed.capitalInjecte)} € · CRD : ${fc(ed.crdAvant)} € → ${fc(ed.crdApres)} €</td></tr>`;
+                }
+                const cls = r.isPostInjection ? ' class="rap-post-injection"' : '';
+                return `<tr${cls}><td>${r.month}</td><td>${fc(r.mensualite, 2)}</td><td>${fc(r.interets, 2)}</td><td>${fc(r.capitalAmorti, 2)}</td><td>${fc(r.crd, 2)}</td></tr>`;
+            }).join('');
+        }
+
+        // --- Graphique CRD ---
+        renderRAPChart(scheduleStd, scheduleRAP, moisInjection);
+    }
+
+    function renderRAPChart(scheduleStd, scheduleRAP, moisInjection) {
+        const canvas = getEl('rapChartCanvas');
+        if (!canvas || typeof Chart === 'undefined') return;
+        if (rapChart) { rapChart.destroy(); rapChart = null; }
+
+        const maxLen = Math.max(scheduleStd.length, scheduleRAP.length);
+        const useMonthly = maxLen <= 180;
+
+        // Construire les données CRD pour le scénario RAP (incluant la marche d'escalier)
+        const rapCrdByMonth = new Map();
+        for (const r of scheduleRAP) {
+            if (r.isEvent) {
+                // On insère le point AVANT et APRÈS l'injection au même mois
+                rapCrdByMonth.set(r.month, r.crd);
+            } else {
+                rapCrdByMonth.set(r.month, r.crd);
+            }
+        }
+
+        let labels, dataStd, dataRAP;
+
+        if (useMonthly) {
+            labels = Array.from({ length: maxLen }, (_, i) => i + 1);
+            dataStd = labels.map(m => {
+                const row = scheduleStd.find(r => r.month === m);
+                return row ? Math.round(row.crd * 100) / 100 : 0;
+            });
+            dataRAP = labels.map(m => {
+                return rapCrdByMonth.has(m) ? Math.round(rapCrdByMonth.get(m) * 100) / 100 : 0;
+            });
+        } else {
+            const years = Math.ceil(maxLen / 12);
+            labels = Array.from({ length: years }, (_, i) => `A${i + 1}`);
+            dataStd = []; dataRAP = [];
+            for (let y = 0; y < years; y++) {
+                const moisFin = (y + 1) * 12;
+                const rowStd = scheduleStd.find(r => r.month === moisFin) || scheduleStd[scheduleStd.length - 1] || { crd: 0 };
+                dataStd.push(Math.round(rowStd.crd * 100) / 100);
+                // Pour le RAP, trouver le mois le plus proche <= moisFin
+                let crdVal = 0;
+                for (let mm = moisFin; mm >= Math.max(1, (y) * 12 + 1); mm--) {
+                    if (rapCrdByMonth.has(mm)) { crdVal = rapCrdByMonth.get(mm); break; }
+                }
+                dataRAP.push(Math.round(crdVal * 100) / 100);
+            }
+        }
+
+        const injectionLabel = useMonthly ? moisInjection : `A${Math.ceil(moisInjection / 12)}`;
+
+        rapChart = new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels,
+                datasets: [
+                    {
+                        label: 'CRD Standard (sans injection)',
+                        data: dataStd,
+                        borderColor: 'rgba(107, 114, 128, 0.8)',
+                        backgroundColor: 'rgba(107, 114, 128, 0.08)',
+                        borderWidth: 2,
+                        borderDash: [6, 3],
+                        fill: true,
+                        pointRadius: 0,
+                        tension: 0.2
+                    },
+                    {
+                        label: 'CRD Après Injection',
+                        data: dataRAP,
+                        borderColor: 'rgba(5, 150, 105, 1)',
+                        backgroundColor: 'rgba(5, 150, 105, 0.12)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        pointRadius: 0,
+                        tension: 0
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 10 } } },
+                    title: { display: true, text: 'Évolution du Capital Restant Dû — Impact de l\'injection', font: { size: 11 } },
+                    tooltip: {
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                        }
+                    },
+                    annotation: typeof Chart !== 'undefined' && Chart.registry?.plugins?.get('annotation') ? {
+                        annotations: {
+                            injectionLine: {
+                                type: 'line',
+                                xMin: injectionLabel,
+                                xMax: injectionLabel,
+                                borderColor: 'rgba(220, 38, 38, 0.7)',
+                                borderWidth: 2,
+                                borderDash: [4, 4],
+                                label: {
+                                    display: true,
+                                    content: '💰 Injection',
+                                    position: 'start',
+                                    font: { size: 9 }
+                                }
+                            }
+                        }
+                    } : {}
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: useMonthly ? 'Mois' : 'Année', font: { size: 10 } },
+                        ticks: { font: { size: 9 }, maxRotation: 45, maxTicksLimit: 30 }
+                    },
+                    y: {
+                        title: { display: true, text: 'Capital Restant Dû (€)', font: { size: 10 } },
+                        ticks: { font: { size: 9 }, callback: v => v.toLocaleString('fr-FR') + ' €' },
+                        beginAtZero: true
+                    }
+                }
+            }
+        });
+    }
+
     function startApp() {
         ui = buildUI();
         const inputIds = [
@@ -3358,7 +3946,9 @@ document.addEventListener('DOMContentLoaded', () => {
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
             'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement',
             // Lissage
-            'lissageCible'
+            'lissageCible',
+            // Modulation
+            'modulationAugmentation', 'modulationMoisDepart'
         ];
 
         inputIds.forEach(id => {
@@ -3716,6 +4306,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 if (target === 'tab-lissage') {
                     mettreAJourRecapLissage();
+                }
+                if (target === 'tab-modulation') {
+                    mettreAJourRecapModulation();
+                }
+                if (target === 'tab-rap') {
+                    mettreAJourRecapRAP();
                 }
             });
         });
@@ -4194,6 +4790,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Lissage
         getEl('btn-run-lissage')?.addEventListener('click', calculerLissage);
+
+        // Modulation
+        getEl('btn-run-modulation')?.addEventListener('click', simulerModulation);
+
+        // RAP (Injection de Cash)
+        getEl('btn-run-rap')?.addEventListener('click', simulerRAP);
 
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();

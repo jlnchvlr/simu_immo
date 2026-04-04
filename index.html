@@ -20,6 +20,8 @@
             <button class="tab-btn" data-tab="tab-renego">🔄 Renégo. Taux</button>
             <button class="tab-btn" data-tab="tab-assurance">🛡️ Assurance Lemoine</button>
             <button class="tab-btn" data-tab="tab-lissage">📐 Lissage</button>
+            <button class="tab-btn" data-tab="tab-modulation">📈 Modulation</button>
+            <button class="tab-btn" data-tab="tab-rap">💰 RAP</button>
         </div>
 
         <div id="validation-alerts" class="validation-alerts" style="display:none;">
@@ -1290,6 +1292,207 @@
             </section>
         </div>
         <!-- ===== /ONGLET 6 ===== -->
+
+        <!-- ===== ONGLET 7 : MODULATION D'ÉCHÉANCE ===== -->
+        <div id="tab-modulation" class="tab-pane">
+            <section class="card">
+                <h3 style="margin:0 0 .3rem 0;">📈 Booster mon remboursement (Modulation)</h3>
+                <p class="section-description">Simulez l'impact d'une augmentation de votre mensualité en cours de prêt. 100 % de l'augmentation va directement dans le capital amorti, accélérant le remboursement et réduisant le coût total.</p>
+
+                <!-- Recap prêt principal -->
+                <div class="modulation-recap" id="modulation_recap">
+                    <table class="amortization-data-table" style="font-size:.8rem; margin-bottom:.8rem;">
+                        <tr><td>Capital emprunté (prêt classique)</td><td><strong id="modulation_recap_capital">—</strong></td></tr>
+                        <tr><td>Taux nominal</td><td><strong id="modulation_recap_taux">—</strong></td></tr>
+                        <tr><td>Durée initiale</td><td><strong id="modulation_recap_duree">—</strong></td></tr>
+                        <tr><td>Mensualité initiale (intérêts seuls)</td><td><strong id="modulation_recap_mensualite">—</strong></td></tr>
+                    </table>
+                </div>
+
+                <!-- Inputs modulation -->
+                <div class="modulation-inputs-grid">
+                    <div class="input-item">
+                        <label for="modulationAugmentation_num">💶 Augmentation mensuelle (€) :</label>
+                        <input type="range" id="modulationAugmentation" min="0" max="2000" value="100" step="10">
+                        <input type="number" id="modulationAugmentation_num" min="0" max="2000" value="100" step="10">
+                    </div>
+                    <div class="input-item">
+                        <label for="modulationMoisDepart_num">📅 À partir du mois n° :</label>
+                        <input type="range" id="modulationMoisDepart" min="1" max="360" value="36" step="1">
+                        <input type="number" id="modulationMoisDepart_num" min="1" max="360" value="36" step="1">
+                    </div>
+                </div>
+
+                <button id="btn-run-modulation" class="btn-scenario" style="width:100%; margin-top:.6rem;">📈 Simuler la Modulation</button>
+
+                <!-- Résultats -->
+                <div id="modulation_results" style="display:none; margin-top:1.2rem;">
+                    <h4 style="margin:0 0 .8rem 0;">📊 Résultat de la Modulation</h4>
+
+                    <!-- KPIs -->
+                    <div class="renego-kpi-grid">
+                        <div class="renego-kpi-card modulation-kpi--duree">
+                            <div class="renego-kpi-icon">⏱️</div>
+                            <div class="renego-kpi-label">Temps gagné</div>
+                            <div class="renego-kpi-value" id="gain_duree_modulation">—</div>
+                            <div class="renego-kpi-detail" id="gain_duree_modulation_detail">vs scénario sans modulation</div>
+                        </div>
+                        <div class="renego-kpi-card modulation-kpi--interets">
+                            <div class="renego-kpi-icon">💰</div>
+                            <div class="renego-kpi-label">Intérêts économisés</div>
+                            <div class="renego-kpi-value" id="gain_interets_modulation">—</div>
+                            <div class="renego-kpi-detail" id="gain_interets_modulation_detail">économie totale sur les intérêts</div>
+                        </div>
+                        <div class="renego-kpi-card modulation-kpi--mensualite">
+                            <div class="renego-kpi-icon">📈</div>
+                            <div class="renego-kpi-label">Mensualité modulée</div>
+                            <div class="renego-kpi-value" id="modulation_mensualite_apres">—</div>
+                            <div class="renego-kpi-detail" id="modulation_mensualite_detail">après activation de la modulation</div>
+                        </div>
+                        <div class="renego-kpi-card modulation-kpi--fin">
+                            <div class="renego-kpi-icon">🏁</div>
+                            <div class="renego-kpi-label">Fin du prêt modulé</div>
+                            <div class="renego-kpi-value" id="modulation_duree_finale">—</div>
+                            <div class="renego-kpi-detail" id="modulation_duree_finale_detail">durée effective avec modulation</div>
+                        </div>
+                    </div>
+
+                    <!-- Graphique CRD superposé -->
+                    <div style="margin-top:1.2rem;">
+                        <h4 style="margin:0 0 .5rem 0;">📉 Capital Restant Dû — Standard vs Modulé</h4>
+                        <div style="position:relative; height:350px;">
+                            <canvas id="modulationChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Tableau d'amortissement modulé -->
+                    <div style="margin-top:1rem;">
+                        <details>
+                            <summary style="cursor:pointer; font-weight:600; font-size:.85rem; color:var(--primary-color);">📋 Voir le tableau d'amortissement modulé (mois par mois)</summary>
+                            <div style="max-height:400px; overflow-y:auto; margin-top:.5rem;">
+                                <table id="modulation_amort_table" class="amortization-data-table" style="font-size:.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Mois</th>
+                                            <th>Mensualité</th>
+                                            <th>Intérêts</th>
+                                            <th>Capital amorti</th>
+                                            <th>CRD</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="modulation_amort_tbody"></tbody>
+                                </table>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <!-- ===== /ONGLET 7 ===== -->
+
+        <!-- ===== ONGLET 8 : RAP (Remboursement Anticipé Partiel) ===== -->
+        <div id="tab-rap" class="tab-pane">
+            <section class="card">
+                <h3 style="margin:0 0 .3rem 0;">💰 Injection de Cash (Remboursement Anticipé Partiel)</h3>
+                <p class="section-description">Simulez l'injection d'une somme d'argent en cours de prêt. La banque prélève d'abord les Indemnités de Remboursement Anticipé (IRA), puis le reste vient réduire votre Capital Restant Dû. Choisissez ensuite votre stratégie : réduire la durée ou baisser la mensualité.</p>
+
+                <!-- Recap prêt principal -->
+                <div class="modulation-recap" id="rap_recap">
+                    <table class="amortization-data-table" style="font-size:.8rem; margin-bottom:.8rem;">
+                        <tr><td>Capital emprunté (prêt classique)</td><td><strong id="rap_recap_capital">—</strong></td></tr>
+                        <tr><td>Taux nominal</td><td><strong id="rap_recap_taux">—</strong></td></tr>
+                        <tr><td>Durée initiale</td><td><strong id="rap_recap_duree">—</strong></td></tr>
+                        <tr><td>Mensualité initiale (hors assurance)</td><td><strong id="rap_recap_mensualite">—</strong></td></tr>
+                    </table>
+                </div>
+
+                <!-- Inputs RAP -->
+                <div class="modulation-inputs-grid">
+                    <div class="input-item">
+                        <label for="rapMontant_num">💶 Montant à injecter (€) :</label>
+                        <input type="range" id="rapMontant" min="1000" max="200000" value="15000" step="500">
+                        <input type="number" id="rapMontant_num" min="1000" max="200000" value="15000" step="500">
+                    </div>
+                    <div class="input-item">
+                        <label for="rapMois_num">📅 Au bout de combien de mois :</label>
+                        <input type="range" id="rapMois" min="1" max="360" value="60" step="1">
+                        <input type="number" id="rapMois_num" min="1" max="360" value="60" step="1">
+                    </div>
+                    <div class="input-item">
+                        <label>Stratégie :</label>
+                        <select id="rapStrategie">
+                            <option value="A">Option A — Maintenir ma mensualité (Réduire la durée)</option>
+                            <option value="B">Option B — Maintenir la durée (Baisser ma mensualité)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="btn-run-rap" class="btn-scenario" style="width:100%; margin-top:.6rem;">💰 Simuler l'Injection</button>
+
+                <!-- Résultats -->
+                <div id="rap_results" style="display:none; margin-top:1.2rem;">
+                    <h4 style="margin:0 0 .8rem 0;">📊 Résultat de l'Injection</h4>
+
+                    <!-- KPIs -->
+                    <div class="renego-kpi-grid">
+                        <div class="renego-kpi-card rap-kpi--ira">
+                            <div class="renego-kpi-icon">🏦</div>
+                            <div class="renego-kpi-label">Frais de pénalité (IRA)</div>
+                            <div class="renego-kpi-value" id="rap_kpi_ira">—</div>
+                            <div class="renego-kpi-detail" id="rap_kpi_ira_detail">prélevés par la banque</div>
+                        </div>
+                        <div class="renego-kpi-card rap-kpi--capital">
+                            <div class="renego-kpi-icon">📉</div>
+                            <div class="renego-kpi-label">Capital effectivement remboursé</div>
+                            <div class="renego-kpi-value" id="rap_kpi_capital">—</div>
+                            <div class="renego-kpi-detail" id="rap_kpi_capital_detail">après déduction des IRA</div>
+                        </div>
+                        <div class="renego-kpi-card rap-kpi--result">
+                            <div class="renego-kpi-icon" id="rap_kpi_result_icon">⏱️</div>
+                            <div class="renego-kpi-label" id="rap_kpi_result_label">Résultat stratégie</div>
+                            <div class="renego-kpi-value" id="rap_kpi_result">—</div>
+                            <div class="renego-kpi-detail" id="rap_kpi_result_detail">—</div>
+                        </div>
+                        <div class="renego-kpi-card rap-kpi--gain">
+                            <div class="renego-kpi-icon">💰</div>
+                            <div class="renego-kpi-label">Gain total (Intérêts sauvés)</div>
+                            <div class="renego-kpi-value" id="rap_kpi_gain">—</div>
+                            <div class="renego-kpi-detail" id="rap_kpi_gain_detail">économie nette après IRA</div>
+                        </div>
+                    </div>
+
+                    <!-- Graphique CRD -->
+                    <div style="margin-top:1.2rem;">
+                        <h4 style="margin:0 0 .5rem 0;">📉 Capital Restant Dû — Standard vs Après Injection</h4>
+                        <div style="position:relative; height:350px;">
+                            <canvas id="rapChartCanvas"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Tableau d'amortissement -->
+                    <div style="margin-top:1rem;">
+                        <details>
+                            <summary style="cursor:pointer; font-weight:600; font-size:.85rem; color:var(--primary-color);">📋 Voir le tableau d'amortissement après injection (mois par mois)</summary>
+                            <div style="max-height:400px; overflow-y:auto; margin-top:.5rem;">
+                                <table id="rap_amort_table" class="amortization-data-table" style="font-size:.75rem;">
+                                    <thead>
+                                        <tr>
+                                            <th>Mois</th>
+                                            <th>Mensualité</th>
+                                            <th>Intérêts</th>
+                                            <th>Capital amorti</th>
+                                            <th>CRD</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="rap_amort_tbody"></tbody>
+                                </table>
+                            </div>
+                        </details>
+                    </div>
+                </div>
+            </section>
+        </div>
+        <!-- ===== /ONGLET 8 ===== -->
 
     </main>
 
