@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         avl_travaux: getEl('avl_travaux'),
         avl_assurance_hab: getEl('avl_assurance_hab'),
         avl_autres_charges: getEl('avl_autres_charges'),
+        avl_parking: getEl('avl_parking'),
         avl_cout_total: getEl('avl_cout_total'),
         avl_vs_loyer: getEl('avl_vs_loyer'),
 
@@ -231,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCredits2_num: getEl('AutresCredits2_num'),
             AutresCharges2_num: getEl('AutresCharges2_num'),
             revenuVariable_num: getEl('revenuVariable_num'),
+            loyersPercus_num: getEl('loyersPercus_num'),
             tauxIntegration: getEl('tauxIntegration'),
             revenuEvolution_num: getEl('revenuEvolution_num'),
             horizonEvolution: getEl('horizonEvolution'),
@@ -287,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             provisionTravaux_num: getEl('provisionTravaux_num'),
             assuranceHabitation_num: getEl('assuranceHabitation_num'),
             autresChargesLogement_num: getEl('autresChargesLogement_num'),
+            coutParking_num: getEl('coutParking_num'),
 
             // Phase 8 — RAP
             rapMontant_num: getEl('rapMontant_num'),
@@ -418,6 +421,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (savedState._comparateur) {
                 window._savedComparateur = savedState._comparateur;
             }
+
+            // Forcer la re-initialisation du mode frais de notaire (bounds slider % vs €)
+            getEl('FN_mode')?.dispatchEvent(new Event('change'));
 
         } catch (e) {
             console.warn("Erreur lors du chargement de la sauvegarde", e);
@@ -675,7 +681,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const slider = getEl(id);
         const num = getEl(`${id}_num`);
         if (!slider || !num) return;
-        
+
+        // Dériver un aria-label depuis le label parent si absent
+        if (!num.hasAttribute('aria-label') && !num.hasAttribute('aria-labelledby')) {
+            const label = document.querySelector(`label[for="${id}"]`);
+            if (label) {
+                const labelText = label.textContent.replace(/\s*ⓘ\s*$/, '').trim();
+                num.setAttribute('aria-label', labelText);
+                slider.setAttribute('aria-label', labelText);
+            }
+        }
+
         slider.dataset.defaultValue = slider.value;
 
         const updateSliderVisual = () => {
@@ -855,6 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCredits2: numFrom(f.AutresCredits2_num),
             AutresCharges2: numFrom(f.AutresCharges2_num),
             revenuVariable: numFrom(f.revenuVariable_num),
+            loyersPercus: numFrom(f.loyersPercus_num),
             tauxIntegration: parseFloat(f.tauxIntegration?.value || 70),
             revenuEvolution: numFrom(f.revenuEvolution_num),
             horizonEvolution: parseInt(f.horizonEvolution?.value || 10, 10),
@@ -914,7 +931,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 chargesCopro: numFrom(f.chargesCopro_num),
                 provisionTravaux: numFrom(f.provisionTravaux_num),
                 assuranceHabitation: numFrom(f.assuranceHabitation_num),
-                autresChargesLogement: numFrom(f.autresChargesLogement_num)
+                autresChargesLogement: numFrom(f.autresChargesLogement_num),
+                coutParking: numFrom(f.coutParking_num)
             }
         };
 
@@ -964,8 +982,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function gererPlanFinancement(state, besoinCreditInitial, coutAvantGar) {
-        let pib = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: state.pibDuration || 10, insuranceRate: state.pibInsuranceRate };
-        let ptb = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: state.ptbDuration || 7, insuranceRate: state.ptbInsuranceRate };    
+        const pibDur = Math.min(state.pibDuration || 10, state.duree);
+        const ptbDur = Math.min(state.ptbDuration || 7, state.duree);
+        let pib = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: pibDur, insuranceRate: state.pibInsuranceRate };
+        let ptb = { amount:0, monthlyPayment:0, totalInterest:0, totalCost:0, interestRate:0, bonification:0, maxPossible:0, duration: ptbDur, insuranceRate: state.ptbInsuranceRate };
         const determinerPretBonifie = (loan, RFR, foyer, zone, amountWanted, maxLimitRef) => {
             let bonifRate = 0.02;
             const thresholds = BONIFICATION_THRESHOLDS[zone];
@@ -1037,7 +1057,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3.1 + 3.3 — Calcule les revenus et charges effectifs du foyer (pur, zéro DOM)
     function calculerProfilEmprunteur(state) {
         const revVarIntegre = state.revenuVariable * (state.tauxIntegration / 100);
-        const revenusEmprunteur1 = state.S + revVarIntegre;
+        const loyersPercusIntegres = (state.loyersPercus || 0) * (state.tauxIntegration / 100);
+        const revenusEmprunteur1 = state.S + revVarIntegre + loyersPercusIntegres;
         const revenusCoEmpr = state.coEmprunteur ? state.S2 : 0;
         const revenusEffectifs = revenusEmprunteur1 + revenusCoEmpr;
 
@@ -1045,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chargesCoEmpr = state.coEmprunteur ? state.AutresCredits2 + state.AutresCharges2 : 0;
         const chargesEffectives = chargesEmprunteur1 + chargesCoEmpr;
 
-        return { revenusEffectifs, chargesEffectives, revVarIntegre, revenusCoEmpr };
+        return { revenusEffectifs, chargesEffectives, revVarIntegre, loyersPercusIntegres, revenusCoEmpr };
     }
 
     // 3.2 — Projection revenus sur N années (mensualité fixe, revenus croissants)
@@ -1056,7 +1077,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return horiz.map(h => {
             const revenuProjecte = profil.revenusEffectifs * Math.pow(1 + state.revenuEvolution / 100, h);
             const chargesProj = profil.chargesEffectives; // charges supposées stables
-            const tauxEndettProj = revenuProjecte > 0 ? ((mensTotaleGlobale + chargesProj) / revenuProjecte) * 100 : Infinity;
+            const tauxEndettProj = revenuProjecte > 0 ? ((mensTotaleGlobale + chargesProj) / revenuProjecte) * 100 : 999;
             const resteAVivreProj = revenuProjecte - mensTotaleGlobale - chargesProj;
             return { horizon: h, revenuProjecte, tauxEndettProj, resteAVivreProj };
         });
@@ -1092,7 +1113,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fraisInitiauxPourTAEG = state.FD + garDetails.cout + state.Courtier;
         s.classic_TAEG   = s.classic_amount > 0 ? calculerTAEG(s.classic_amount, s.mensTotaleClassique, duree * 12, fraisInitiauxPourTAEG) : 0;
-        s.tauxEndettement = revenusEffectifs > 0 ? ((s.mensTotaleGlobale + chargesFixes) / revenusEffectifs) * 100 : Infinity;
+        s.tauxEndettement = revenusEffectifs > 0 ? ((s.mensTotaleGlobale + chargesFixes) / revenusEffectifs) * 100 : 999;
 
         // TAEG Global (tous prêts combinés)
         let fluxMensuels = new Array(duree * 12).fill(0);
@@ -1992,6 +2013,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const provisionTravaux = avl.provisionTravaux || 0;
         const assuranceHabitation = avl.assuranceHabitation || 0;
         const autresChargesLogement = avl.autresChargesLogement || 0;
+        const coutParking = avl.coutParking || 0;
 
         // Coût réel mensuel de possession
         const coutReelMensuel = mensualiteTotale
@@ -1999,7 +2021,8 @@ document.addEventListener('DOMContentLoaded', () => {
             + chargesCopro
             + (provisionTravaux * prixFAI / 1200)
             + assuranceHabitation
-            + autresChargesLogement;
+            + autresChargesLogement
+            + coutParking;
 
         // Frais d'acquisition purs (notaire + garantie + dossier + courtier, hors bien et travaux)
         const fraisAcquisitionPurs = coutTotalOperation - prixFAI - (state.T || 0);
@@ -2032,7 +2055,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Locataire: loyer indexé + épargne mensuelle placée (capitalisation mensuelle)
             const loyerAnnee = loyer * Math.pow(1 + indexationLoyer, annee - 1);
-            const chargesMensuellesLoc = loyerAnnee + chargesLocataire;
+            const chargesMensuellesLoc = loyerAnnee + chargesLocataire + assuranceHabitation + coutParking;
             const economieMensuelle = Math.max(0, coutReelMensuel - chargesMensuellesLoc);
             const tauxMensuelPlacement = tauxPlacement / 12;
             for (let m = 0; m < 12; m++) {
@@ -2050,7 +2073,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { yearlyData, crossoverAnnee, coutReelMensuel, mensualiteTotale,
             taxeFonciere, chargesCopro, provisionTravaux, assuranceHabitation,
-            autresChargesLogement, prixFAI, loyer, chargesLocataire };
+            autresChargesLogement, coutParking, prixFAI, loyer, chargesLocataire };
     }
 
     function renderAchatVsLocation(ui, avlData) {
@@ -2068,11 +2091,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.avl_travaux, fmt(avlData.provisionTravaux * avlData.prixFAI / 1200));
         setTextEl(ui.avl_assurance_hab, fmt(avlData.assuranceHabitation));
         setTextEl(ui.avl_autres_charges, fmt(avlData.autresChargesLogement));
+        if (ui.avl_parking) setTextEl(ui.avl_parking, fmt(avlData.coutParking));
         setTextEl(ui.avl_cout_total, fmt(avlData.coutReelMensuel));
-        const diffLoyer = avlData.coutReelMensuel - (avlData.loyer + avlData.chargesLocataire);
+        const coutMensuelLoc = avlData.loyer + avlData.chargesLocataire + avlData.assuranceHabitation + avlData.coutParking;
+        const diffLoyer = avlData.coutReelMensuel - coutMensuelLoc;
         const signe = diffLoyer >= 0 ? '+' : '';
         if (ui.avl_vs_loyer) {
-            ui.avl_vs_loyer.textContent = `${fmt(avlData.loyer + avlData.chargesLocataire)} (${signe}${fmt(diffLoyer)})`;
+            ui.avl_vs_loyer.textContent = `${fmt(coutMensuelLoc)} (${signe}${fmt(diffLoyer)})`;
             ui.avl_vs_loyer.style.color = diffLoyer > 0 ? 'var(--danger-color)' : 'var(--primary-color)';
         }
 
@@ -2222,6 +2247,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         if (el) { if (el.type === 'checkbox') el.checked = value; else el.value = value; }
                     }
                 }
+                // Cas spéciaux : isPIBEnabled / isPTBEnabled ont des IDs de checkbox différents
+                if (ui?.form?.enablePIB && decoded.isPIBEnabled !== undefined) ui.form.enablePIB.checked = decoded.isPIBEnabled;
+                if (ui?.form?.enablePTB && decoded.isPTBEnabled !== undefined) ui.form.enablePTB.checked = decoded.isPTBEnabled;
                 return true;
             }
         } catch(e) { console.warn('Impossible de charger depuis URL:', e); }
@@ -2245,9 +2273,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 container.style.display = 'none';
             }
         }
+        // Badge rouge sur l'onglet Mon Projet si alertes
+        const tabProjet = document.querySelector('.tab-btn[data-tab="tab-projet"]');
+        if (tabProjet) {
+            if (alerts.length > 0) tabProjet.setAttribute('data-has-errors', '1');
+            else tabProjet.removeAttribute('data-has-errors');
+        }
     }
 
     function calculateAllCore() {
+        // Indicateur visuel de calcul en cours
+        const resultsSection = document.querySelector('#tab-projet .result-column');
+        resultsSection?.classList.add('is-calculating');
+
         // 1. LECTURE DES DONNÉES
         const { state, uiState } = lireEtatFormulaire(ui);
 
@@ -2334,6 +2372,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 10. SAUVEGARDE AUTO (throttlée)
         scheduleSave(state);
+
+        resultsSection?.classList.remove('is-calculating');
     }
 
     // Compatibilité: les événements \"change\" et le code existant appellent calculateAll().
@@ -2364,6 +2404,8 @@ document.addEventListener('DOMContentLoaded', () => {
             prixRevente = uiState?.resale?.resalePriceManual || 0;
         }
 
+        if (!scenarioRef) return;
+
         const moisPayes = horizon * 12;
         const crd_classic = scenarioRef.classic_amount > 0 ? calculerCapitalRestantDu(scenarioRef.classic_amount, tauxClassiqueUsed, scenarioDuration * 12, moisPayes) : 0;
         const crd_pib = results.pib.amount > 0 ? calculerCapitalRestantDu(results.pib.amount, results.pib.interestRate, results.pib.duration * 12, moisPayes) : 0;
@@ -2381,7 +2423,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const ira_pib_fees = calculerIRA(crd_pib, results.pib.interestRate) * (ira_pib_pc / 3);
             const ira_ptb_fees = calculerIRA(crd_ptb, results.ptb.interestRate) * (ira_ptb_pc / 3);
 
-            setTextEl(ui.ira_classic_amount, formatCurrency(ira_classic_fees) + " €");
+            if (ui.ira_classic_amount) {
+                if (scenarioRef.classic_amount <= 0) setTextEl(ui.ira_classic_amount, "— (pas de prêt classique)");
+                else if (crd_classic <= 0) setTextEl(ui.ira_classic_amount, "— (prêt soldé)");
+                else setTextEl(ui.ira_classic_amount, formatCurrency(ira_classic_fees) + " €");
+            }
             setTextEl(ui.ira_pib_amount, formatCurrency(ira_pib_fees) + " €");
             setTextEl(ui.ira_ptb_amount, formatCurrency(ira_ptb_fees) + " €");
 
@@ -3977,12 +4023,12 @@ document.addEventListener('DOMContentLoaded', () => {
             'resaleHorizon', 'plusValue', 'inflation', 'resaleFees', 
             'resalePriceManual', 'inflationCumulative', 'ira_manual', 'ira_classic', 'ira_pib', 'ira_ptb',
             // Phase 3
-            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'revenuEvolution',
+            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'loyersPercus', 'revenuEvolution',
             // RAP — mis à jour en temps réel pour la comparaison rapide A/B
             'rapMontant', 'rapMois',
             // Phase 5
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
-            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement',
+            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement', 'coutParking',
             // Frais notaire taux département personnalisé
             'fnTaxeDept_custom',
             // Garantie caution
@@ -4336,17 +4382,67 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Phase 6 — Partage URL
-        getEl('p6_share_btn')?.addEventListener('click', () => {
+        const _buildShareSnapshot = () => {
             const { state } = lireEtatFormulaire(ui);
+            // Champs uiState non capturés dans state — on les ajoute avec leur ID d'élément
+            const uiExtra = {};
+            const uiSliderIds = [
+                'resaleHorizon', 'plusValue', 'resalePriceManual', 'resaleFees',
+                'inflation', 'inflationCumulative',
+                'ira_classic', 'ira_pib', 'ira_ptb', 'ira_manual', 'rapMois'
+            ];
+            uiSliderIds.forEach(id => {
+                const numEl = getEl(`${id}_num`);
+                if (numEl) uiExtra[id] = numEl.value;
+            });
+            ['pv_mode', 'inflation_mode', 'ira_mode'].forEach(id => {
+                const el = getEl(id);
+                if (el) uiExtra[id] = el.value;
+            });
+            return { ...state, ...uiExtra };
+        };
+
+        const _doShare = (feedbackEl) => {
             try {
-                const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+                const snapshot = _buildShareSnapshot();
+                const encoded = btoa(encodeURIComponent(JSON.stringify(snapshot)));
                 const url = window.location.origin + window.location.pathname + '#' + encoded;
-                navigator.clipboard.writeText(url).then(() => {
-                    const fb = getEl('p6_share_feedback');
-                    if (fb) { fb.style.display = 'inline'; setTimeout(() => { fb.style.display = 'none'; }, 2500); }
-                }).catch(() => prompt('Copiez ce lien :', url));
+                const doFeedback = () => {
+                    if (feedbackEl) { feedbackEl.style.display = 'inline'; setTimeout(() => { feedbackEl.style.display = 'none'; }, 2500); }
+                };
+                navigator.clipboard.writeText(url).then(doFeedback).catch(() => { prompt('Copiez ce lien :', url); });
             } catch(e) { console.warn('Erreur partage URL:', e); }
+        };
+
+        getEl('p6_share_btn')?.addEventListener('click', () => {
+            _doShare(getEl('p6_share_feedback'));
         });
+        getEl('header_share_btn')?.addEventListener('click', () => {
+            _doShare(getEl('header_share_feedback'));
+        });
+
+        // Injecte un bandeau "état vide" dans les onglets secondaires si Mon Projet n'est pas configuré
+        const TABS_WITH_EMPTY_STATE = ['tab-solver', 'tab-lissage', 'tab-modulation', 'tab-rap'];
+        const EMPTY_STATE_ID = 'empty-state-notice';
+        const _updateEmptyStateBanners = () => {
+            const { state } = lireEtatFormulaire(ui);
+            const isConfigured = state.P > 0 && state.TE > 0;
+            TABS_WITH_EMPTY_STATE.forEach(tabId => {
+                const pane = getEl(tabId);
+                if (!pane) return;
+                let notice = pane.querySelector(`.${EMPTY_STATE_ID}`);
+                if (!isConfigured) {
+                    if (!notice) {
+                        notice = document.createElement('div');
+                        notice.className = EMPTY_STATE_ID;
+                        notice.innerHTML = '💡 Configurez d\'abord <strong>Mon Projet</strong> (prix, taux, durée) pour activer cet outil.';
+                        pane.prepend(notice);
+                    }
+                } else if (notice) {
+                    notice.remove();
+                }
+            });
+        };
 
         // === TABS — Navigation ===
         document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -4369,6 +4465,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (target === 'tab-rap') {
                     mettreAJourRecapRAP();
                 }
+                if (TABS_WITH_EMPTY_STATE.includes(target)) _updateEmptyStateBanners();
             });
         });
 
@@ -4681,10 +4778,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (source === 'tab1') {
                 const { state } = lireEtatFormulaire(ui);
+                const _fa = gererFraisAcquisition(state);
                 const { besoinCreditFinalClassique } = gererPlanFinancement(
                     state,
-                    gererFraisAcquisition(state).besoinCreditInitial,
-                    gererFraisAcquisition(state).coutAvantGar
+                    _fa.besoinCreditInitial,
+                    _fa.coutAvantGar
                 );
                 capitalEmprunte = besoinCreditFinalClassique;
                 tauxNominal = state.TE;
@@ -4870,7 +4968,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Chargement depuis URL hash (partage)
         const loadedFromURL = chargerDepuisURL();
-        chargerEtat(); // On recharge les données avant de lancer le premier calcul
+        if (!loadedFromURL) chargerEtat(); // On recharge les données avant de lancer le premier calcul
 
         // Restaure la visibilité des sections dépliables selon l'état chargé
         const restaurerEtatsVisuels = () => {

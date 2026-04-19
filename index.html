@@ -9,7 +9,9 @@
 </head>
 <body>
     <main class="container">
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin-bottom: 10px;">
+            <button id="header_share_btn" class="btn-share">🔗 Partager</button>
+            <span id="header_share_feedback" style="font-size:.75rem;color:var(--primary-color);display:none;">✓ Lien copié !</span>
             <button id="btn-reset" class="btn-reset">🔄 Réinitialiser la simulation</button>
         </div>
         <!-- Navigation onglets -->
@@ -175,8 +177,8 @@
                             </div>
                             <div class="input-item">
                                 <label for="AutresCredits2">Autres crédits co-empr. (€) :</label>
-                                <input type="range" id="AutresCredits2" min="0" max="2000" value="0" step="50">
-                                <input type="number" id="AutresCredits2_num" min="0" max="2000" value="0" step="50">
+                                <input type="range" id="AutresCredits2" min="0" max="10000" value="0" step="100">
+                                <input type="number" id="AutresCredits2_num" min="0" max="10000" value="0" step="100">
                             </div>
                             <div class="input-item">
                                 <label for="AutresCharges2">Autres charges co-empr. (€) :</label>
@@ -194,6 +196,11 @@
                                 <input type="number" id="revenuVariable_num" min="0" max="10000" value="0" step="100">
                             </div>
                             <div class="input-item">
+                                <label for="loyersPercus">Loyers perçus (€/mois) :</label>
+                                <input type="range" id="loyersPercus" min="0" max="10000" value="0" step="50">
+                                <input type="number" id="loyersPercus_num" min="0" max="10000" value="0" step="50">
+                            </div>
+                            <div class="input-item">
                                 <label for="tauxIntegration">Intégration bancaire :</label>
                                 <select id="tauxIntegration" style="min-width:80px;max-width:100px;">
                                     <option value="50">50 %</option>
@@ -209,8 +216,8 @@
 
                         <div class="input-item">
                             <label for="AutresCredits">Autres crédits (mensualité) (€) : <span class="info-icon" data-info-key="AutresCredits_info">ⓘ</span></label>
-                            <input type="range" id="AutresCredits" min="0" max="2000" value="0" step="50"> 
-                            <input type="number" id="AutresCredits_num" min="0" max="2000" value="0" step="50">
+                            <input type="range" id="AutresCredits" min="0" max="10000" value="0" step="100">
+                            <input type="number" id="AutresCredits_num" min="0" max="10000" value="0" step="100">
                         </div>
                         <div class="input-item">
                             <label for="AutresCharges">Autres charges mensuelles (€) : <span class="info-icon" data-info-key="AutresCharges_info">ⓘ</span></label>
@@ -740,8 +747,13 @@
                         </div>
                         <div class="input-item">
                             <label for="chargesLocataire">Charges locataire (€/mois) :</label>
-                            <input type="range" id="chargesLocataire" min="0" max="500" value="225" step="10">
-                            <input type="number" id="chargesLocataire_num" min="0" max="500" value="225" step="10">
+                            <input type="range" id="chargesLocataire" min="0" max="2000" value="225" step="10">
+                            <input type="number" id="chargesLocataire_num" min="0" max="2000" value="225" step="10">
+                        </div>
+                        <div class="input-item">
+                            <label for="coutParking">Coût parking (€/mois) :</label>
+                            <input type="range" id="coutParking" min="0" max="500" value="0" step="10">
+                            <input type="number" id="coutParking_num" min="0" max="500" value="0" step="10">
                         </div>
                         <h4>Coût réel de possession</h4>
                         <div class="input-item">
@@ -761,13 +773,13 @@
                         </div>
                         <div class="input-item">
                             <label for="assuranceHabitation">Assurance habitation (€/mois) :</label>
-                            <input type="range" id="assuranceHabitation" min="0" max="200" value="30" step="5">
-                            <input type="number" id="assuranceHabitation_num" min="0" max="200" value="30" step="5">
+                            <input type="range" id="assuranceHabitation" min="0" max="500" value="30" step="5">
+                            <input type="number" id="assuranceHabitation_num" min="0" max="500" value="30" step="5">
                         </div>
                         <div class="input-item">
                             <label for="autresChargesLogement">Autres charges logement (€/mois) :</label>
-                            <input type="range" id="autresChargesLogement" min="0" max="500" value="210" step="10">
-                            <input type="number" id="autresChargesLogement_num" min="0" max="500" value="210" step="10">
+                            <input type="range" id="autresChargesLogement" min="0" max="2000" value="210" step="10">
+                            <input type="number" id="autresChargesLogement_num" min="0" max="2000" value="210" step="10">
                         </div>
                     </div>
                 </div>
@@ -790,6 +802,7 @@
                                     <tr><td>Provision travaux</td><td id="avl_travaux">—</td></tr>
                                     <tr><td>Assurance habitation</td><td id="avl_assurance_hab">—</td></tr>
                                     <tr><td>Autres charges logement</td><td id="avl_autres_charges">—</td></tr>
+                                    <tr><td>Parking</td><td id="avl_parking">—</td></tr>
                                     <tr class="strong-highlight"><th>Total coût réel mensuel</th><td id="avl_cout_total">—</td></tr>
                                     <tr><td>vs. Loyer (+ charges locataire)</td><td id="avl_vs_loyer">—</td></tr>
                                 </tbody>
