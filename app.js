@@ -2178,10 +2178,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     ];
                     if (e.investissementsNonRecup > 0) lines.push(`   🛋️ Ameublt/déco/élec. : −${formatCurrency(e.investissementsNonRecup)} €`);
                     if (e.travauxCopro > 0) lines.push(`   🏗️ Travaux copro : −${formatCurrency(e.travauxCopro)} €`);
-                    lines.push(`   💰 Apport réinvestissable : ${formatCurrency(e.cashReinvestable)} €`);
+                    const delta = e.cashReinvestable - extraLoc[i].cashReinvestable;
+                    const signe = delta >= 0 ? '+' : '';
+                    lines.push(`   💰 Apport réinvestissable : ${formatCurrency(e.cashReinvestable)} € (${signe}${formatCurrency(delta)} vs loc.)`);
                     return lines;
                 }
                 const l = extraLoc[i];
+                const delta = l.cashReinvestable - extraProprio[i].cashReinvestable;
+                const signe = delta >= 0 ? '+' : '';
                 return [
                     ` Locataire : ${formatCurrency(ctx.parsed.y)} €`,
                     `   Loyer mensuel : ${formatCurrency(l.loyer)} €`,
@@ -2189,7 +2193,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     `   Économie placée : ${formatCurrency(l.economie)} €/mois`,
                     `   Capital investi cumulé : ${formatCurrency(l.cumul)} €`,
                     `   Intérêts générés : ${formatCurrency(l.interets)} €`,
-                    `   💰 Apport réinvestissable : ${formatCurrency(l.cashReinvestable)} €`
+                    `   💰 Apport réinvestissable : ${formatCurrency(l.cashReinvestable)} € (${signe}${formatCurrency(delta)} vs prop.)`
                 ];
             }
         };
