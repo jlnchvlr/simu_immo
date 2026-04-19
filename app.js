@@ -158,6 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
         avl_travaux: getEl('avl_travaux'),
         avl_assurance_hab: getEl('avl_assurance_hab'),
         avl_autres_charges: getEl('avl_autres_charges'),
+        avl_parking: getEl('avl_parking'),
         avl_cout_total: getEl('avl_cout_total'),
         avl_vs_loyer: getEl('avl_vs_loyer'),
 
@@ -231,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCredits2_num: getEl('AutresCredits2_num'),
             AutresCharges2_num: getEl('AutresCharges2_num'),
             revenuVariable_num: getEl('revenuVariable_num'),
+            loyersPercus_num: getEl('loyersPercus_num'),
             tauxIntegration: getEl('tauxIntegration'),
             revenuEvolution_num: getEl('revenuEvolution_num'),
             horizonEvolution: getEl('horizonEvolution'),
@@ -287,6 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
             provisionTravaux_num: getEl('provisionTravaux_num'),
             assuranceHabitation_num: getEl('assuranceHabitation_num'),
             autresChargesLogement_num: getEl('autresChargesLogement_num'),
+            coutParking_num: getEl('coutParking_num'),
 
             // Phase 8 — RAP
             rapMontant_num: getEl('rapMontant_num'),
@@ -418,6 +421,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (savedState._comparateur) {
                 window._savedComparateur = savedState._comparateur;
             }
+
+            // Forcer la re-initialisation du mode frais de notaire (bounds slider % vs €)
+            getEl('FN_mode')?.dispatchEvent(new Event('change'));
 
         } catch (e) {
             console.warn("Erreur lors du chargement de la sauvegarde", e);
@@ -865,6 +871,7 @@ document.addEventListener('DOMContentLoaded', () => {
             AutresCredits2: numFrom(f.AutresCredits2_num),
             AutresCharges2: numFrom(f.AutresCharges2_num),
             revenuVariable: numFrom(f.revenuVariable_num),
+            loyersPercus: numFrom(f.loyersPercus_num),
             tauxIntegration: parseFloat(f.tauxIntegration?.value || 70),
             revenuEvolution: numFrom(f.revenuEvolution_num),
             horizonEvolution: parseInt(f.horizonEvolution?.value || 10, 10),
@@ -924,7 +931,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 chargesCopro: numFrom(f.chargesCopro_num),
                 provisionTravaux: numFrom(f.provisionTravaux_num),
                 assuranceHabitation: numFrom(f.assuranceHabitation_num),
-                autresChargesLogement: numFrom(f.autresChargesLogement_num)
+                autresChargesLogement: numFrom(f.autresChargesLogement_num),
+                coutParking: numFrom(f.coutParking_num)
             }
         };
 
@@ -1049,7 +1057,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3.1 + 3.3 — Calcule les revenus et charges effectifs du foyer (pur, zéro DOM)
     function calculerProfilEmprunteur(state) {
         const revVarIntegre = state.revenuVariable * (state.tauxIntegration / 100);
-        const revenusEmprunteur1 = state.S + revVarIntegre;
+        const loyersPercusIntegres = (state.loyersPercus || 0) * (state.tauxIntegration / 100);
+        const revenusEmprunteur1 = state.S + revVarIntegre + loyersPercusIntegres;
         const revenusCoEmpr = state.coEmprunteur ? state.S2 : 0;
         const revenusEffectifs = revenusEmprunteur1 + revenusCoEmpr;
 
@@ -1057,7 +1066,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const chargesCoEmpr = state.coEmprunteur ? state.AutresCredits2 + state.AutresCharges2 : 0;
         const chargesEffectives = chargesEmprunteur1 + chargesCoEmpr;
 
-        return { revenusEffectifs, chargesEffectives, revVarIntegre, revenusCoEmpr };
+        return { revenusEffectifs, chargesEffectives, revVarIntegre, loyersPercusIntegres, revenusCoEmpr };
     }
 
     // 3.2 — Projection revenus sur N années (mensualité fixe, revenus croissants)
@@ -2004,6 +2013,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const provisionTravaux = avl.provisionTravaux || 0;
         const assuranceHabitation = avl.assuranceHabitation || 0;
         const autresChargesLogement = avl.autresChargesLogement || 0;
+        const coutParking = avl.coutParking || 0;
 
         // Coût réel mensuel de possession
         const coutReelMensuel = mensualiteTotale
@@ -2011,7 +2021,8 @@ document.addEventListener('DOMContentLoaded', () => {
             + chargesCopro
             + (provisionTravaux * prixFAI / 1200)
             + assuranceHabitation
-            + autresChargesLogement;
+            + autresChargesLogement
+            + coutParking;
 
         // Frais d'acquisition purs (notaire + garantie + dossier + courtier, hors bien et travaux)
         const fraisAcquisitionPurs = coutTotalOperation - prixFAI - (state.T || 0);
@@ -2044,7 +2055,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Locataire: loyer indexé + épargne mensuelle placée (capitalisation mensuelle)
             const loyerAnnee = loyer * Math.pow(1 + indexationLoyer, annee - 1);
-            const chargesMensuellesLoc = loyerAnnee + chargesLocataire;
+            const chargesMensuellesLoc = loyerAnnee + chargesLocataire + assuranceHabitation + coutParking;
             const economieMensuelle = Math.max(0, coutReelMensuel - chargesMensuellesLoc);
             const tauxMensuelPlacement = tauxPlacement / 12;
             for (let m = 0; m < 12; m++) {
@@ -2062,7 +2073,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { yearlyData, crossoverAnnee, coutReelMensuel, mensualiteTotale,
             taxeFonciere, chargesCopro, provisionTravaux, assuranceHabitation,
-            autresChargesLogement, prixFAI, loyer, chargesLocataire };
+            autresChargesLogement, coutParking, prixFAI, loyer, chargesLocataire };
     }
 
     function renderAchatVsLocation(ui, avlData) {
@@ -2080,11 +2091,13 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.avl_travaux, fmt(avlData.provisionTravaux * avlData.prixFAI / 1200));
         setTextEl(ui.avl_assurance_hab, fmt(avlData.assuranceHabitation));
         setTextEl(ui.avl_autres_charges, fmt(avlData.autresChargesLogement));
+        if (ui.avl_parking) setTextEl(ui.avl_parking, fmt(avlData.coutParking));
         setTextEl(ui.avl_cout_total, fmt(avlData.coutReelMensuel));
-        const diffLoyer = avlData.coutReelMensuel - (avlData.loyer + avlData.chargesLocataire);
+        const coutMensuelLoc = avlData.loyer + avlData.chargesLocataire + avlData.assuranceHabitation + avlData.coutParking;
+        const diffLoyer = avlData.coutReelMensuel - coutMensuelLoc;
         const signe = diffLoyer >= 0 ? '+' : '';
         if (ui.avl_vs_loyer) {
-            ui.avl_vs_loyer.textContent = `${fmt(avlData.loyer + avlData.chargesLocataire)} (${signe}${fmt(diffLoyer)})`;
+            ui.avl_vs_loyer.textContent = `${fmt(coutMensuelLoc)} (${signe}${fmt(diffLoyer)})`;
             ui.avl_vs_loyer.style.color = diffLoyer > 0 ? 'var(--danger-color)' : 'var(--primary-color)';
         }
 
@@ -2391,6 +2404,8 @@ document.addEventListener('DOMContentLoaded', () => {
             prixRevente = uiState?.resale?.resalePriceManual || 0;
         }
 
+        if (!scenarioRef) return;
+
         const moisPayes = horizon * 12;
         const crd_classic = scenarioRef.classic_amount > 0 ? calculerCapitalRestantDu(scenarioRef.classic_amount, tauxClassiqueUsed, scenarioDuration * 12, moisPayes) : 0;
         const crd_pib = results.pib.amount > 0 ? calculerCapitalRestantDu(results.pib.amount, results.pib.interestRate, results.pib.duration * 12, moisPayes) : 0;
@@ -2408,7 +2423,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const ira_pib_fees = calculerIRA(crd_pib, results.pib.interestRate) * (ira_pib_pc / 3);
             const ira_ptb_fees = calculerIRA(crd_ptb, results.ptb.interestRate) * (ira_ptb_pc / 3);
 
-            setTextEl(ui.ira_classic_amount, formatCurrency(ira_classic_fees) + " €");
+            if (ui.ira_classic_amount) {
+                if (scenarioRef.classic_amount <= 0) setTextEl(ui.ira_classic_amount, "— (pas de prêt classique)");
+                else if (crd_classic <= 0) setTextEl(ui.ira_classic_amount, "— (prêt soldé)");
+                else setTextEl(ui.ira_classic_amount, formatCurrency(ira_classic_fees) + " €");
+            }
             setTextEl(ui.ira_pib_amount, formatCurrency(ira_pib_fees) + " €");
             setTextEl(ui.ira_ptb_amount, formatCurrency(ira_ptb_fees) + " €");
 
@@ -4004,12 +4023,12 @@ document.addEventListener('DOMContentLoaded', () => {
             'resaleHorizon', 'plusValue', 'inflation', 'resaleFees', 
             'resalePriceManual', 'inflationCumulative', 'ira_manual', 'ira_classic', 'ira_pib', 'ira_ptb',
             // Phase 3
-            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'revenuEvolution',
+            'S2', 'AutresCredits2', 'AutresCharges2', 'revenuVariable', 'loyersPercus', 'revenuEvolution',
             // RAP — mis à jour en temps réel pour la comparaison rapide A/B
             'rapMontant', 'rapMois',
             // Phase 5
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
-            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement',
+            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement', 'coutParking',
             // Frais notaire taux département personnalisé
             'fnTaxeDept_custom',
             // Garantie caution
