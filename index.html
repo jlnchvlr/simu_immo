@@ -129,13 +129,13 @@
                         </div>
                         <div class="input-item">
                             <label for="FD">Frais dossier Prêt Classique (€) : <span class="info-icon" data-info-key="FD_info">ⓘ</span></label>
-                            <input type="range" id="FD" min="0" max="2000" value="1000" step="50">
-                            <input type="number" id="FD_num" min="0" max="2000" value="1000" step="50">
+                            <input type="range" id="FD" min="0" max="2000" value="0" step="50">
+                            <input type="number" id="FD_num" min="0" max="2000" value="0" step="50">
                         </div>
                         <div class="input-item">
                             <label for="Courtier">Frais de courtier (€) : <span class="info-icon" data-info-key="Courtier_info">ⓘ</span></label>
-                            <input type="range" id="Courtier" min="0" max="10000" value="3000" step="100">
-                            <input type="number" id="Courtier_num" min="0" max="10000" value="3000" step="100">
+                            <input type="range" id="Courtier" min="0" max="10000" value="0" step="100">
+                            <input type="number" id="Courtier_num" min="0" max="10000" value="0" step="100">
                         </div>
                         <hr>
                         <p class="section-description">Montant total estimé des travaux. Laissez à 0 € si aucun travaux.</p>
@@ -221,8 +221,8 @@
                         </div>
                         <div class="input-item">
                             <label for="AutresCharges">Autres charges mensuelles (€) : <span class="info-icon" data-info-key="AutresCharges_info">ⓘ</span></label>
-                            <input type="range" id="AutresCharges" min="0" max="5000" value="750" step="50">
-                            <input type="number" id="AutresCharges_num" min="0" max="5000" value="750" step="50">
+                            <input type="range" id="AutresCharges" min="0" max="5000" value="735" step="50">
+                            <input type="number" id="AutresCharges_num" min="0" max="5000" value="735" step="50">
                         </div>
                         <div class="input-item">
                             <label for="TEdt">Taux endettement max (%) : <span class="info-icon" data-info-key="tedt_info">ⓘ</span></label>
@@ -257,18 +257,18 @@
                             <h4>🏦 Conditions Prêt Classique</h4>
                             <div class="input-item">
                                 <label for="duree">Durée du prêt (ans) :</label>
-                                <input type="range" id="duree" min="10" max="30" value="25" step="1">
-                                <input type="number" id="duree_num" min="10" max="30" value="25" step="1">
+                                <input type="range" id="duree" min="10" max="30" value="20" step="1">
+                                <input type="number" id="duree_num" min="10" max="30" value="20" step="1">
                             </div>
                             <div class="input-item">
                                 <label for="TE">Taux nominal (%) :</label>
-                                <input type="range" id="TE" min="0.5" max="7" value="3.5" step="0.01">
-                                <input type="number" id="TE_num" min="0.5" max="7" value="3.5" step="0.01">
+                                <input type="range" id="TE" min="0.5" max="7" value="3.2" step="0.01">
+                                <input type="number" id="TE_num" min="0.5" max="7" value="3.2" step="0.01">
                             </div>
                             <div class="input-item">
                                 <label for="TA">Taux assurance (%) :</label>
-                                <input type="range" id="TA" min="0.05" max="1.5" value="0.15" step="0.01">
-                                <input type="number" id="TA_num" min="0.05" max="1.5" value="0.15" step="0.01">
+                                <input type="range" id="TA" min="0.05" max="1.5" value="0.27" step="0.01">
+                                <input type="number" id="TA_num" min="0.05" max="1.5" value="0.27" step="0.01">
                             </div>
                             <div class="input-item">
                                 <label for="typeAssuranceClassique">Base calcul assurance : <span class="info-icon" data-info-key="typeAssurance_info">ⓘ</span></label>
@@ -614,8 +614,8 @@
                         </div>
                         <div class="input-item" id="pv_annual_container">
                             <label for="plusValue">Plus-value annuelle estimée (%) : <span class="info-icon" data-info-key="plusValue_info">ⓘ</span></label>
-                            <input type="range" id="plusValue" min="-5" max="10" value="0.5" step="0.1">
-                            <input type="number" id="plusValue_num" min="-5" max="10" value="0.5" step="0.1">
+                            <input type="range" id="plusValue" min="-5" max="10" value="0.2" step="0.1">
+                            <input type="number" id="plusValue_num" min="-5" max="10" value="0.2" step="0.1">
                         </div>
                         <div class="input-item" id="pv_manual_container" style="display:none;">
                             <label for="resalePriceManual">Prix de revente net vendeur (€) :</label>
@@ -661,8 +661,8 @@
                                 <label style="width:100%" for="ira_classic">IRA Prêt Classique (%) : <span class="info-icon" data-info-key="ira_info">ⓘ</span>
                                     <span id="ira_classic_amount" class="read-only-value inline-value" style="color:var(--danger-color); font-weight:bold; font-size:0.8rem;">0 €</span>
                                 </label>
-                                <input type="range" id="ira_classic" min="0" max="3" value="3" step="0.1">
-                                <input type="number" id="ira_classic_num" min="0" max="3" value="3" step="0.1">
+                                <input type="range" id="ira_classic" min="0" max="3" value="0" step="0.1">
+                                <input type="number" id="ira_classic_num" min="0" max="3" value="0" step="0.1">
                             </div>
                             <div class="input-item" id="ira_pib_container" style="display:none;">
                                 <label style="width:100%" for="ira_pib">IRA PIB (%) : 
@@ -732,28 +732,34 @@
                         <h4>Paramètres Location</h4>
                         <div class="input-item">
                             <label for="loyer">Loyer mensuel équivalent (€) :</label>
-                            <input type="range" id="loyer" min="0" max="5000" value="3000" step="50">
-                            <input type="number" id="loyer_num" min="0" max="5000" value="3000" step="50">
+                            <input type="range" id="loyer" min="0" max="5000" value="2500" step="50">
+                            <input type="number" id="loyer_num" min="0" max="5000" value="2500" step="50">
                         </div>
                         <div class="input-item">
                             <label for="indexationLoyer">Indexation annuelle loyer (%) :</label>
-                            <input type="range" id="indexationLoyer" min="0" max="5" value="1.5" step="0.1">
-                            <input type="number" id="indexationLoyer_num" min="0" max="5" value="1.5" step="0.1">
+                            <input type="range" id="indexationLoyer" min="0" max="5" value="0" step="0.1">
+                            <input type="number" id="indexationLoyer_num" min="0" max="5" value="0" step="0.1">
                         </div>
                         <div class="input-item">
                             <label for="tauxPlacement">Rendement épargne alternative (%) :</label>
                             <input type="range" id="tauxPlacement" min="0" max="10" value="2.8" step="0.1">
                             <input type="number" id="tauxPlacement_num" min="0" max="10" value="2.8" step="0.1">
                         </div>
+
                         <div class="input-item">
                             <label for="chargesLocataire">Charges locataire (€/mois) :</label>
-                            <input type="range" id="chargesLocataire" min="0" max="2000" value="225" step="10">
-                            <input type="number" id="chargesLocataire_num" min="0" max="2000" value="225" step="10">
+                            <input type="range" id="chargesLocataire" min="0" max="2000" value="300" step="10">
+                            <input type="number" id="chargesLocataire_num" min="0" max="2000" value="300" step="10">
+                        </div>
+                        <div class="input-item">
+                            <label for="assuranceHabLocation">Assurance hab. location (€/mois) :</label>
+                            <input type="range" id="assuranceHabLocation" min="0" max="300" value="15" step="5">
+                            <input type="number" id="assuranceHabLocation_num" min="0" max="300" value="15" step="5">
                         </div>
                         <div class="input-item">
                             <label for="coutParkingLocation">Parking (€/mois) :</label>
-                            <input type="range" id="coutParkingLocation" min="0" max="500" value="0" step="10">
-                            <input type="number" id="coutParkingLocation_num" min="0" max="500" value="0" step="10">
+                            <input type="range" id="coutParkingLocation" min="0" max="500" value="320" step="10">
+                            <input type="number" id="coutParkingLocation_num" min="0" max="500" value="320" step="10">
                         </div>
                         <h4>Coût réel de possession</h4>
                         <div class="input-item">
@@ -768,23 +774,23 @@
                         </div>
                         <div class="input-item">
                             <label for="provisionTravaux">Provision travaux (% du prix/an) :</label>
-                            <input type="range" id="provisionTravaux" min="0" max="3" value="0" step="0.1">
-                            <input type="number" id="provisionTravaux_num" min="0" max="3" value="0" step="0.1">
+                            <input type="range" id="provisionTravaux" min="0" max="3" value="0.5" step="0.1">
+                            <input type="number" id="provisionTravaux_num" min="0" max="3" value="0.5" step="0.1">
                         </div>
                         <div class="input-item">
-                            <label for="assuranceHabitation">Assurance habitation (€/mois) :</label>
-                            <input type="range" id="assuranceHabitation" min="0" max="500" value="30" step="5">
-                            <input type="number" id="assuranceHabitation_num" min="0" max="500" value="30" step="5">
+                            <label for="assuranceHabPossession">Assurance hab. possession (€/mois) :</label>
+                            <input type="range" id="assuranceHabPossession" min="0" max="500" value="30" step="5">
+                            <input type="number" id="assuranceHabPossession_num" min="0" max="500" value="30" step="5">
                         </div>
                         <div class="input-item">
                             <label for="autresChargesLogement">Autres charges logement (€/mois) :</label>
-                            <input type="range" id="autresChargesLogement" min="0" max="2000" value="210" step="10">
-                            <input type="number" id="autresChargesLogement_num" min="0" max="2000" value="210" step="10">
+                            <input type="range" id="autresChargesLogement" min="0" max="2000" value="0" step="10">
+                            <input type="number" id="autresChargesLogement_num" min="0" max="2000" value="0" step="10">
                         </div>
                         <div class="input-item">
                             <label for="coutParkingPossession">Parking (€/mois) :</label>
-                            <input type="range" id="coutParkingPossession" min="0" max="500" value="0" step="10">
-                            <input type="number" id="coutParkingPossession_num" min="0" max="500" value="0" step="10">
+                            <input type="range" id="coutParkingPossession" min="0" max="500" value="160" step="10">
+                            <input type="number" id="coutParkingPossession_num" min="0" max="500" value="160" step="10">
                         </div>
                     </div>
                 </div>

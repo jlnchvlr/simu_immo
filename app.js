@@ -292,7 +292,8 @@ document.addEventListener('DOMContentLoaded', () => {
             taxeFonciere_num: getEl('taxeFonciere_num'),
             chargesCopro_num: getEl('chargesCopro_num'),
             provisionTravaux_num: getEl('provisionTravaux_num'),
-            assuranceHabitation_num: getEl('assuranceHabitation_num'),
+            assuranceHabPossession_num: getEl('assuranceHabPossession_num'),
+            assuranceHabLocation_num: getEl('assuranceHabLocation_num'),
             autresChargesLogement_num: getEl('autresChargesLogement_num'),
             coutParkingLocation_num: getEl('coutParkingLocation_num'),
             coutParkingPossession_num: getEl('coutParkingPossession_num'),
@@ -936,7 +937,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 taxeFonciere: numFrom(f.taxeFonciere_num),
                 chargesCopro: numFrom(f.chargesCopro_num),
                 provisionTravaux: numFrom(f.provisionTravaux_num),
-                assuranceHabitation: numFrom(f.assuranceHabitation_num),
+                assuranceHabPossession: numFrom(f.assuranceHabPossession_num),
+                assuranceHabLocation: numFrom(f.assuranceHabLocation_num),
                 autresChargesLogement: numFrom(f.autresChargesLogement_num),
                 coutParkingLocation: numFrom(f.coutParkingLocation_num),
                 coutParkingPossession: numFrom(f.coutParkingPossession_num)
@@ -2018,7 +2020,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const taxeFonciere = avl.taxeFonciere || 0;
         const chargesCopro = avl.chargesCopro || 0;
         const provisionTravaux = avl.provisionTravaux || 0;
-        const assuranceHabitation = avl.assuranceHabitation || 0;
+        const assuranceHabPossession = avl.assuranceHabPossession || 0;
+        const assuranceHabLocation = avl.assuranceHabLocation || 0;
         const autresChargesLogement = avl.autresChargesLogement || 0;
         const coutParkingPossession = avl.coutParkingPossession || 0;
         const coutParkingLocation = avl.coutParkingLocation || 0;
@@ -2028,12 +2031,12 @@ document.addEventListener('DOMContentLoaded', () => {
             + taxeFonciere / 12
             + chargesCopro
             + (provisionTravaux * prixFAI / 1200)
-            + assuranceHabitation
+            + assuranceHabPossession
             + autresChargesLogement
             + coutParkingPossession;
 
-        // Frais d'acquisition purs (notaire + garantie + dossier + courtier, hors bien et travaux)
-        const fraisAcquisitionPurs = coutTotalOperation - prixFAI - (state.T || 0);
+        // Frais d'acquisition purs (agence + notaire + garantie + dossier + courtier, hors bien net et travaux)
+        const fraisAcquisitionPurs = coutTotalOperation - state.P - (state.T || 0);
 
         const pvMode = uiState.pvMode || 'annual';
         const apport = state.A;
@@ -2044,12 +2047,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const yearlyData = [];
         for (let annee = 1; annee <= horizon; annee++) {
-            // Propriétaire: valeur bien - CRD - frais d'acquisition irrécupérables
+            // Propriétaire: valeur bien (prix net vendeur apprécié) - CRD - frais d'acquisition irrécupérables
             let valeurBien;
             if (pvMode === 'annual') {
-                valeurBien = prixFAI * Math.pow(1 + (uiState.resale.plusValueAnnual || 0) / 100, annee);
+                valeurBien = state.P * Math.pow(1 + (uiState.resale.plusValueAnnual || 0) / 100, annee);
             } else {
-                valeurBien = uiState.resale.resalePriceManual || prixFAI;
+                valeurBien = uiState.resale.resalePriceManual || state.P;
             }
             const moisPayes = annee * 12;
             const crd_classic = scenData.scenario.classic_amount > 0
@@ -2061,10 +2064,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalCRD = crd_classic + crd_pib + crd_ptb;
 
             const patrimoineProprietaire = valeurBien - totalCRD - fraisAcquisitionPurs;
+            const cashReinvestableProprio = Math.max(0, valeurBien - totalCRD - (uiState.resale?.fees || 0));
 
             // Locataire: loyer indexé + épargne mensuelle placée (capitalisation mensuelle)
             const loyerAnnee = loyer * Math.pow(1 + indexationLoyer, annee - 1);
-            const chargesMensuellesLoc = loyerAnnee + chargesLocataire + assuranceHabitation + coutParkingLocation;
+            const chargesMensuellesLoc = loyerAnnee + chargesLocataire + assuranceHabLocation + coutParkingLocation;
             const economieMensuelle = Math.max(0, coutReelMensuel - chargesMensuellesLoc);
             const tauxMensuelPlacement = tauxPlacement / 12;
             for (let m = 0; m < 12; m++) {
@@ -2073,7 +2077,7 @@ document.addEventListener('DOMContentLoaded', () => {
             cumulVersements += economieMensuelle * 12;
             const interetsAccumules = patrimoineLocataire - cumulVersements;
 
-            yearlyData.push({ annee, patrimoineProprietaire, patrimoineLocataire, valeurBien, totalCRD, fraisAcquisitionPurs, loyerAnnee, economieMensuelle, chargesMensuellesLoc, cumulVersements, interetsAccumules });
+            yearlyData.push({ annee, patrimoineProprietaire, patrimoineLocataire, valeurBien, totalCRD, fraisAcquisitionPurs, cashReinvestableProprio, loyerAnnee, economieMensuelle, chargesMensuellesLoc, cumulVersements, interetsAccumules });
         }
 
         // Point de croisement
@@ -2083,7 +2087,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         return { yearlyData, crossoverAnnee, coutReelMensuel, mensualiteTotale,
-            taxeFonciere, chargesCopro, provisionTravaux, assuranceHabitation,
+            taxeFonciere, chargesCopro, provisionTravaux, assuranceHabPossession, assuranceHabLocation,
             autresChargesLogement, coutParkingPossession, coutParkingLocation, prixFAI, loyer, chargesLocataire, fraisAcquisitionPurs };
     }
 
@@ -2100,11 +2104,11 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.avl_tf, fmt(avlData.taxeFonciere / 12));
         setTextEl(ui.avl_copro, fmt(avlData.chargesCopro));
         setTextEl(ui.avl_travaux, fmt(avlData.provisionTravaux * avlData.prixFAI / 1200));
-        setTextEl(ui.avl_assurance_hab, fmt(avlData.assuranceHabitation));
+        setTextEl(ui.avl_assurance_hab, fmt(avlData.assuranceHabPossession));
         setTextEl(ui.avl_autres_charges, fmt(avlData.autresChargesLogement));
         if (ui.avl_parking) setTextEl(ui.avl_parking, fmt(avlData.coutParkingPossession));
         setTextEl(ui.avl_cout_total, fmt(avlData.coutReelMensuel));
-        const coutMensuelLoc = avlData.loyer + avlData.chargesLocataire + avlData.assuranceHabitation + avlData.coutParkingLocation;
+        const coutMensuelLoc = avlData.loyer + avlData.chargesLocataire + avlData.assuranceHabLocation + avlData.coutParkingLocation;
         const diffLoyer = avlData.coutReelMensuel - coutMensuelLoc;
         const signe = diffLoyer >= 0 ? '+' : '';
         if (ui.avl_vs_loyer) {
@@ -2113,7 +2117,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (ui.avl_loc_loyer) setTextEl(ui.avl_loc_loyer, fmt(avlData.loyer));
         if (ui.avl_loc_charges) setTextEl(ui.avl_loc_charges, fmt(avlData.chargesLocataire));
-        if (ui.avl_loc_assurance) setTextEl(ui.avl_loc_assurance, fmt(avlData.assuranceHabitation));
+        if (ui.avl_loc_assurance) setTextEl(ui.avl_loc_assurance, fmt(avlData.assuranceHabLocation));
         if (ui.avl_loc_parking) setTextEl(ui.avl_loc_parking, fmt(avlData.coutParkingLocation));
         if (ui.avl_loc_total) setTextEl(ui.avl_loc_total, fmt(coutMensuelLoc));
 
@@ -2141,14 +2145,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const extraProprio = avlData.yearlyData.map(d => ({
             valeurBien: Math.round(d.valeurBien),
             crd: Math.round(d.totalCRD),
-            fraisAcq: Math.round(d.fraisAcquisitionPurs)
+            fraisAcq: Math.round(d.fraisAcquisitionPurs),
+            cashReinvestable: Math.round(d.cashReinvestableProprio)
         }));
         const extraLoc = avlData.yearlyData.map(d => ({
             loyer: Math.round(d.loyerAnnee),
             charges: Math.round(d.chargesMensuellesLoc),
             economie: Math.round(d.economieMensuelle),
             cumul: Math.round(d.cumulVersements),
-            interets: Math.round(d.interetsAccumules)
+            interets: Math.round(d.interetsAccumules),
+            cashReinvestable: Math.round(d.patrimoineLocataire)
         }));
 
         const tooltipCallbacks = {
@@ -2160,7 +2166,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         ` Propriétaire : ${formatCurrency(ctx.parsed.y)} €`,
                         `   Valeur bien : ${formatCurrency(e.valeurBien)} €`,
                         `   − CRD : ${formatCurrency(e.crd)} €`,
-                        `   − Frais acq. : ${formatCurrency(e.fraisAcq)} €`
+                        `   − Frais acq. : ${formatCurrency(e.fraisAcq)} €`,
+                        `   💰 Apport réinvestissable : ${formatCurrency(e.cashReinvestable)} €`
                     ];
                 }
                 const l = extraLoc[i];
@@ -2170,7 +2177,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     `   Charges totales : ${formatCurrency(l.charges)} €/mois`,
                     `   Économie placée : ${formatCurrency(l.economie)} €/mois`,
                     `   Capital investi cumulé : ${formatCurrency(l.cumul)} €`,
-                    `   Intérêts générés : ${formatCurrency(l.interets)} €`
+                    `   Intérêts générés : ${formatCurrency(l.interets)} €`,
+                    `   💰 Apport réinvestissable : ${formatCurrency(l.cashReinvestable)} €`
                 ];
             }
         };
@@ -4083,7 +4091,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'rapMontant', 'rapMois',
             // Phase 5
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
-            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement', 'coutParkingLocation', 'coutParkingPossession',
+            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabPossession', 'assuranceHabLocation', 'autresChargesLogement', 'coutParkingLocation', 'coutParkingPossession',
             // Frais notaire taux département personnalisé
             'fnTaxeDept_custom',
             // Garantie caution
