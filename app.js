@@ -161,6 +161,11 @@ document.addEventListener('DOMContentLoaded', () => {
         avl_parking: getEl('avl_parking'),
         avl_cout_total: getEl('avl_cout_total'),
         avl_vs_loyer: getEl('avl_vs_loyer'),
+        avl_loc_loyer: getEl('avl_loc_loyer'),
+        avl_loc_charges: getEl('avl_loc_charges'),
+        avl_loc_assurance: getEl('avl_loc_assurance'),
+        avl_loc_parking: getEl('avl_loc_parking'),
+        avl_loc_total: getEl('avl_loc_total'),
 
         // Phase 6 — Scénarios
         p6_scenario_list: getEl('p6_scenario_list'),
@@ -289,7 +294,8 @@ document.addEventListener('DOMContentLoaded', () => {
             provisionTravaux_num: getEl('provisionTravaux_num'),
             assuranceHabitation_num: getEl('assuranceHabitation_num'),
             autresChargesLogement_num: getEl('autresChargesLogement_num'),
-            coutParking_num: getEl('coutParking_num'),
+            coutParkingLocation_num: getEl('coutParkingLocation_num'),
+            coutParkingPossession_num: getEl('coutParkingPossession_num'),
 
             // Phase 8 — RAP
             rapMontant_num: getEl('rapMontant_num'),
@@ -512,7 +518,7 @@ document.addEventListener('DOMContentLoaded', () => {
         FN_TAXES_NEUF:        0.00715,
 
         // Garantie
-        CAUTION_RATE:         0.012,
+        CAUTION_RATE:         0.009215,
         HYPOTHEQUE_TPF_RATE:  0.00715,
         HYPOTHEQUE_CSI_RATE:  0.0005,
         HYPOTHEQUE_CSI_MIN:   15,
@@ -932,7 +938,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 provisionTravaux: numFrom(f.provisionTravaux_num),
                 assuranceHabitation: numFrom(f.assuranceHabitation_num),
                 autresChargesLogement: numFrom(f.autresChargesLogement_num),
-                coutParking: numFrom(f.coutParking_num)
+                coutParkingLocation: numFrom(f.coutParkingLocation_num),
+                coutParkingPossession: numFrom(f.coutParkingPossession_num)
             }
         };
 
@@ -2013,7 +2020,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const provisionTravaux = avl.provisionTravaux || 0;
         const assuranceHabitation = avl.assuranceHabitation || 0;
         const autresChargesLogement = avl.autresChargesLogement || 0;
-        const coutParking = avl.coutParking || 0;
+        const coutParkingPossession = avl.coutParkingPossession || 0;
+        const coutParkingLocation = avl.coutParkingLocation || 0;
 
         // Coût réel mensuel de possession
         const coutReelMensuel = mensualiteTotale
@@ -2022,7 +2030,7 @@ document.addEventListener('DOMContentLoaded', () => {
             + (provisionTravaux * prixFAI / 1200)
             + assuranceHabitation
             + autresChargesLogement
-            + coutParking;
+            + coutParkingPossession;
 
         // Frais d'acquisition purs (notaire + garantie + dossier + courtier, hors bien et travaux)
         const fraisAcquisitionPurs = coutTotalOperation - prixFAI - (state.T || 0);
@@ -2032,6 +2040,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Locataire: apport placé initialement au tauxPlacement
         let patrimoineLocataire = apport;
+        let cumulVersements = apport;
 
         const yearlyData = [];
         for (let annee = 1; annee <= horizon; annee++) {
@@ -2055,14 +2064,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Locataire: loyer indexé + épargne mensuelle placée (capitalisation mensuelle)
             const loyerAnnee = loyer * Math.pow(1 + indexationLoyer, annee - 1);
-            const chargesMensuellesLoc = loyerAnnee + chargesLocataire + assuranceHabitation + coutParking;
+            const chargesMensuellesLoc = loyerAnnee + chargesLocataire + assuranceHabitation + coutParkingLocation;
             const economieMensuelle = Math.max(0, coutReelMensuel - chargesMensuellesLoc);
             const tauxMensuelPlacement = tauxPlacement / 12;
             for (let m = 0; m < 12; m++) {
                 patrimoineLocataire = patrimoineLocataire * (1 + tauxMensuelPlacement) + economieMensuelle;
             }
+            cumulVersements += economieMensuelle * 12;
+            const interetsAccumules = patrimoineLocataire - cumulVersements;
 
-            yearlyData.push({ annee, patrimoineProprietaire, patrimoineLocataire, valeurBien, totalCRD });
+            yearlyData.push({ annee, patrimoineProprietaire, patrimoineLocataire, valeurBien, totalCRD, fraisAcquisitionPurs, loyerAnnee, economieMensuelle, chargesMensuellesLoc, cumulVersements, interetsAccumules });
         }
 
         // Point de croisement
@@ -2073,7 +2084,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return { yearlyData, crossoverAnnee, coutReelMensuel, mensualiteTotale,
             taxeFonciere, chargesCopro, provisionTravaux, assuranceHabitation,
-            autresChargesLogement, coutParking, prixFAI, loyer, chargesLocataire };
+            autresChargesLogement, coutParkingPossession, coutParkingLocation, prixFAI, loyer, chargesLocataire, fraisAcquisitionPurs };
     }
 
     function renderAchatVsLocation(ui, avlData) {
@@ -2091,15 +2102,20 @@ document.addEventListener('DOMContentLoaded', () => {
         setTextEl(ui.avl_travaux, fmt(avlData.provisionTravaux * avlData.prixFAI / 1200));
         setTextEl(ui.avl_assurance_hab, fmt(avlData.assuranceHabitation));
         setTextEl(ui.avl_autres_charges, fmt(avlData.autresChargesLogement));
-        if (ui.avl_parking) setTextEl(ui.avl_parking, fmt(avlData.coutParking));
+        if (ui.avl_parking) setTextEl(ui.avl_parking, fmt(avlData.coutParkingPossession));
         setTextEl(ui.avl_cout_total, fmt(avlData.coutReelMensuel));
-        const coutMensuelLoc = avlData.loyer + avlData.chargesLocataire + avlData.assuranceHabitation + avlData.coutParking;
+        const coutMensuelLoc = avlData.loyer + avlData.chargesLocataire + avlData.assuranceHabitation + avlData.coutParkingLocation;
         const diffLoyer = avlData.coutReelMensuel - coutMensuelLoc;
         const signe = diffLoyer >= 0 ? '+' : '';
         if (ui.avl_vs_loyer) {
             ui.avl_vs_loyer.textContent = `${fmt(coutMensuelLoc)} (${signe}${fmt(diffLoyer)})`;
             ui.avl_vs_loyer.style.color = diffLoyer > 0 ? 'var(--danger-color)' : 'var(--primary-color)';
         }
+        if (ui.avl_loc_loyer) setTextEl(ui.avl_loc_loyer, fmt(avlData.loyer));
+        if (ui.avl_loc_charges) setTextEl(ui.avl_loc_charges, fmt(avlData.chargesLocataire));
+        if (ui.avl_loc_assurance) setTextEl(ui.avl_loc_assurance, fmt(avlData.assuranceHabitation));
+        if (ui.avl_loc_parking) setTextEl(ui.avl_loc_parking, fmt(avlData.coutParkingLocation));
+        if (ui.avl_loc_total) setTextEl(ui.avl_loc_total, fmt(coutMensuelLoc));
 
         // Crossover
         const box = ui.avl_crossover_box;
@@ -2122,11 +2138,50 @@ document.addEventListener('DOMContentLoaded', () => {
         const labels = avlData.yearlyData.map(d => `An ${d.annee}`);
         const dataProprio = avlData.yearlyData.map(d => Math.round(d.patrimoineProprietaire));
         const dataLoc = avlData.yearlyData.map(d => Math.round(d.patrimoineLocataire));
+        const extraProprio = avlData.yearlyData.map(d => ({
+            valeurBien: Math.round(d.valeurBien),
+            crd: Math.round(d.totalCRD),
+            fraisAcq: Math.round(d.fraisAcquisitionPurs)
+        }));
+        const extraLoc = avlData.yearlyData.map(d => ({
+            loyer: Math.round(d.loyerAnnee),
+            charges: Math.round(d.chargesMensuellesLoc),
+            economie: Math.round(d.economieMensuelle),
+            cumul: Math.round(d.cumulVersements),
+            interets: Math.round(d.interetsAccumules)
+        }));
+
+        const tooltipCallbacks = {
+            label: ctx => {
+                const i = ctx.dataIndex;
+                if (ctx.datasetIndex === 0) {
+                    const e = extraProprio[i];
+                    return [
+                        ` Propriétaire : ${formatCurrency(ctx.parsed.y)} €`,
+                        `   Valeur bien : ${formatCurrency(e.valeurBien)} €`,
+                        `   − CRD : ${formatCurrency(e.crd)} €`,
+                        `   − Frais acq. : ${formatCurrency(e.fraisAcq)} €`
+                    ];
+                }
+                const l = extraLoc[i];
+                return [
+                    ` Locataire : ${formatCurrency(ctx.parsed.y)} €`,
+                    `   Loyer mensuel : ${formatCurrency(l.loyer)} €`,
+                    `   Charges totales : ${formatCurrency(l.charges)} €/mois`,
+                    `   Économie placée : ${formatCurrency(l.economie)} €/mois`,
+                    `   Capital investi cumulé : ${formatCurrency(l.cumul)} €`,
+                    `   Intérêts générés : ${formatCurrency(l.interets)} €`
+                ];
+            }
+        };
 
         if (avlChart) {
             avlChart.data.labels = labels;
             avlChart.data.datasets[0].data = dataProprio;
+            avlChart.data.datasets[0].extra = extraProprio;
             avlChart.data.datasets[1].data = dataLoc;
+            avlChart.data.datasets[1].extra = extraLoc;
+            avlChart.options.plugins.tooltip.callbacks = tooltipCallbacks;
             avlChart.update('active');
         } else {
             avlChart = new Chart(canvas.getContext('2d'), {
@@ -2134,8 +2189,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 data: {
                     labels,
                     datasets: [
-                        { label: 'Propriétaire', data: dataProprio, borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3 },
-                        { label: 'Locataire (épargne)', data: dataLoc, borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, borderDash: [5,3] }
+                        { label: 'Propriétaire', data: dataProprio, extra: extraProprio, borderColor: '#4CAF50', backgroundColor: 'rgba(76,175,80,.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3 },
+                        { label: 'Locataire (épargne)', data: dataLoc, extra: extraLoc, borderColor: '#2196F3', backgroundColor: 'rgba(33,150,243,.1)', borderWidth: 2, pointRadius: 3, fill: false, tension: 0.3, borderDash: [5,3] }
                     ]
                 },
                 options: {
@@ -2143,7 +2198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     animation: { duration: 300, easing: 'easeInOutQuart' },
                     plugins: {
                         legend: { labels: { font: { size: 11 } } },
-                        tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${formatCurrency(ctx.parsed.y)} €` } }
+                        tooltip: { callbacks: tooltipCallbacks }
                     },
                     scales: {
                         y: { ticks: { font: { size: 10 }, callback: v => formatCurrency(v) + ' €' } },
@@ -4028,7 +4083,7 @@ document.addEventListener('DOMContentLoaded', () => {
             'rapMontant', 'rapMois',
             // Phase 5
             'loyer', 'indexationLoyer', 'tauxPlacement', 'chargesLocataire',
-            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement', 'coutParking',
+            'taxeFonciere', 'chargesCopro', 'provisionTravaux', 'assuranceHabitation', 'autresChargesLogement', 'coutParkingLocation', 'coutParkingPossession',
             // Frais notaire taux département personnalisé
             'fnTaxeDept_custom',
             // Garantie caution
@@ -4055,8 +4110,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const breakdown = getEl('fn_breakdown');
             const trigger = getEl('fnDetailsToggleTrigger');
             
-            setDisplayEl(getEl('fnTaxeDeptContainer'), isManual ? 'none' : 'flex');
-            setDisplayEl(getEl('fnTaxeDeptCustomContainer'), (!isManual && getEl('fnTaxeDept')?.value === 'custom') ? 'flex' : 'none');
+            const fnTaxeDeptContainer = getEl('fnTaxeDeptContainer');
+            if (fnTaxeDeptContainer) {
+                fnTaxeDeptContainer.style.opacity = isManual ? '0.4' : '1';
+                fnTaxeDeptContainer.style.pointerEvents = isManual ? 'none' : '';
+            }
+            const typeBienContainer = getEl('typeBienContainer');
+            if (typeBienContainer) {
+                typeBienContainer.style.opacity = isManual ? '0.4' : '1';
+                typeBienContainer.style.pointerEvents = isManual ? 'none' : '';
+            }
+            const isCustomTaux = getEl('fnTaxeDept')?.value === 'custom';
+            const customContainer = getEl('fnTaxeDeptCustomContainer');
+            if (isCustomTaux) {
+                setDisplayEl(customContainer, 'flex');
+                if (customContainer) {
+                    customContainer.style.opacity = isManual ? '0.4' : '1';
+                    customContainer.style.pointerEvents = isManual ? 'none' : '';
+                }
+            } else {
+                setDisplayEl(customContainer, 'none');
+            }
+            const mobilierContainer = getEl('mobilierContainer');
+            if (mobilierContainer) {
+                mobilierContainer.style.opacity = isManual ? '0.4' : '1';
+                mobilierContainer.style.pointerEvents = isManual ? 'none' : '';
+            }
             if (isManual) {
                 // 1. On récupère le montant en euros actuel (caché dans le résumé)
                 const currentEurosText = getEl('res_FN_montant')?.textContent || '0';
@@ -4067,8 +4146,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // 3. On injecte les euros à la place de l'ancien pourcentage (ex: remplace 6.9 par 15000)
                 if (fnSlider && fnNum) {
-                    fnSlider.value = currentEuros;
-                    fnNum.value = currentEuros;
+                    const valFN = currentEuros > 0 ? currentEuros : 53143;
+                    fnSlider.value = valFN;
+                    fnNum.value = valFN;
                 }
                 
                 // 4. On cache les détails inutiles
@@ -4251,6 +4331,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if(isManualFN) {
             ui.fn_breakdown?.classList.remove('visible');
             setDisplayEl(ui.fnDetailsToggleTrigger, 'none');
+            const fnTaxeDeptContainerInit = getEl('fnTaxeDeptContainer');
+            if (fnTaxeDeptContainerInit) {
+                fnTaxeDeptContainerInit.style.opacity = '0.4';
+                fnTaxeDeptContainerInit.style.pointerEvents = 'none';
+            }
+            setDisplayEl(getEl('fnTaxeDeptCustomContainer'), 'none');
+            const mobilierContainerInit = getEl('mobilierContainer');
+            if (mobilierContainerInit) {
+                mobilierContainerInit.style.opacity = '0.4';
+                mobilierContainerInit.style.pointerEvents = 'none';
+            }
+            const typeBienContainerInit = getEl('typeBienContainer');
+            if (typeBienContainerInit) {
+                typeBienContainerInit.style.opacity = '0.4';
+                typeBienContainerInit.style.pointerEvents = 'none';
+            }
+            const customContainerInit = getEl('fnTaxeDeptCustomContainer');
+            if (getEl('fnTaxeDept')?.value === 'custom') {
+                setDisplayEl(customContainerInit, 'flex');
+                if (customContainerInit) {
+                    customContainerInit.style.opacity = '0.4';
+                    customContainerInit.style.pointerEvents = 'none';
+                }
+            }
+            const fnNum = getEl('FN_num');
+            if (fnNum && (parseFloat(fnNum.value) <= 0 || parseFloat(fnNum.value) < 1)) {
+                fnNum.value = 53143;
+                const fnSlider = getEl('FN');
+                if (fnSlider) fnSlider.value = 53143;
+            }
         }
         const modeGar = ui.form.typeGarantie?.value;
         if(modeGar === 'manual_guarantee') {
@@ -4979,8 +5089,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (ui.form.typeGarantie?.value === 'caution') setDisplayEl(getEl('cautionRateContainer'), 'flex');
             if (ui.form.ptbAgentStatus?.value === 'retraite' && ui.form.ptbZone) ui.form.ptbZone.disabled = true;
             const fnModeVal = getEl('FN_mode')?.value;
-            setDisplayEl(getEl('fnTaxeDeptContainer'), fnModeVal !== 'manual' ? 'flex' : 'none');
-            if (getEl('fnTaxeDept')?.value === 'custom') setDisplayEl(getEl('fnTaxeDeptCustomContainer'), 'flex');
+            const isManualFNRestore = fnModeVal === 'manual';
+            const fnTaxeDeptContainerR = getEl('fnTaxeDeptContainer');
+            if (fnTaxeDeptContainerR) {
+                fnTaxeDeptContainerR.style.opacity = isManualFNRestore ? '0.4' : '1';
+                fnTaxeDeptContainerR.style.pointerEvents = isManualFNRestore ? 'none' : '';
+            }
+            const typeBienContainerR = getEl('typeBienContainer');
+            if (typeBienContainerR) {
+                typeBienContainerR.style.opacity = isManualFNRestore ? '0.4' : '1';
+                typeBienContainerR.style.pointerEvents = isManualFNRestore ? 'none' : '';
+            }
+            const isCustomTauxR = getEl('fnTaxeDept')?.value === 'custom';
+            const customContainerR = getEl('fnTaxeDeptCustomContainer');
+            if (isCustomTauxR) {
+                setDisplayEl(customContainerR, 'flex');
+                if (customContainerR) {
+                    customContainerR.style.opacity = isManualFNRestore ? '0.4' : '1';
+                    customContainerR.style.pointerEvents = isManualFNRestore ? 'none' : '';
+                }
+            }
         };
         restaurerEtatsVisuels();
 

@@ -57,12 +57,12 @@
                         <div class="summary-line">
                             <p>Prix FAI : <strong id="prixFAI">0</strong> €</p>
                         </div>
-                        <div class="input-item">
+                        <div class="input-item" id="mobilierContainer">
                             <label for="M">Prix du mobilier (€) : <span class="info-icon" data-info-key="M_info">ⓘ</span></label>
                             <input type="range" id="M" min="0" max="50000" value="13500" step="500">
                             <input type="number" id="M_num" min="0" max="50000" value="13500" step="500">
                         </div>
-                        <div class="input-item">
+                        <div class="input-item" id="typeBienContainer">
                             <label for="typeBien">Type de bien : <span class="info-icon" data-info-key="typeBien_info">ⓘ</span></label>
                             <select id="typeBien">
                                 <option value="ancien">Ancien</option>
@@ -72,14 +72,14 @@
                         <div class="input-item">
                             <label for="FN_mode">Calcul Frais Notaire : <span class="info-icon" data-info-key="FN_mode_info">ⓘ</span></label>
                             <select id="FN_mode">
-                                <option value="auto" selected>Automatique</option>
-                                <option value="manual">Manuel</option>
+                                <option value="auto">Automatique</option>
+                                <option value="manual" selected>Manuel</option>
                             </select>
                         </div>
                         <div class="input-item fn-input-group">
                             <label for="FN">Frais de notaire : <span class="info-icon" data-info-key="FN_info">ⓘ</span></label>
-                            <input type="range" id="FN" min="0" max="50000" value="7.5" step="0.1"> 
-                            <input type="number" id="FN_num" min="0" max="50000" value="7.5" step="0.1">
+                            <input type="range" id="FN" min="0" max="100000" value="53143" step="100">
+                            <input type="number" id="FN_num" min="0" max="100000" value="53143" step="100">
                             <span class="calculated-value"><strong id="FN_montant">0</strong><span id="FN_pc_manual" style="display:none;"> (<span id="FN_montant_pc">0</span> %)</span></span>
                         </div>
                         <div class="input-item" id="fnTaxeDeptContainer">
@@ -114,8 +114,8 @@
                         </div>
                         <div class="input-item" id="cautionRateContainer" style="display:none;">
                             <label for="cautionRate_pct">Taux de caution estimé (%) : <span class="info-icon" data-info-key="cautionRate_info">ⓘ</span></label>
-                            <input type="range" id="cautionRate_pct" min="0.5" max="2.5" value="1.2" step="0.05">
-                            <input type="number" id="cautionRate_pct_num" min="0.5" max="2.5" value="1.2" step="0.05">
+                            <input type="range" id="cautionRate_pct" min="0.5" max="2.5" value="0.9215" step="0.05">
+                            <input type="number" id="cautionRate_pct_num" min="0.5" max="2.5" value="0.9215" step="0.05">
                         </div>
                         <div class="input-item" id="manualGuaranteeInput" style="display:none;">
                             <label for="FG_manual">Coût garantie manuel (€) : <span class="info-icon" data-info-key="FG_manual_info">ⓘ</span></label>
@@ -751,9 +751,9 @@
                             <input type="number" id="chargesLocataire_num" min="0" max="2000" value="225" step="10">
                         </div>
                         <div class="input-item">
-                            <label for="coutParking">Coût parking (€/mois) :</label>
-                            <input type="range" id="coutParking" min="0" max="500" value="0" step="10">
-                            <input type="number" id="coutParking_num" min="0" max="500" value="0" step="10">
+                            <label for="coutParkingLocation">Parking (€/mois) :</label>
+                            <input type="range" id="coutParkingLocation" min="0" max="500" value="0" step="10">
+                            <input type="number" id="coutParkingLocation_num" min="0" max="500" value="0" step="10">
                         </div>
                         <h4>Coût réel de possession</h4>
                         <div class="input-item">
@@ -781,6 +781,11 @@
                             <input type="range" id="autresChargesLogement" min="0" max="2000" value="210" step="10">
                             <input type="number" id="autresChargesLogement_num" min="0" max="2000" value="210" step="10">
                         </div>
+                        <div class="input-item">
+                            <label for="coutParkingPossession">Parking (€/mois) :</label>
+                            <input type="range" id="coutParkingPossession" min="0" max="500" value="0" step="10">
+                            <input type="number" id="coutParkingPossession_num" min="0" max="500" value="0" step="10">
+                        </div>
                     </div>
                 </div>
                 <div class="result-column">
@@ -804,7 +809,19 @@
                                     <tr><td>Autres charges logement</td><td id="avl_autres_charges">—</td></tr>
                                     <tr><td>Parking</td><td id="avl_parking">—</td></tr>
                                     <tr class="strong-highlight"><th>Total coût réel mensuel</th><td id="avl_cout_total">—</td></tr>
-                                    <tr><td>vs. Loyer (+ charges locataire)</td><td id="avl_vs_loyer">—</td></tr>
+                                    <tr class="strong-highlight"><td>vs. Total locataire</td><td id="avl_vs_loyer">—</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="result-group" style="margin-top:.6rem;">
+                            <h4>🏠 Coût Réel Mensuel Locataire</h4>
+                            <table id="avl_loc_table">
+                                <tbody>
+                                    <tr><td>Loyer</td><td id="avl_loc_loyer">—</td></tr>
+                                    <tr><td>Charges locataire</td><td id="avl_loc_charges">—</td></tr>
+                                    <tr><td>Assurance habitation</td><td id="avl_loc_assurance">—</td></tr>
+                                    <tr><td>Parking</td><td id="avl_loc_parking">—</td></tr>
+                                    <tr class="strong-highlight"><th>Total coût mensuel</th><td id="avl_loc_total">—</td></tr>
                                 </tbody>
                             </table>
                         </div>
