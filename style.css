@@ -616,6 +616,14 @@ table tr:nth-child(even) td { background-color: var(--surface-subtle); }
 .pricing-total td:first-child { background: var(--secondary-hover) !important; }
 .pricing-winner-cell { background: var(--primary-color) !important; color: #fff !important; font-weight: 900 !important; font-size: .88rem !important; }
 .comp-delta { display: block; font-size: .72rem; font-weight: 500; opacity: .85; margin-top: 2px; }
+@keyframes comp-flash {
+  0%   { box-shadow: 0 0 0 0 rgba(33,150,243,.55); }
+  60%  { box-shadow: 0 0 0 10px rgba(33,150,243,0); }
+  100% { box-shadow: none; }
+}
+.comp-refreshed { animation: comp-flash .7s ease-out; }
+.comp-section-header { font-size:.75rem; font-weight:600; color:var(--text-light-color); margin:8px 0 4px; text-transform:uppercase; letter-spacing:.04em; }
+.comp-dpe-section, .comp-epargne-section { padding: 6px 0 0; }
 
 .disabled-section { opacity: 0.4; pointer-events: none; }
 

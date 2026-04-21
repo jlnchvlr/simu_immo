@@ -2786,7 +2786,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Parts sociales (€) <span class="info-icon" data-info-key="comp_partsSociales_info">ⓘ</span></label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
                 <div class="comp-offer-field"><label>Frais bancaires mensuels (€) <span class="info-icon" data-info-key="comp_fraisBancaires_info">ⓘ</span></label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
                 <div class="comp-offer-field"><label>IRA (% du CRD) <span class="info-icon" data-info-key="comp_ira_info">ⓘ</span></label><input type="number" data-field="iraRate" value="3" min="0" max="3" step="0.25"></div>
+                <div class="comp-offer-field"><label>Plafond IRA (mois d'intérêts)</label><input type="number" data-field="iraMoisCap" value="6" min="1" max="6" step="1"></div>
                 <div class="comp-offer-field"><label>Activer modularité <span class="info-icon" data-info-key="comp_modularite_info">ⓘ</span></label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
+                <div class="comp-offer-field"><label>Bonus DPE (+2 lettres)</label><input type="checkbox" data-field="activerDPE" class="comp-dpe-toggle"></div>
+                <div class="comp-offer-field"><label>Épargne à transférer</label><input type="checkbox" data-field="activerEpargne" class="comp-epargne-toggle"></div>
             </div>
             <div class="comp-modularite-section" id="comp_mod_${index}">
                 <div class="comp-offer-grid">
@@ -2800,6 +2803,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="comp-offer-field"><label>Commission (% des frais) <span class="info-icon" data-info-key="comp_cautionCommission_info">ⓘ</span></label><input type="number" data-field="cautionCommissionPct" value="30" min="0" max="100" step="1"></div>
                     <div class="comp-offer-field"><label>Part FMG (% des frais) <span class="info-icon" data-info-key="comp_cautionFmg_info">ⓘ</span></label><input type="number" data-field="cautionFmgPct" value="70" min="0" max="100" step="1"></div>
                     <div class="comp-offer-field"><label>Restitution FMG (%) <span class="info-icon" data-info-key="comp_cautionRestitution_info">ⓘ</span></label><input type="number" data-field="cautionRestitutionPct" value="75" min="0" max="100" step="1"></div>
+                </div>
+            </div>
+            <div class="comp-dpe-section" id="comp_dpe_${index}" style="display:none">
+                <div class="comp-section-header">Bonus DPE — réduction de taux si +2 lettres dans 5 ans</div>
+                <div class="comp-offer-grid">
+                    <div class="comp-offer-field"><label>Année d'activation (1–5)</label><input type="number" data-field="dpeAnnee" value="3" min="1" max="5" step="1"></div>
+                    <div class="comp-offer-field"><label>Réduction de taux (%)</label><input type="number" data-field="dpeTauxRabais" value="0.25" min="0" max="2" step="0.05"></div>
+                </div>
+            </div>
+            <div class="comp-epargne-section" id="comp_ep_${index}" style="display:none">
+                <div class="comp-section-header">Épargne à transférer chez la banque</div>
+                <div class="comp-offer-grid">
+                    <div class="comp-offer-field"><label>Montant à transférer (€)</label><input type="number" data-field="epargneTransfertMontant" value="0" min="0" max="500000" step="1000"></div>
+                    <div class="comp-offer-field"><label>Rendement actuel net (%/an)</label><input type="number" data-field="epargneRendementActuelPct" value="3" min="0" max="10" step="0.1"></div>
+                    <div class="comp-offer-field"><label>Frais d'entrée nouvelle enveloppe (%)</label><input type="number" data-field="epargneFraisEntreeNouveauPct" value="0" min="0" max="5" step="0.1"></div>
+                    <div class="comp-offer-field"><label>Rendement nouveau net (%/an)</label><input type="number" data-field="epargneRendementNouveauPct" value="2" min="0" max="10" step="0.1"></div>
                 </div>
             </div>
         </div>`;
@@ -2907,6 +2926,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = document.getElementById(`comp_mod_${idx}`);
             if (section) section.style.display = e.target.checked ? 'block' : 'none';
         });
+        card.querySelector('.comp-dpe-toggle')?.addEventListener('change', (e) => {
+            const idx = card.dataset.offerIndex;
+            const section = document.getElementById(`comp_dpe_${idx}`);
+            if (section) section.style.display = e.target.checked ? 'block' : 'none';
+        });
+        card.querySelector('.comp-epargne-toggle')?.addEventListener('change', (e) => {
+            const idx = card.dataset.offerIndex;
+            const section = document.getElementById(`comp_ep_${idx}`);
+            if (section) section.style.display = e.target.checked ? 'block' : 'none';
+        });
         card.querySelector('[data-field="typeGarantie"]')?.addEventListener('change', (e) => {
             const idx = card.dataset.offerIndex;
             const section = document.getElementById(`comp_caut_${idx}`);
@@ -2953,8 +2982,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 cautionFmgPct: get('cautionFmgPct')?.value !== '' ? num('cautionFmgPct') : 70,
                 cautionRestitutionPct: get('cautionRestitutionPct')?.value !== '' ? num('cautionRestitutionPct') : 75,
                 partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
-                iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)), activerModularite: bool('activerModularite'),
-                moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct')
+                iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)),
+                iraMoisCap: Math.max(1, Math.min(6, num('iraMoisCap') || 6)),
+                activerModularite: bool('activerModularite'),
+                moisActivation: parseInt(get('moisActivation')?.value || 12, 10), haussePct: num('haussePct'),
+                activerDPE: bool('activerDPE'),
+                dpeAnnee: parseInt(get('dpeAnnee')?.value || 3, 10),
+                dpeTauxRabais: num('dpeTauxRabais'),
+                activerEpargne: bool('activerEpargne'),
+                epargneTransfertMontant: num('epargneTransfertMontant'),
+                epargneRendementActuelPct: num('epargneRendementActuelPct'),
+                epargneFraisEntreeNouveauPct: num('epargneFraisEntreeNouveauPct'),
+                epargneRendementNouveauPct: num('epargneRendementNouveauPct')
             };
         });
         return { horizonRevente, offres };
@@ -2981,6 +3020,7 @@ document.addEventListener('DOMContentLoaded', () => {
             let totalInterets   = 0;
             let totalAssurance  = 0;
             let totalFraisBanc  = 0;
+            let totalInteretsSansDPE = 0;
             const evolutionCoutCumule = [0];
 
             for (let m = 1; m <= actualHorizon; m++) {
@@ -2992,9 +3032,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     mensuelleActuelle = baseNew * (1 + haussePct / 100);
                 }
 
-                const interetMois = capitalRestant * tauxMensuel;
+                let tauxMensuelEffectif = tauxMensuel;
+                if (offre.activerDPE && offre.dpeTauxRabais > 0 && m >= offre.dpeAnnee * 12) {
+                    tauxMensuelEffectif = Math.max(0, tauxNominal - offre.dpeTauxRabais) / 100 / 12;
+                }
+
+                const interetMois = capitalRestant * tauxMensuelEffectif;
+                const interetMoisSansDPE = capitalRestant * tauxMensuel;
                 const capitalMois = Math.max(0, mensuelleActuelle - interetMois);
                 totalInterets  += interetMois;
+                totalInteretsSansDPE += interetMoisSansDPE;
                 totalAssurance += typeAssurance === 'initial'
                     ? montant * (tauxAssurance / 100 / 12)
                     : capitalRestant * (tauxAssurance / 100 / 12);
@@ -3006,10 +3053,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
+            const economieDPE = offre.activerDPE ? Math.max(0, Math.round(totalInteretsSansDPE - totalInterets)) : 0;
+
             let ira = 0;
             if (capitalRestant > 0 && offre.iraRate > 0) {
-                const sixMoisInt = 6 * capitalRestant * tauxMensuel;
-                ira = Math.min((offre.iraRate / 100) * capitalRestant, sixMoisInt);
+                const moisCap = offre.iraMoisCap * capitalRestant * tauxMensuel;
+                ira = Math.min((offre.iraRate / 100) * capitalRestant, moisCap);
             }
 
             let fraisSortie   = 0;
@@ -3021,7 +3070,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 restitutions = fmg * (cautionRestitutionPct / 100);
             }
 
-            const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + ira + fraisSortie - restitutions);
+            let coutEpargne = 0;
+            if (offre.activerEpargne && offre.epargneTransfertMontant > 0) {
+                const mt = offre.epargneTransfertMontant;
+                const fraisEntree = mt * offre.epargneFraisEntreeNouveauPct / 100;
+                const manqueAGagner = mt * Math.max(0, offre.epargneRendementActuelPct - offre.epargneRendementNouveauPct) / 100 * horizonAns;
+                coutEpargne = fraisEntree + manqueAGagner;
+            }
+
+            const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + ira + fraisSortie - restitutions + coutEpargne);
             const mensualiteInitiale = mensInt + (typeAssurance === 'initial'
                 ? montant * (tauxAssurance / 100 / 12)
                 : capitalRestant * (tauxAssurance / 100 / 12));
@@ -3031,6 +3088,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalInterets: Math.round(totalInterets), totalAssurance: Math.round(totalAssurance),
                 fraisInitiaux: Math.round(fraisInitiaux), totalFraisBanc: Math.round(totalFraisBanc),
                 ira: Math.round(ira), restitutions: Math.round(restitutions), fraisSortie: Math.round(fraisSortie),
+                economieDPE, coutEpargne: Math.round(coutEpargne),
                 coutGlobalReel, capitalRestant: Math.round(capitalRestant), evolutionCoutCumule
             };
         }).filter(Boolean);
@@ -3049,6 +3107,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const container = getEl('comp_results_container');
         if (!container) return;
         container.style.display = 'block';
+        container.classList.remove('comp-refreshed');
+        void container.offsetWidth; // force reflow
+        container.classList.add('comp-refreshed');
 
         const winnerIdx = results.reduce((bi, r, i) => r.coutGlobalReel < results[bi].coutGlobalReel ? i : bi, 0);
 
@@ -3064,6 +3125,8 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'IRA à la revente',                key: 'ira',                fmt: v => formatCurrency(v) + ' €' },
             { label: 'Restitutions',                    key: 'restitutions',       fmt: v => '– ' + formatCurrency(v) + ' €' },
             { label: 'Frais de sortie garantie',        key: 'fraisSortie',        fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Économies bonus DPE',             key: 'economieDPE',        fmt: v => v > 0 ? '– ' + formatCurrency(v) + ' €' : '—' },
+            { label: 'Coût épargne transférée',         key: 'coutEpargne',        fmt: v => v > 0 ? formatCurrency(v) + ' €' : '—' },
             { label: 'Capital restant dû à la revente', key: 'capitalRestant',     fmt: v => formatCurrency(v) + ' €' },
         ];
 
