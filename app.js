@@ -2798,6 +2798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Activer modularité <span class="info-icon" data-info-key="comp_modularite_info">ⓘ</span></label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
                 <div class="comp-offer-field"><label>Bonus DPE (+2 lettres)</label><input type="checkbox" data-field="activerDPE" class="comp-dpe-toggle"></div>
                 <div class="comp-offer-field"><label>Épargne à transférer</label><input type="checkbox" data-field="activerEpargne" class="comp-epargne-toggle"></div>
+                <div class="comp-offer-field"><label>Renégociation de taux</label><input type="checkbox" data-field="activerRenego" class="comp-renego-toggle"></div>
             </div>
             <div class="comp-modularite-section" id="comp_mod_${index}">
                 <div class="comp-offer-grid">
@@ -2830,6 +2831,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="comp-offer-field"><label>Durée dans la nouvelle enveloppe (ans, 0 = toute la durée)</label><input type="number" data-field="dureeEpargneAns" value="0" min="0" max="40" step="1"></div>
                 </div>
             </div>
+            <div class="comp-renego-section" id="comp_renego_${index}" style="display:none">
+                <div class="comp-section-header">Renégociation de taux</div>
+                <div class="comp-offer-grid">
+                    <div class="comp-offer-field"><label>Année de renégociation</label><input type="number" data-field="anneesRenego" value="5" min="1" max="29" step="1"></div>
+                    <div class="comp-offer-field"><label>Nouveau taux (%)</label><input type="number" data-field="nouveauTauxRenego" value="3" min="0" max="10" step="0.05"></div>
+                    <div class="comp-offer-field"><label>Frais (% du CRD restant)</label><input type="number" data-field="fraisRenegoPct" value="0.5" min="0" max="5" step="0.1"></div>
+                </div>
+            </div>
         </div>`;
     }
 
@@ -2859,6 +2868,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const nameEl = card.querySelector('[data-field="nom"]');
                 if (nameEl) nameEl.value = offre.nom;
                 attachOffreEvents(card);
+                syncOffreSections(card);
             });
             _offerCount = saved.offres.length;
             window._savedComparateur = null;
@@ -2875,6 +2885,19 @@ document.addEventListener('DOMContentLoaded', () => {
         attachOffreEvents(container.querySelector('.comp-offer-card'));
     }
 
+    function syncOffreSections(card) {
+        const idx  = card.dataset.offerIndex;
+        const v    = f => card.querySelector(`[data-field="${f}"]`)?.value;
+        const chk  = f => card.querySelector(`[data-field="${f}"]`)?.checked;
+        const show = (id, visible) => { const s = document.getElementById(id); if (s) s.style.display = visible ? 'block' : 'none'; };
+        show(`comp_caut_${idx}`,   v('typeGarantie') === 'caution');
+        show(`comp_mod_${idx}`,    chk('activerModularite'));
+        show(`comp_dpe_${idx}`,    chk('activerDPE'));
+        show(`comp_ep_${idx}`,     chk('activerEpargne'));
+        show(`comp_fb_${idx}`,     chk('activerDureeFraisBanc'));
+        show(`comp_renego_${idx}`, chk('activerRenego'));
+    }
+
     function addOffreComparateur() {
         const container = getEl('comp_offers_container');
         if (!container || _offerCount >= 4) return;
@@ -2883,6 +2906,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const card = div.firstElementChild;
         container.appendChild(card);
         attachOffreEvents(card);
+        syncOffreSections(card);
         _offerCount++;
     }
 
@@ -2905,15 +2929,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Copier le nom avec suffixe
             const nameEl = newCard.querySelector('[data-field="nom"]');
             if (nameEl) nameEl.value = (card.querySelector('[data-field="nom"]')?.value || 'Banque') + ' (copie)';
-            // Synchroniser l'affichage des sections conditionnelles
-            const newIdx = _offerCount;
-            const typeGar = newCard.querySelector('[data-field="typeGarantie"]')?.value;
-            const cautSection = document.getElementById(`comp_caut_${newIdx}`);
-            if (cautSection) cautSection.style.display = typeGar === 'caution' ? 'block' : 'none';
-            const modChecked = newCard.querySelector('[data-field="activerModularite"]')?.checked;
-            const modSection = document.getElementById(`comp_mod_${newIdx}`);
-            if (modSection) modSection.style.display = modChecked ? 'block' : 'none';
             attachOffreEvents(newCard);
+            syncOffreSections(newCard);
             _offerCount++;
         });
         card.querySelector('.comp-offer-remove')?.addEventListener('click', () => {
@@ -2948,6 +2965,11 @@ document.addEventListener('DOMContentLoaded', () => {
         card.querySelector('.comp-fb-toggle')?.addEventListener('change', (e) => {
             const idx = card.dataset.offerIndex;
             const section = document.getElementById(`comp_fb_${idx}`);
+            if (section) section.style.display = e.target.checked ? 'block' : 'none';
+        });
+        card.querySelector('.comp-renego-toggle')?.addEventListener('change', (e) => {
+            const idx = card.dataset.offerIndex;
+            const section = document.getElementById(`comp_renego_${idx}`);
             if (section) section.style.display = e.target.checked ? 'block' : 'none';
         });
         card.querySelector('[data-field="typeGarantie"]')?.addEventListener('change', (e) => {
@@ -3007,6 +3029,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 dpeTauxRabais: num('dpeTauxRabais'),
                 activerEpargne: bool('activerEpargne'),
                 epargneTransfertMontant: num('epargneTransfertMontant'),
+                activerRenego: bool('activerRenego'),
+                anneesRenego: parseFloat(get('anneesRenego')?.value || 5),
+                nouveauTauxRenego: num('nouveauTauxRenego'),
+                fraisRenegoPct: num('fraisRenegoPct'),
                 epargneRendementActuelPct: num('epargneRendementActuelPct'),
                 epargneFraisEntreeNouveauPct: num('epargneFraisEntreeNouveauPct'),
                 epargneRendementNouveauPct: num('epargneRendementNouveauPct'),
@@ -3034,29 +3060,42 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const actualHorizon = Math.min(horizonMois, dureeMois);
             const moisLimiteFraisBanc = offre.activerDureeFraisBanc ? offre.dureeFraisBancAns * 12 : Infinity;
+            const moisRenego = offre.activerRenego && offre.anneesRenego > 0 ? Math.round(offre.anneesRenego * 12) : Infinity;
             let capitalRestant  = montant;
             let totalInterets   = 0;
             let totalAssurance  = 0;
             let totalFraisBanc  = 0;
             let totalInteretsSansDPE = 0;
+            let fraisRenego     = 0;
+            let renegoApplied   = false;
+            let tauxMensuelCourant = tauxMensuel;
             const evolutionCoutCumule = [0];
 
             for (let m = 1; m <= actualHorizon; m++) {
                 if (capitalRestant <= 0) break;
 
+                if (!renegoApplied && m === moisRenego) {
+                    fraisRenego = capitalRestant * (offre.fraisRenegoPct / 100);
+                    mensuelleActuelle = calculerMensualiteCredit(capitalRestant, offre.nouveauTauxRenego, dureeMois - m + 1);
+                    tauxMensuelCourant = offre.nouveauTauxRenego / 100 / 12;
+                    renegoApplied = true;
+                }
+
                 if (activerModularite && m === moisActivation && capitalRestant > 0) {
                     const moisRestants = Math.max(1, dureeMois - m + 1);
-                    const baseNew = calculerMensualiteCredit(capitalRestant, tauxNominal, moisRestants);
+                    const tauxBase = renegoApplied ? offre.nouveauTauxRenego : tauxNominal;
+                    const baseNew = calculerMensualiteCredit(capitalRestant, tauxBase, moisRestants);
                     mensuelleActuelle = baseNew * (1 + haussePct / 100);
                 }
 
-                let tauxMensuelEffectif = tauxMensuel;
+                let tauxMensuelEffectif = tauxMensuelCourant;
                 if (offre.activerDPE && offre.dpeTauxRabais > 0 && m >= offre.dpeAnnee * 12) {
-                    tauxMensuelEffectif = Math.max(0, tauxNominal - offre.dpeTauxRabais) / 100 / 12;
+                    const tauxBase = renegoApplied ? offre.nouveauTauxRenego : tauxNominal;
+                    tauxMensuelEffectif = Math.max(0, tauxBase - offre.dpeTauxRabais) / 100 / 12;
                 }
 
                 const interetMois = capitalRestant * tauxMensuelEffectif;
-                const interetMoisSansDPE = capitalRestant * tauxMensuel;
+                const interetMoisSansDPE = capitalRestant * tauxMensuelCourant;
                 const capitalMois = Math.max(0, mensuelleActuelle - interetMois);
                 totalInterets  += interetMois;
                 totalInteretsSansDPE += interetMoisSansDPE;
@@ -3071,7 +3110,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     let iraCheckpoint = 0;
                     if (capitalRestant > 0 && offre.iraRate > 0) {
-                        const cap = offre.iraMoisCap * capitalRestant * tauxMensuel;
+                        const cap = offre.iraMoisCap * capitalRestant * tauxMensuelCourant;
                         iraCheckpoint = Math.min((offre.iraRate / 100) * capitalRestant, cap);
                     }
 
@@ -3094,7 +3133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
 
                     evolutionCoutCumule.push(Math.round(
-                        totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc
+                        totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + fraisRenego
                         + iraCheckpoint + fraisSortieCheckpoint - restitutionsCheckpoint + coutEpargneCheckpoint
                     ));
                 }
@@ -3104,7 +3143,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let ira = 0;
             if (capitalRestant > 0 && offre.iraRate > 0) {
-                const moisCap = offre.iraMoisCap * capitalRestant * tauxMensuel;
+                const moisCap = offre.iraMoisCap * capitalRestant * tauxMensuelCourant;
                 ira = Math.min((offre.iraRate / 100) * capitalRestant, moisCap);
             }
 
@@ -3126,7 +3165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 coutEpargne = fraisEntree + manqueAGagner;
             }
 
-            const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + ira + fraisSortie - restitutions + coutEpargne);
+            const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + fraisRenego + ira + fraisSortie - restitutions + coutEpargne);
             const mensualiteInitiale = mensInt + (typeAssurance === 'initial'
                 ? montant * (tauxAssurance / 100 / 12)
                 : capitalRestant * (tauxAssurance / 100 / 12));
@@ -3136,6 +3175,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalInterets: Math.round(totalInterets), totalAssurance: Math.round(totalAssurance),
                 fraisInitiaux: Math.round(fraisInitiaux), totalFraisBanc: Math.round(totalFraisBanc),
                 ira: Math.round(ira), restitutions: Math.round(restitutions), fraisSortie: Math.round(fraisSortie),
+                fraisRenego: Math.round(fraisRenego),
                 economieDPE, coutEpargne: Math.round(coutEpargne),
                 coutGlobalReel, capitalRestant: Math.round(capitalRestant), evolutionCoutCumule
             };
@@ -3170,6 +3210,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Total assurance',                 key: 'totalAssurance',     fmt: v => formatCurrency(v) + ' €' },
             { label: 'Frais initiaux',                  key: 'fraisInitiaux',      fmt: v => formatCurrency(v) + ' €' },
             { label: 'Frais bancaires (total)',         key: 'totalFraisBanc',     fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Frais de renégociation',          key: 'fraisRenego',        fmt: v => v > 0 ? formatCurrency(v) + ' €' : '—' },
             { label: 'IRA à la revente',                key: 'ira',                fmt: v => formatCurrency(v) + ' €' },
             { label: 'Restitutions',                    key: 'restitutions',       fmt: v => '– ' + formatCurrency(v) + ' €' },
             { label: 'Frais de sortie garantie',        key: 'fraisSortie',        fmt: v => formatCurrency(v) + ' €' },
