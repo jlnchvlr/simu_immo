@@ -2827,6 +2827,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="comp-offer-field"><label>Rendement actuel net (%/an)</label><input type="number" data-field="epargneRendementActuelPct" value="3" min="0" max="10" step="0.1"></div>
                     <div class="comp-offer-field"><label>Frais d'entrée nouvelle enveloppe (%)</label><input type="number" data-field="epargneFraisEntreeNouveauPct" value="0" min="0" max="5" step="0.1"></div>
                     <div class="comp-offer-field"><label>Rendement nouveau net (%/an)</label><input type="number" data-field="epargneRendementNouveauPct" value="2" min="0" max="10" step="0.1"></div>
+                    <div class="comp-offer-field"><label>Durée dans la nouvelle enveloppe (ans, 0 = toute la durée)</label><input type="number" data-field="dureeEpargneAns" value="0" min="0" max="40" step="1"></div>
                 </div>
             </div>
         </div>`;
@@ -3008,7 +3009,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 epargneTransfertMontant: num('epargneTransfertMontant'),
                 epargneRendementActuelPct: num('epargneRendementActuelPct'),
                 epargneFraisEntreeNouveauPct: num('epargneFraisEntreeNouveauPct'),
-                epargneRendementNouveauPct: num('epargneRendementNouveauPct')
+                epargneRendementNouveauPct: num('epargneRendementNouveauPct'),
+                dureeEpargneAns: parseInt(get('dureeEpargneAns')?.value || 0, 10)
             };
         });
         return { horizonRevente, offres };
@@ -3086,7 +3088,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (offre.activerEpargne && offre.epargneTransfertMontant > 0) {
                         const mt = offre.epargneTransfertMontant;
                         const fraisEntree = mt * offre.epargneFraisEntreeNouveauPct / 100;
-                        const manque = mt * Math.max(0, offre.epargneRendementActuelPct - offre.epargneRendementNouveauPct) / 100 * anneesEcoulees;
+                        const dureeCap = offre.dureeEpargneAns > 0 ? offre.dureeEpargneAns : Infinity;
+                        const manque = mt * Math.max(0, offre.epargneRendementActuelPct - offre.epargneRendementNouveauPct) / 100 * Math.min(dureeCap, anneesEcoulees);
                         coutEpargneCheckpoint = fraisEntree + manque;
                     }
 
@@ -3118,7 +3121,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (offre.activerEpargne && offre.epargneTransfertMontant > 0) {
                 const mt = offre.epargneTransfertMontant;
                 const fraisEntree = mt * offre.epargneFraisEntreeNouveauPct / 100;
-                const manqueAGagner = mt * Math.max(0, offre.epargneRendementActuelPct - offre.epargneRendementNouveauPct) / 100 * horizonAns;
+                const dureeCap = offre.dureeEpargneAns > 0 ? offre.dureeEpargneAns : Infinity;
+                const manqueAGagner = mt * Math.max(0, offre.epargneRendementActuelPct - offre.epargneRendementNouveauPct) / 100 * Math.min(dureeCap, horizonAns);
                 coutEpargne = fraisEntree + manqueAGagner;
             }
 
