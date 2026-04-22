@@ -2785,6 +2785,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Frais garantie (€) <span class="info-icon" data-info-key="comp_fraisGarantie_info">ⓘ</span></label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
                 <div class="comp-offer-field"><label>Parts sociales (€) <span class="info-icon" data-info-key="comp_partsSociales_info">ⓘ</span></label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
                 <div class="comp-offer-field"><label>Frais bancaires mensuels (€) <span class="info-icon" data-info-key="comp_fraisBancaires_info">ⓘ</span></label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
+                <div class="comp-offer-field"><label>Durée limitée des frais bancaires</label><input type="checkbox" data-field="activerDureeFraisBanc" class="comp-fb-toggle"></div>
+            </div>
+            <div class="comp-fb-section" id="comp_fb_${index}" style="display:none">
+                <div class="comp-offer-grid">
+                    <div class="comp-offer-field"><label>Durée des frais bancaires (ans)</label><input type="number" data-field="dureeFraisBancAns" value="2" min="1" max="30" step="1"></div>
+                </div>
+            </div>
+            <div class="comp-offer-grid">
                 <div class="comp-offer-field"><label>IRA (% du CRD) <span class="info-icon" data-info-key="comp_ira_info">ⓘ</span></label><input type="number" data-field="iraRate" value="3" min="0" max="3" step="0.25"></div>
                 <div class="comp-offer-field"><label>Plafond IRA (mois d'intérêts)</label><input type="number" data-field="iraMoisCap" value="6" min="1" max="6" step="1"></div>
                 <div class="comp-offer-field"><label>Activer modularité <span class="info-icon" data-info-key="comp_modularite_info">ⓘ</span></label><input type="checkbox" data-field="activerModularite" class="comp-modularite-toggle"></div>
@@ -2936,6 +2944,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const section = document.getElementById(`comp_ep_${idx}`);
             if (section) section.style.display = e.target.checked ? 'block' : 'none';
         });
+        card.querySelector('.comp-fb-toggle')?.addEventListener('change', (e) => {
+            const idx = card.dataset.offerIndex;
+            const section = document.getElementById(`comp_fb_${idx}`);
+            if (section) section.style.display = e.target.checked ? 'block' : 'none';
+        });
         card.querySelector('[data-field="typeGarantie"]')?.addEventListener('change', (e) => {
             const idx = card.dataset.offerIndex;
             const section = document.getElementById(`comp_caut_${idx}`);
@@ -2982,6 +2995,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cautionFmgPct: get('cautionFmgPct')?.value !== '' ? num('cautionFmgPct') : 70,
                 cautionRestitutionPct: get('cautionRestitutionPct')?.value !== '' ? num('cautionRestitutionPct') : 75,
                 partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
+                activerDureeFraisBanc: bool('activerDureeFraisBanc'),
+                dureeFraisBancAns: parseInt(get('dureeFraisBancAns')?.value || 2, 10),
                 iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)),
                 iraMoisCap: Math.max(1, Math.min(6, num('iraMoisCap') || 6)),
                 activerModularite: bool('activerModularite'),
@@ -3016,6 +3031,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const fraisInitiaux = fraisDossier + fraisCourtage + fraisGarantie + partsSociales;
 
             const actualHorizon = Math.min(horizonMois, dureeMois);
+            const moisLimiteFraisBanc = offre.activerDureeFraisBanc ? offre.dureeFraisBancAns * 12 : Infinity;
             let capitalRestant  = montant;
             let totalInterets   = 0;
             let totalAssurance  = 0;
@@ -3045,11 +3061,39 @@ document.addEventListener('DOMContentLoaded', () => {
                 totalAssurance += typeAssurance === 'initial'
                     ? montant * (tauxAssurance / 100 / 12)
                     : capitalRestant * (tauxAssurance / 100 / 12);
-                totalFraisBanc += fraisBancairesMensuels;
+                if (m <= moisLimiteFraisBanc) totalFraisBanc += fraisBancairesMensuels;
                 capitalRestant  = Math.max(0, capitalRestant - capitalMois);
 
                 if (m % 12 === 0 || m === actualHorizon) {
-                    evolutionCoutCumule.push(Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc));
+                    const anneesEcoulees = m / 12;
+
+                    let iraCheckpoint = 0;
+                    if (capitalRestant > 0 && offre.iraRate > 0) {
+                        const cap = offre.iraMoisCap * capitalRestant * tauxMensuel;
+                        iraCheckpoint = Math.min((offre.iraRate / 100) * capitalRestant, cap);
+                    }
+
+                    let fraisSortieCheckpoint = 0;
+                    let restitutionsCheckpoint = 0;
+                    if (offre.typeGarantie === 'hypotheque') {
+                        fraisSortieCheckpoint = capitalRestant * 0.007;
+                    } else if (offre.typeGarantie === 'caution') {
+                        const fmg = fraisGarantie * (cautionFmgPct / 100);
+                        restitutionsCheckpoint = fmg * (cautionRestitutionPct / 100);
+                    }
+
+                    let coutEpargneCheckpoint = 0;
+                    if (offre.activerEpargne && offre.epargneTransfertMontant > 0) {
+                        const mt = offre.epargneTransfertMontant;
+                        const fraisEntree = mt * offre.epargneFraisEntreeNouveauPct / 100;
+                        const manque = mt * Math.max(0, offre.epargneRendementActuelPct - offre.epargneRendementNouveauPct) / 100 * anneesEcoulees;
+                        coutEpargneCheckpoint = fraisEntree + manque;
+                    }
+
+                    evolutionCoutCumule.push(Math.round(
+                        totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc
+                        + iraCheckpoint + fraisSortieCheckpoint - restitutionsCheckpoint + coutEpargneCheckpoint
+                    ));
                 }
             }
 
