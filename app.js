@@ -4854,9 +4854,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const crd = parseFloat(getEl('renego_crd')?.value) || 0;
             const dureeRestanteAnnees = parseFloat(getEl('renego_duree_restante')?.value) || 0;
             const tauxActuel = parseFloat(getEl('renego_taux_actuel')?.value) || 0;
-            const assuranceActuelle = parseFloat(getEl('renego_assurance_actuelle')?.value) || 0;
             const nouveauTaux = parseFloat(getEl('renego_nouveau_taux')?.value) || 0;
-            const nouvelleAssurance = parseFloat(getEl('renego_nouvelle_assurance')?.value) || 0;
             const fraisDossier = parseFloat(getEl('renego_frais_dossier')?.value) || 0;
             const fraisGarantie = parseFloat(getEl('renego_frais_garantie')?.value) || 0;
             const strategie = document.querySelector('input[name="renego_strategie"]:checked')?.value || 'A';
@@ -4897,18 +4895,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else { afficherRenegociationImpossible(resultsEl, fraisTotal); return; }
             }
 
-            // === Coûts globaux ===
-            const coutAncienPret = (mensualiteActuelle + assuranceActuelle) * dureeRestanteMois;
-            coutNouveauPret = (nouvelleMensualite + nouvelleAssurance) * nouvelleDureeMois;
+            // === Coûts globaux (hors assurance : identique des deux côtés) ===
+            const coutAncienPret = mensualiteActuelle * dureeRestanteMois;
+            coutNouveauPret = nouvelleMensualite * nouvelleDureeMois;
             gainNet = coutAncienPret - coutNouveauPret;
 
             // === Point mort ===
             if (strategie === 'A') {
-                const gainMensuel = (mensualiteActuelle + assuranceActuelle) - (nouvelleMensualite + nouvelleAssurance);
+                const gainMensuel = mensualiteActuelle - nouvelleMensualite;
                 breakEvenMois = gainMensuel > 0 ? Math.ceil(fraisTotal / gainMensuel) : Infinity;
             } else {
                 if (gainNet > 0 && nouvelleDureeMois > 0) {
-                    const gainMensuel = (mensualiteActuelle + assuranceActuelle) - (nouvelleMensualite + nouvelleAssurance);
+                    const gainMensuel = mensualiteActuelle - nouvelleMensualite;
                     if (gainMensuel > 0) {
                         breakEvenMois = Math.ceil(fraisTotal / gainMensuel);
                     } else {
@@ -4921,8 +4919,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // === Évolution annuelle du gain net (pour graphique + tableau) ===
-            const mensualiteGlobaleAncienne = mensualiteActuelle + assuranceActuelle;
-            const mensualiteGlobaleNouvelle = nouvelleMensualite + nouvelleAssurance;
+            const mensualiteGlobaleAncienne = mensualiteActuelle;
+            const mensualiteGlobaleNouvelle = nouvelleMensualite;
             const maxDureeMois = Math.max(dureeRestanteMois, nouvelleDureeMois);
             const maxAnnees = Math.ceil(maxDureeMois / 12);
             const renegoYearlyData = [];
@@ -4943,8 +4941,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (resultsEl) resultsEl.style.display = 'block';
             const fmt = v => formatCurrency(Math.round(v)) + ' €';
 
-            setText('renego_mens_actuelle', fmt(mensualiteActuelle + assuranceActuelle));
-            setText('renego_mens_nouvelle', fmt(nouvelleMensualite + nouvelleAssurance));
+            setText('renego_mens_actuelle', fmt(mensualiteActuelle));
+            setText('renego_mens_nouvelle', fmt(nouvelleMensualite));
 
             const durationRow = getEl('renego_new_duration_row');
             if (strategie === 'B' && durationRow) {
@@ -5070,28 +5068,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
         getEl('btn-run-renego')?.addEventListener('click', calculerRenegociation);
 
-        function updateRenegoIraDefault() {
+        function updateRenegoDefaults() {
             const type = document.querySelector('input[name="renego_type"]:checked')?.value || 'rachat';
             const crd = parseFloat(getEl('renego_crd')?.value) || 0;
             const tauxActuel = parseFloat(getEl('renego_taux_actuel')?.value) || 0;
             const iraField = getEl('renego_ira');
-            if (!iraField) return;
+            const garantieField = getEl('renego_frais_garantie');
             if (type === 'renegociation') {
-                iraField.value = 0;
+                if (iraField) iraField.value = 0;
+                if (garantieField) garantieField.value = 0;
             } else {
-                const ira3pct = crd * 0.03;
-                const ira6mois = crd * (tauxActuel / 100) / 2;
-                iraField.value = Math.round(Math.min(ira3pct, ira6mois));
+                if (iraField) {
+                    const ira3pct = crd * 0.03;
+                    const ira6mois = crd * (tauxActuel / 100) / 2;
+                    iraField.value = Math.round(Math.min(ira3pct, ira6mois));
+                }
+                if (garantieField && parseFloat(garantieField.value) === 0) garantieField.value = 1500;
             }
         }
 
         document.querySelectorAll('input[name="renego_type"]').forEach(el =>
-            el.addEventListener('change', () => { updateRenegoIraDefault(); calculerRenegociation(); })
+            el.addEventListener('change', () => { updateRenegoDefaults(); calculerRenegociation(); })
         );
         ['renego_crd', 'renego_taux_actuel'].forEach(id =>
-            getEl(id)?.addEventListener('input', updateRenegoIraDefault)
+            getEl(id)?.addEventListener('input', updateRenegoDefaults)
         );
-        updateRenegoIraDefault();
+        updateRenegoDefaults();
 
         // === ONGLET 5 — Assurance Loi Lemoine ===
         getEl('lemoine_source')?.addEventListener('change', () => {
