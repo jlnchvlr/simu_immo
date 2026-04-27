@@ -984,6 +984,18 @@
                 <h3 style="margin:0 0 .3rem 0;">🔄 Renégociation & Rachat de Crédit</h3>
                 <p class="section-description">Comparez votre crédit en cours avec une nouvelle offre bancaire. Vérifiez que les frais de rachat n'annulent pas les gains du nouveau taux.</p>
 
+                <!-- Type d'opération -->
+                <div class="renego-type-toggle" style="margin-bottom:1rem;">
+                    <label class="renego-radio-label">
+                        <input type="radio" name="renego_type" value="rachat" checked>
+                        <span>🔄 <strong>Rachat de crédit</strong> — autre banque (IRA légales)</span>
+                    </label>
+                    <label class="renego-radio-label">
+                        <input type="radio" name="renego_type" value="renegociation">
+                        <span>🤝 <strong>Renégociation</strong> — même banque (IRA à 0 par défaut)</span>
+                    </label>
+                </div>
+
                 <div class="renego-columns">
                     <!-- Colonne 1 : Situation actuelle -->
                     <div class="renego-col">
@@ -1024,6 +1036,10 @@
                         <div class="renego-field">
                             <label for="renego_frais_garantie">Frais de nouvelle garantie (€)</label>
                             <input type="number" id="renego_frais_garantie" min="0" max="10000" value="1500" step="100">
+                        </div>
+                        <div class="renego-field">
+                            <label for="renego_ira">IRA (€) <small style="color:var(--muted)">— modifiable</small></label>
+                            <input type="number" id="renego_ira" min="0" max="100000" value="0" step="100">
                         </div>
                     </div>
                 </div>

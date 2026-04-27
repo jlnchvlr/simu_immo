@@ -4873,10 +4873,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // === Mensualité actuelle (hors assurance) ===
             const mensualiteActuelle = calculerMensualiteCredit(crd, tauxActuel, dureeRestanteMois);
 
-            // === IRA légaux : Min(3% du CRD, 6 mois d'intérêts sur le CRD) ===
-            const ira3pct = crd * 0.03;
-            const ira6mois = crd * (tauxActuel / 100) / 2;
-            const ira = Math.min(ira3pct, ira6mois);
+            // === IRA : valeur saisie par l'utilisateur (pré-remplie selon le type d'opération) ===
+            const ira = parseFloat(getEl('renego_ira')?.value) || 0;
 
             // === Nouveau capital = CRD + IRA + frais garantie + frais dossier ===
             const nouveauCapital = crd + ira + fraisGarantie + fraisDossier;
@@ -5071,6 +5069,29 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         getEl('btn-run-renego')?.addEventListener('click', calculerRenegociation);
+
+        function updateRenegoIraDefault() {
+            const type = document.querySelector('input[name="renego_type"]:checked')?.value || 'rachat';
+            const crd = parseFloat(getEl('renego_crd')?.value) || 0;
+            const tauxActuel = parseFloat(getEl('renego_taux_actuel')?.value) || 0;
+            const iraField = getEl('renego_ira');
+            if (!iraField) return;
+            if (type === 'renegociation') {
+                iraField.value = 0;
+            } else {
+                const ira3pct = crd * 0.03;
+                const ira6mois = crd * (tauxActuel / 100) / 2;
+                iraField.value = Math.round(Math.min(ira3pct, ira6mois));
+            }
+        }
+
+        document.querySelectorAll('input[name="renego_type"]').forEach(el =>
+            el.addEventListener('change', () => { updateRenegoIraDefault(); calculerRenegociation(); })
+        );
+        ['renego_crd', 'renego_taux_actuel'].forEach(id =>
+            getEl(id)?.addEventListener('input', updateRenegoIraDefault)
+        );
+        updateRenegoIraDefault();
 
         // === ONGLET 5 — Assurance Loi Lemoine ===
         getEl('lemoine_source')?.addEventListener('change', () => {
