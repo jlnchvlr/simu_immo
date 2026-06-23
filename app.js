@@ -336,6 +336,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (compCards.length > 0) {
                 _comparateur = {
                     horizonRevente: parseInt(getEl('comp_horizonRevente_num')?.value || 10, 10),
+                    tauxPlacement: parseFloat(getEl('comp_tauxPlacement_num')?.value || 0),
                     offres: Array.from(compCards).map(card => {
                         const get  = f => card.querySelector(`[data-field="${f}"]`);
                         const num  = f => parseFloat(get(f)?.value || 0);
@@ -2853,6 +2854,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Restaurer l'horizon
             const hrNum = getEl('comp_horizonRevente_num');
             if (hrNum) hrNum.value = saved.horizonRevente;
+            const tpNum = getEl('comp_tauxPlacement_num');
+            if (tpNum && saved.tauxPlacement != null) tpNum.value = saved.tauxPlacement;
             // Reconstruire chaque carte
             container.innerHTML = '';
             saved.offres.forEach((offre, i) => {
@@ -3006,6 +3009,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function lireEtatComparateur() {
         const horizonRevente = parseInt(getEl('comp_horizonRevente_num')?.value || 10, 10);
+        const tauxPlacement  = Math.max(0, parseFloat(getEl('comp_tauxPlacement_num')?.value || 0));
         const cards = document.querySelectorAll('#comp_offers_container .comp-offer-card');
         const offres = Array.from(cards).map(card => {
             const get  = (field) => card.querySelector(`[data-field="${field}"]`);
@@ -3045,12 +3049,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 dureeEpargneAns: parseInt(get('dureeEpargneAns')?.value || 0, 10)
             };
         });
-        return { horizonRevente, offres };
+        return { horizonRevente, tauxPlacement, offres };
     }
 
-    function comparerOffresBancaires(offres, horizonAns) {
+    function comparerOffresBancaires(offres, horizonAns, tauxPlacement = 0) {
         const horizonMois = horizonAns * 12;
-        return offres.map(offre => {
+        const results = offres.map(offre => {
             const { montant, dureeAns, tauxNominal, tauxAssurance, typeAssurance,
                     fraisDossier, fraisCourtage, fraisGarantie, fraisAutres,
                     cautionFmgPct, cautionRestitutionPct,
@@ -3182,9 +3186,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const coutGlobalReel = Math.round(totalInterets + totalAssurance + fraisInitiaux + totalFraisBanc + fraisRenego + ira + fraisSortie - restitutions + coutEpargne);
-            const mensualiteInitiale = mensInt + (typeAssurance === 'initial'
-                ? montant * (tauxAssurance / 100 / 12)
-                : capitalRestant * (tauxAssurance / 100 / 12));
+            // Au mois 1, le CRD = montant : la part assurance de la mensualité initiale
+            // se calcule donc sur le capital initial, que l'assurance soit sur capital initial ou sur CRD.
+            const mensualiteInitiale = mensInt + montant * (tauxAssurance / 100 / 12);
 
             return {
                 nom: offre.nom, montant, dureeAns, tauxNominal, mensualiteInitiale: Math.round(mensualiteInitiale),
@@ -3199,17 +3203,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 economieMensuelleRenego: Math.round(economieMensuelleRenego),
                 gainInteretsRenego,
                 economieDPE, coutEpargne: Math.round(coutEpargne),
+                coutOpportuniteApport: 0,
                 coutGlobalReel, capitalRestant: Math.round(capitalRestant), evolutionCoutCumule
             };
         }).filter(Boolean);
+
+        // 2ᵉ passe : coût d'opportunité de l'apport. Sur un projet fixe, l'apport varie en sens
+        // inverse du montant emprunté, plus les frais payés cash : apportProxy = fraisInitiaux − montant
+        // (le coût total du projet, identique pour toutes les offres, se simplifie). On prend comme base
+        // l'offre qui immobilise le moins de cash → chaque offre supporte le rendement perdu sur le
+        // surplus d'apport qu'elle exige, par rapport à cette base.
+        if (tauxPlacement > 0 && results.length > 1) {
+            const apportProxy = r => r.fraisInitiaux - r.montant;
+            const baseApport = Math.min(...results.map(apportProxy));
+            results.forEach(r => {
+                const apportExtra = apportProxy(r) - baseApport;
+                const cout = Math.round(apportExtra * (tauxPlacement / 100) * horizonAns);
+                r.coutOpportuniteApport = cout;
+                r.coutGlobalReel += cout;
+            });
+        }
+        return results;
     }
 
     function runComparator() {
-        const { horizonRevente, offres } = lireEtatComparateur();
+        const { horizonRevente, tauxPlacement, offres } = lireEtatComparateur();
         const label = getEl('comp_horizon_label');
         if (label) label.textContent = horizonRevente;
         if (offres.length < 1) return;
-        const results = comparerOffresBancaires(offres, horizonRevente);
+        const results = comparerOffresBancaires(offres, horizonRevente, tauxPlacement);
         if (results.length > 0) renderComparator(results, horizonRevente);
     }
 
@@ -3248,6 +3270,7 @@ document.addEventListener('DOMContentLoaded', () => {
             { label: 'Frais de sortie garantie',        key: 'fraisSortie',        fmt: v => formatCurrency(v) + ' €' },
             { label: 'Économies bonus DPE',             key: 'economieDPE',        fmt: v => v > 0 ? '– ' + formatCurrency(v) + ' €' : '—' },
             { label: 'Coût épargne transférée',         key: 'coutEpargne',        fmt: v => v > 0 ? formatCurrency(v) + ' €' : '—' },
+            { label: 'Coût d\'opportunité apport',       key: 'coutOpportuniteApport', fmt: v => v > 0 ? formatCurrency(v) + ' €' : '—' },
             { label: 'Capital restant dû à la revente', key: 'capitalRestant',     fmt: v => formatCurrency(v) + ' €' },
         ];
 
@@ -4841,6 +4864,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
         });
         getEl('comp_horizonRevente_num')?.addEventListener('input', () => {
+            if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
+        });
+        getEl('comp_tauxPlacement_num')?.addEventListener('input', () => {
             if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
         });
         getEl('comp_close_results')?.addEventListener('click', () => {
