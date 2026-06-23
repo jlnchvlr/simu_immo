@@ -2783,7 +2783,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="comp-offer-field"><label>Frais de courtage (€) <span class="info-icon" data-info-key="comp_fraisCourtage_info">ⓘ</span></label><input type="number" data-field="fraisCourtage" value="${courtier}" min="0" max="20000" step="100"></div>
                 <div class="comp-offer-field"><label>Type garantie <span class="info-icon" data-info-key="comp_typeGarantie_info">ⓘ</span></label><select data-field="typeGarantie">${optCaut}${optHyp}${optPpd}</select></div>
                 <div class="comp-offer-field"><label>Frais garantie (€) <span class="info-icon" data-info-key="comp_fraisGarantie_info">ⓘ</span></label><input type="number" data-field="fraisGarantie" value="0" min="0" max="30000" step="100"></div>
-                <div class="comp-offer-field"><label>Parts sociales (€) <span class="info-icon" data-info-key="comp_partsSociales_info">ⓘ</span></label><input type="number" data-field="partsSociales" value="0" min="0" max="5000" step="10"></div>
+                <div class="comp-offer-field"><label>Autres frais initiaux (€)</label><input type="number" data-field="fraisAutres" value="0" min="0" max="20000" step="100"></div>
                 <div class="comp-offer-field"><label>Frais bancaires mensuels (€) <span class="info-icon" data-info-key="comp_fraisBancaires_info">ⓘ</span></label><input type="number" data-field="fraisBancairesMensuels" value="0" min="0" max="100" step="1"></div>
                 <div class="comp-offer-field"><label>Durée limitée des frais bancaires</label><input type="checkbox" data-field="activerDureeFraisBanc" class="comp-fb-toggle"></div>
             </div>
@@ -2851,9 +2851,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const saved = window._savedComparateur;
         if (saved && saved.offres && saved.offres.length > 0) {
             // Restaurer l'horizon
-            const hrNum = getEl('comp_horizonRevente_num'), hrRange = getEl('comp_horizonRevente');
+            const hrNum = getEl('comp_horizonRevente_num');
             if (hrNum) hrNum.value = saved.horizonRevente;
-            if (hrRange) hrRange.value = saved.horizonRevente;
             // Reconstruire chaque carte
             container.innerHTML = '';
             saved.offres.forEach((offre, i) => {
@@ -3023,7 +3022,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 cautionCommissionPct: get('cautionCommissionPct')?.value !== '' ? num('cautionCommissionPct') : 30,
                 cautionFmgPct: get('cautionFmgPct')?.value !== '' ? num('cautionFmgPct') : 70,
                 cautionRestitutionPct: get('cautionRestitutionPct')?.value !== '' ? num('cautionRestitutionPct') : 75,
-                partsSociales: num('partsSociales'), fraisBancairesMensuels: num('fraisBancairesMensuels'),
+                fraisAutres: num('fraisAutres'),
+                fraisBancairesMensuels: num('fraisBancairesMensuels'),
                 activerDureeFraisBanc: bool('activerDureeFraisBanc'),
                 dureeFraisBancAns: parseInt(get('dureeFraisBancAns')?.value || 2, 10),
                 iraRate: Math.max(0, Math.min(3, num('iraRate') ?? 3)),
@@ -3052,7 +3052,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const horizonMois = horizonAns * 12;
         return offres.map(offre => {
             const { montant, dureeAns, tauxNominal, tauxAssurance, typeAssurance,
-                    fraisDossier, fraisCourtage, fraisGarantie, partsSociales,
+                    fraisDossier, fraisCourtage, fraisGarantie, fraisAutres,
                     cautionFmgPct, cautionRestitutionPct,
                     fraisBancairesMensuels, activerModularite, moisActivation, haussePct } = offre;
 
@@ -3062,7 +3062,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tauxMensuel  = tauxNominal / 100 / 12;
             let mensInt        = calculerMensualiteCredit(montant, tauxNominal, dureeMois);
             let mensuelleActuelle = mensInt;
-            const fraisInitiaux = fraisDossier + fraisCourtage + fraisGarantie + partsSociales;
+            const fraisInitiaux = fraisDossier + fraisCourtage + fraisGarantie + (fraisAutres || 0);
 
             const actualHorizon = Math.min(horizonMois, dureeMois);
             const moisLimiteFraisBanc = offre.activerDureeFraisBanc ? offre.dureeFraisBancAns * 12 : Infinity;
@@ -3189,6 +3189,9 @@ document.addEventListener('DOMContentLoaded', () => {
             return {
                 nom: offre.nom, montant, dureeAns, tauxNominal, mensualiteInitiale: Math.round(mensualiteInitiale),
                 totalInterets: Math.round(totalInterets), totalAssurance: Math.round(totalAssurance),
+                fraisDossier: Math.round(fraisDossier), fraisCourtage: Math.round(fraisCourtage),
+                fraisGarantie: Math.round(fraisGarantie),
+                fraisAutres: Math.round(fraisAutres || 0),
                 fraisInitiaux: Math.round(fraisInitiaux), totalFraisBanc: Math.round(totalFraisBanc),
                 ira: Math.round(ira), restitutions: Math.round(restitutions), fraisSortie: Math.round(fraisSortie),
                 fraisRenego: Math.round(fraisRenego),
@@ -3219,15 +3222,22 @@ document.addEventListener('DOMContentLoaded', () => {
         container.classList.add('comp-refreshed');
 
         const winnerIdx = results.reduce((bi, r, i) => r.coutGlobalReel < results[bi].coutGlobalReel ? i : bi, 0);
+        const refMontant = results[0]?.montant || 0;
 
         const rows = [
             { label: 'Montant emprunté',               key: 'montant',            fmt: v => formatCurrency(v) + ' €' },
+            { label: 'Δ Apport vs référence',          key: '_deltaApport',       fmt: (v, r) => { const d = (r.montant - refMontant) + (results[0].fraisInitiaux - r.fraisInitiaux); if (d === 0) return '—'; return (d > 0 ? '−' : '+') + ' ' + formatCurrency(Math.abs(d)) + ' €'; } },
             { label: 'Durée initiale',                  key: 'dureeAns',           fmt: v => v + ' ans' },
             { label: 'Taux nominal',                    key: 'tauxNominal',        fmt: v => formatPercentage(v, 2) + ' %' },
             { label: 'Mensualité initiale',             key: 'mensualiteInitiale', fmt: v => formatCurrency(v, 0) + ' €/mois' },
             { label: 'Total intérêts',                  key: 'totalInterets',      fmt: v => formatCurrency(v) + ' €' },
             { label: 'Total assurance',                 key: 'totalAssurance',     fmt: v => formatCurrency(v) + ' €' },
-            { label: 'Frais initiaux',                  key: 'fraisInitiaux',      fmt: v => formatCurrency(v) + ' €' },
+            { label: '↳ Frais de dossier',             key: 'fraisDossier',       fmt: v => formatCurrency(v) + ' €', sub: true },
+            { label: '↳ Frais de courtage',            key: 'fraisCourtage',      fmt: v => formatCurrency(v) + ' €', sub: true },
+            { label: '↳ Frais de garantie',            key: 'fraisGarantie',      fmt: v => formatCurrency(v) + ' €', sub: true },
+
+            { label: '↳ Autres frais initiaux',        key: 'fraisAutres',        fmt: v => formatCurrency(v) + ' €', sub: true },
+            { label: 'Total frais initiaux',            key: 'fraisInitiaux',      fmt: v => formatCurrency(v) + ' €', bold: true },
             { label: 'Frais bancaires (total)',         key: 'totalFraisBanc',     fmt: v => formatCurrency(v) + ' €' },
             { label: 'Frais de renégociation',          key: 'fraisRenego',            fmt: v => v > 0 ? formatCurrency(v) + ' €' : '—' },
             { label: 'Mensualité après renégo',         key: 'mensualitePostRenego',   fmt: v => v !== null ? formatCurrency(v, 0) + ' €/mois' : '—' },
@@ -3245,19 +3255,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (table) {
             let html = `<thead><tr><th>Critère</th>${results.map(r => `<th>${r.nom}</th>`).join('')}</tr></thead><tbody>`;
             for (const row of rows) {
-                html += `<tr><td>${row.label}</td>${results.map(r => `<td>${row.fmt(r[row.key])}</td>`).join('')}</tr>`;
+                const tdStyle = row.sub ? ' style="color:var(--text-light-color);font-size:.85em;padding-left:1.2em;"' : (row.bold ? ' style="font-weight:600;"' : '');
+                html += `<tr><td${tdStyle}>${row.label}</td>${results.map(r => `<td${tdStyle}>${row.fmt(r[row.key], r)}</td>`).join('')}</tr>`;
             }
-            html += `<tr class="pricing-total"><td>💰 Coût Réel Net à ${horizonAns} ans</td>`;
-            const bestCout = results[winnerIdx].coutGlobalReel;
+            html += `<tr class="pricing-total" style="background:var(--accent-light,#e8f4fd);font-size:1.05em;"><td>💰 Coût Réel Net à ${horizonAns} ans</td>`;
+            const bestCoutReel = results[winnerIdx].coutGlobalReel;
             html += results.map((r, i) => {
-                const delta = i !== winnerIdx ? ` <span class="comp-delta">+${formatCurrency(r.coutGlobalReel - bestCout)} €</span>` : ' 🏆';
+                const delta = i !== winnerIdx ? ` <span class="comp-delta">+${formatCurrency(r.coutGlobalReel - bestCoutReel)} €</span>` : ' 🏆';
                 return `<td class="${i === winnerIdx ? 'pricing-winner-cell' : ''}">${formatCurrency(r.coutGlobalReel)} €${delta}</td>`;
             }).join('');
             html += `</tr></tbody>`;
             table.innerHTML = html;
         }
-
-        renderComparatorChart(results, horizonAns);
     }
 
     function renderComparatorChart(results, horizonAns) {
@@ -4813,12 +4822,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Slider horizon comparateur
-        const compHorizonRange = getEl('comp_horizonRevente');
-        const compHorizonNum   = getEl('comp_horizonRevente_num');
-        if (compHorizonRange && compHorizonNum) {
-            compHorizonRange.addEventListener('input', () => { compHorizonNum.value = compHorizonRange.value; updateTrack(compHorizonRange); });
-            compHorizonNum.addEventListener('input',   () => { compHorizonRange.value = compHorizonNum.value; updateTrack(compHorizonRange); });
-        }
 
         // === ONGLET 3 — Comparateur : boutons ===
         getEl('btn-run-comparator')?.addEventListener('click', runComparator);
@@ -4833,14 +4836,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         getEl('comp_sync_horizon')?.addEventListener('click', () => {
             const val = getEl('resaleHorizon_num')?.value || 10;
-            const n = getEl('comp_horizonRevente_num'), r = getEl('comp_horizonRevente');
-            if (n) n.value = val; if (r) r.value = val;
+            const n = getEl('comp_horizonRevente_num');
+            if (n) n.value = val;
             if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
         });
         getEl('comp_horizonRevente_num')?.addEventListener('input', () => {
-            if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
-        });
-        getEl('comp_horizonRevente')?.addEventListener('input', () => {
             if (getEl('comp_results_container')?.style.display !== 'none') runComparator();
         });
         getEl('comp_close_results')?.addEventListener('click', () => {

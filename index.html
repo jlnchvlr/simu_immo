@@ -953,27 +953,23 @@
                 </div>
                 <p class="section-description" style="margin-top:.5rem;">Comparez vos offres sur votre horizon de revente réel, coûts cachés inclus. L'offre de référence est pré-remplie depuis "Mon Projet".</p>
 
-                <div class="input-item" style="margin-bottom:1rem;">
-                    <label for="comp_horizonRevente_num">Horizon de revente (ans) :</label>
-                    <input type="range" id="comp_horizonRevente" min="1" max="30" value="10" step="1">
-                    <input type="number" id="comp_horizonRevente_num" min="1" max="30" value="10" step="1">
-                    <button id="comp_sync_horizon" type="button" style="font-size:.7rem;padding:3px 8px;white-space:nowrap;" title="Copier l'horizon depuis Tab 1">⟳ Tab 1</button>
-                </div>
-
                 <div id="comp_offers_container"></div>
 
                 <button id="btn-run-comparator" class="btn-scenario" style="width:100%; margin-bottom:1rem;">⚖️ Comparer les offres</button>
 
                 <div id="comp_results_container" style="display:none;">
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
-                        <h4 style="margin:0;">📊 Résultats sur <span id="comp_horizon_label">10</span> ans</h4>
+                        <h4 style="margin:0;">📊 Résultats</h4>
                         <button id="comp_close_results" type="button" style="font-size:.75rem;padding:2px 8px;background:none;border:1px solid var(--border-color);border-radius:4px;cursor:pointer;">✕ Fermer</button>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:.5rem; margin-bottom:.75rem; flex-wrap:wrap;">
+                        <label for="comp_horizonRevente_num" style="font-size:.85rem;font-weight:500;">Horizon de revente :</label>
+                        <input type="number" id="comp_horizonRevente_num" min="1" max="30" value="10" step="1" style="width:60px;">
+                        <span style="font-size:.85rem;">ans</span>
+                        <button id="comp_sync_horizon" type="button" style="font-size:.7rem;padding:3px 8px;white-space:nowrap;" title="Copier l'horizon depuis Tab 1">⟳ Tab 1</button>
                     </div>
                     <div style="overflow-x:auto; margin-bottom:1rem;">
                         <table id="comp_pricing_table" class="pricing-table"></table>
-                    </div>
-                    <div style="position:relative; height:300px;">
-                        <canvas id="comparatorChartCanvas"></canvas>
                     </div>
                 </div>
             </section>
